@@ -1,0 +1,11 @@
+# Godot 4 cache & local engine binary
+.godot/
+tools/godot/
+tools/*.log
+books/
+__pycache__/
+*.pyc
+*.tmp
+*.log
+Thumbs.db
+.DS_Store
