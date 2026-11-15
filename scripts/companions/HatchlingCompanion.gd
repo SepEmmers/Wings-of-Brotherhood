@@ -16,6 +16,7 @@ var region = null
 
 var facing: Vector2 = Vector2.DOWN
 var walk_phase: float = 0.0
+var _idle_t: float = 0.0
 var is_moving: bool = false
 var stay_pos: Vector2 = Vector2.ZERO
 var _active_pulse_t: float = 0.0
@@ -183,13 +184,14 @@ func _update_follow_movement(delta: float) -> void:
 		else:
 			global_position = stay_pos
 		is_moving = false
-		walk_phase += delta * 2.5
+		_idle_t += delta * 2.0
 		return
 
 	if player.winch_dash_active:
 		global_position = player.global_position + Vector2(0.0, -18.0)
 		facing = player.facing
 		is_moving = false
+		_idle_t += delta * 2.0
 		return
 
 	var pf: Vector2 = player.facing
@@ -200,15 +202,16 @@ func _update_follow_movement(delta: float) -> void:
 	if dist > 420.0:
 		global_position = desired
 		is_moving = false
+		_idle_t += delta * 2.0
 	elif dist > 10.0:
 		var spd := clampf(dist * 5.2, 95.0, 265.0)
 		global_position += diff.normalized() * minf(dist, spd * delta)
 		facing = diff.normalized()
 		is_moving = true
-		walk_phase += delta * 10.0
+		walk_phase += delta * 11.5
 	else:
 		is_moving = false
-		walk_phase += delta * 2.2
+		_idle_t += delta * 2.0
 
 
 func _step_gold_sense() -> void:
@@ -270,13 +273,28 @@ func _draw() -> void:
 		return
 
 	if GameState.companion_posture == "sling":
-		# Subtle golden scale glint badge over Boy's cloak sling
-		var gl := 0.35 + 0.25 * sin(float(assets.time_elapsed) * 4.0 if assets != null else 0.0)
-		draw_circle(Vector2(6, -12), 4.0, Color(0.96, 0.78, 0.26, gl))
+		# Hooded leather & emerald sling satchel icon over Boy's shoulder with subtle golden scale glint
+		var sling_tex: Texture2D = assets.get_tex("prop_hatchling_sling.png") if assets != null else null
+		var bob := sin(float(assets.time_elapsed) * 3.5) * 1.2 if assets != null else 0.0
+		if sling_tex != null:
+			draw_texture_rect(sling_tex, Rect2(Vector2(2, -22 + bob), Vector2(18, 18)), false)
+		else:
+			var gl := 0.35 + 0.25 * sin(float(assets.time_elapsed) * 4.0 if assets != null else 0.0)
+			draw_circle(Vector2(6, -12), 4.0, Color(0.96, 0.78, 0.26, gl))
 		return
 
-	# Shadow
-	draw_set_transform(Vector2(0, 2), 0.0, Vector2(1.0, 0.45))
+	var step_idx := 0
+	var bob := 0.0
+	if is_moving:
+		step_idx = int(walk_phase) % 2
+		bob = -2.2 * absf(sin(walk_phase * 0.6))
+	else:
+		bob = -1.2 + sin(_idle_t * 1.45) * 1.9
+		step_idx = 1 if fmod(_idle_t * 0.48, 1.0) > 0.68 else 0
+
+	# Shadow narrows subtly as dragonet hovers upward
+	var shadow_s := clampf(1.0 + bob * 0.03, 0.84, 1.06)
+	draw_set_transform(Vector2(0, 2), 0.0, Vector2(shadow_s, 0.45 * shadow_s))
 	draw_circle(Vector2.ZERO, 9.0 + float(GameState.active_companion_stage) * 2.0, Color(0.05, 0.06, 0.08, 0.42))
 	draw_set_transform(Vector2.ZERO)
 
@@ -291,17 +309,18 @@ func _draw() -> void:
 
 	var dir_key := "down"
 	var flip_x := false
-	if absf(facing.x) > absf(facing.y) * 1.05:
+	if absf(facing.x) > 0.30 and absf(facing.y) > 0.30:
+		dir_key = "diag_down" if facing.y >= 0.0 else "diag_up"
+		flip_x = facing.x < 0.0
+	elif absf(facing.x) > absf(facing.y) * 1.05:
 		dir_key = "side"
 		flip_x = facing.x < 0.0
 	elif facing.y < 0.0:
 		dir_key = "up"
-	var step_idx := int(walk_phase) % 2 if is_moving else 0
 	var tex_key := "dragon_gold_s1_%s_%d.png" % [dir_key, step_idx]
 	var tex: Texture2D = assets.get_tex(tex_key) if assets != null else null
 	if tex != null:
 		var sz := Vector2(26.0 + float(GameState.active_companion_stage) * 5.0, 24.0 + float(GameState.active_companion_stage) * 4.5)
-		var bob := -1.8 * absf(sin(walk_phase * 0.5)) if is_moving else sin(walk_phase) * 0.8
 		var pos := Vector2(-sz.x * 0.5, -sz.y + 4.0 + bob)
 		if flip_x:
 			draw_texture_rect(tex, Rect2(Vector2(pos.x + sz.x, pos.y), Vector2(-sz.x, sz.y)), false)

@@ -18,3 +18,6 @@
 6. **Non-Hand-Holding Dialogue & Telepathic Hints:**
    - Keep button prompts (`[F]`, `[V]`, `[C]`, `[M]`, `[E]`, `[R]`, `[T]`) strictly inside HUD hints, proximity bubbles, and the dedicated Controls reference—**never** inside character speech, inspect lines, telepathic dragon thoughts, or field maps.
    - Even when the Golden Hatchling offers Navi-style telepathic puzzle/combat guidance, express physical intuition naturally (*"hmm, that iron catch looks weak if struck right after pulling its shield away"*), never button recipes.
+7. **Golden Dragon Visual Continuity (Black-and-Gold Permanently):**
+   - Across **all** growth stages—including full adulthood—the Golden Prophecy Dragon retains its sleek **obsidian-black scale coat** accented with luminous royal gold filigree, leading wing spars, horn trim, forehead diamond crest, glowing ember chest veins, and warm amber eyes.
+   - Never depict, write, or generate him shedding his dark coat into a broadly or solidly yellow-gold dragon, even when fully grown; maturity refines the brilliance and detail of his gold trim and golden fire rather than replacing his obsidian-black scales.

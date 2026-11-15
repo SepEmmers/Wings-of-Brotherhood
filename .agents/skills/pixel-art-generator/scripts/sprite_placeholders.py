@@ -163,12 +163,12 @@ _PROP_AND_ICON_BOXES = {
     "prop_hay_bale.png": (24, 20, [(3, 5, 18, 12, "H1"), (5, 6, 14, 5, "H2"), (8, 5, 2, 12, "T1"), (14, 5, 2, 12, "T1")]),
     "prop_fence_h.png": (32, 16, [(2, 3, 5, 11, "T1"), (25, 3, 5, 11, "T1"), (0, 6, 32, 3, "T2"), (0, 11, 32, 3, "T2")]),
     "prop_fence_v.png": (12, 32, [(3, 1, 6, 30, "T2"), (2, 2, 8, 5, "T1"), (2, 14, 8, 5, "T1"), (2, 25, 8, 5, "T1")]),
-    # Book II Companion & City Stealth Placeholders (Queue 13)
-    "prop_hatchling_sling.png": (16, 16, [(3, 2, 10, 3, "T0"), (4, 5, 8, 9, "T1"), (5, 7, 6, 5, "C3"), (7, 8, 2, 2, "Y2")]),
-    "prop_wanted_poster.png": (14, 18, [(1, 1, 12, 16, "L0"), (2, 2, 10, 2, "R2"), (4, 5, 6, 6, "C3"), (6, 7, 2, 2, "Y2"), (3, 13, 8, 2, "T0")]),
-    "prop_resonance_chime.png": (16, 16, [(5, 2, 6, 3, "T0"), (4, 5, 8, 7, "Y1"), (6, 6, 4, 5, "Y2"), (7, 12, 2, 2, "T1")]),
-    "prop_smoke_pellet.png": (16, 16, [(4, 5, 8, 8, "SG1"), (6, 6, 4, 4, "SG2"), (7, 3, 2, 3, "L1")]),
+    # Queue 14 Book II Act I prop geometric placeholders (Brabant Fens & Louvain)
+    "prop_dragon_vent_grate.png": (22, 18, [(0, 2, 22, 14, "SG0"), (2, 4, 18, 10, "C3"), (4, 4, 2, 10, "SG2"), (9, 4, 2, 10, "SG2"), (14, 4, 2, 10, "SG2"), (3, 1, 16, 2, "Y1")]),
+    "prop_bell_mould.png": (36, 32, [(4, 10, 28, 20, "T0"), (8, 6, 20, 18, "SG1"), (10, 8, 16, 14, "Y1"), (13, 4, 10, 4, "Y2"), (15, 11, 2, 10, "C3")]),
+    "prop_archive_desk.png": (42, 30, [(3, 10, 36, 18, "T0"), (5, 4, 32, 12, "T2"), (7, 5, 13, 9, "L0"), (22, 5, 13, 9, "L0"), (16, 16, 10, 5, "R1")]),
     # Trim & ration items use sprite_sanctuary.py; Queue 6 capture shackles use sprite_sanctuary.py too.
+    # Queue 13 companion, campfire & stealth sprites now generated in sprite_dragons.py / sprite_portraits.py / sprite_props.py.
 }
 
 
@@ -299,10 +299,6 @@ _PORTRAIT_SPECS = {
     "portrait_herdsman.png": ((50, 62, 42, 255), "T1", "E1", "BL0", False, False, True),
     "portrait_virelai.png": ((26, 62, 54, 255), "E1", "T2", "E2", True, False, False),
     "portrait_greyling.png": ((42, 52, 66, 255), "SG1", "L1", "SG2", True, False, False),
-    "portrait_hatchling_stage1.png": ((28, 30, 38, 255), "C3", "Y2", "C0", True, False, False),
-    "portrait_hatchling_stage2.png": ((34, 34, 38, 255), "C3", "Y1", "Y2", True, False, False),
-    "portrait_hatchling_stage3.png": ((46, 40, 28, 255), "Y1", "C3", "Y2", True, False, False),
-    "portrait_hatchling_stage4.png": ((58, 48, 26, 255), "Y2", "L0", "Y1", True, False, False),
 }
 
 
@@ -369,21 +365,6 @@ def generate_placeholder_sprites(sprites_dir: str) -> int:
             if fname in done:
                 continue
             _make_box_character(fname, torso, trim, hair).save_png(os.path.join(sprites_dir, fname))
-            written += 1
-
-    for frame in (0, 1):
-        fname = f"prop_campfire_{frame}.png"
-        if fname in done:
-            continue
-        _make_box_campfire(frame).save_png(os.path.join(sprites_dir, fname))
-        written += 1
-
-    for direction in ("down", "up", "side"):
-        for frame in (0, 1):
-            fname = f"dragon_gold_s1_{direction}_{frame}.png"
-            if fname in done:
-                continue
-            _make_box_hatchling(direction, frame).save_png(os.path.join(sprites_dir, fname))
             written += 1
 
     return written

@@ -21,6 +21,10 @@ const EXPECTED_BOOK1_REGIONS := [
 	"bruges_city",
 	"outskirts",
 ]
+const EXPECTED_BOOK2_M2_REGIONS := [
+	"brabant_fens",
+	"louvain",
+]
 
 var main = null
 var active: bool = false
@@ -45,13 +49,13 @@ func start(main_node) -> void:
 	_tested_presets = 0
 	_portal_total = 0
 
-	for p in PlaytestPresetsScript.PRESETS:
+	for p in PlaytestPresetsScript.get_all_presets():
 		var pid := str(p.get("id", ""))
 		if not pid.is_empty():
 			_preset_queue.append(pid)
 
 	if _preset_queue.is_empty():
-		_fail("PlaytestPresets.PRESETS returned no presets.")
+		_fail("PlaytestPresets.get_all_presets() returned no presets.")
 		return
 
 	print("SMOKE_START queued_presets=%d" % _preset_queue.size())
@@ -236,6 +240,34 @@ func _verify_book2_systems() -> bool:
 		return false
 	main.ui.campfire_panel.close_panel()
 
+	# Verify DragonNamePanel naming prompt
+	main.ui.open_dragon_name_prompt(Callable())
+	if main.ui.dragon_name_panel == null or not main.ui.dragon_name_panel.visible:
+		_fail("DragonNamePanel failed to open.")
+		return false
+	main.ui.dragon_name_panel._name_input.text = "Aurelius"
+	main.ui.dragon_name_panel._confirm()
+	if GameState.gold_dragon_name != "Aurelius" or main.ui.dragon_name_panel.visible:
+		_fail("DragonNamePanel confirmation did not persist gold_dragon_name.")
+		return false
+
+	# Verify Milestone 2 Brabant Fens & Louvain Dragon Assist puzzle triggers end-to-end
+	main._playtest_jump_to("book2_brabant_hatchling")
+	if not main.active_region.on_dragon_command(Vector2(1378, 565), Vector2(1378, 554), Vector2.UP, 1) or not GameState.brabant_vent_unlocked:
+		_fail("BrabantFens Hatchling Vent Crawl did not unlock sluice gate.")
+		return false
+	if not main.active_region.on_dragon_command(Vector2(1078, 840), Vector2(1078, 860), Vector2.DOWN, 1) or not GameState.brabant_briar_burned:
+		_fail("BrabantFens Hatchling Ember Puff did not burn fen briars.")
+		return false
+	main._playtest_jump_to("book2_louvain_abbey")
+	if not main.active_region.on_dragon_command(Vector2(2044, 730), Vector2(2044, 714), Vector2.UP, 1) or not GameState.louvain_vent_opened:
+		_fail("Louvain Abbey Vent Crawl did not open cloister gate.")
+		return false
+	if not main.active_region.on_dragon_command(Vector2(1788, 512), Vector2(1788, 496), Vector2.UP, 1) or not GameState.louvain_brazier_lit:
+		_fail("Louvain Scriptorium Ember Puff did not light abbey braziers.")
+		return false
+	main.ui.hide_all_overlays()
+
 	# Verify TitleScreenPanel, PauseMenuPanel, SettingsPanel, AudioServer buses & hints/controls wiring
 	if AudioServer.get_bus_index("Ambience") < 0 or AudioServer.get_bus_index("SFX") < 0 or AudioServer.get_bus_index("Voices") < 0:
 		_fail("SoundManager did not initialize Ambience/SFX/Voices audio buses.")
@@ -272,9 +304,9 @@ func _verify_book2_systems() -> bool:
 
 
 func _verify_all_regions_covered() -> bool:
-	for req_id in EXPECTED_BOOK1_REGIONS:
+	for req_id in EXPECTED_BOOK1_REGIONS + EXPECTED_BOOK2_M2_REGIONS:
 		if not _visited_regions.has(req_id):
-			_fail("Expected Book I region '%s' was never loaded by PlaytestPresets." % req_id)
+			_fail("Expected region '%s' was never loaded by PlaytestPresets." % req_id)
 			return false
 	return true
 

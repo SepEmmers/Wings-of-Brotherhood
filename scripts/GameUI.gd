@@ -24,6 +24,7 @@ const TitleScreenPanelScript := preload("res://scripts/ui/TitleScreenPanel.gd")
 const SettingsPanelScript := preload("res://scripts/ui/SettingsPanel.gd")
 const PauseMenuPanelScript := preload("res://scripts/ui/PauseMenuPanel.gd")
 const HudOverlayScript := preload("res://scripts/ui/HudOverlay.gd")
+const DragonNamePanelScript := preload("res://scripts/ui/DragonNamePanel.gd")
 
 var assets
 var lighting_mode: String = "auto"
@@ -43,10 +44,13 @@ var map_panel: PanelContainer
 var playtest_panel: PanelContainer
 var failure_panel: Control
 var campfire_panel: PanelContainer
+var dragon_name_panel: PanelContainer
 
 var checkpoint_panel: ColorRect
 var checkpoint_label: Label
 var checkpoint_sub_label: Label
+var checkpoint_continue_btn: Button
+var pending_checkpoint_continue: Callable = Callable()
 
 var time_skip_panel: ColorRect
 var border_banner: Control
@@ -82,7 +86,7 @@ func setup_ui(assets_ref) -> void:
 
 
 func is_blocking_gameplay() -> bool:
-	for p in [title_panel, settings_panel, pause_panel, journal_panel, map_panel, playtest_panel, knot_minigame, butcher_minigame, campfire_panel, checkpoint_panel, failure_panel]:
+	for p in [title_panel, settings_panel, pause_panel, journal_panel, map_panel, playtest_panel, knot_minigame, butcher_minigame, campfire_panel, dragon_name_panel, checkpoint_panel, failure_panel]:
 		if p != null and p.visible:
 			return true
 	return dialogue_active or cutscene_active
@@ -99,10 +103,14 @@ func is_rebind_active() -> bool:
 func process_ui(delta: float) -> void:
 	if letterbox_top != null and letterbox_bot != null:
 		letterbox_amount = move_toward(letterbox_amount, letterbox_target, delta * 3.2)
+		var vp_sz := get_viewport().get_visible_rect().size
+		var vp_w := vp_sz.x if vp_sz.x > 0.0 else 1280.0
+		var vp_h := vp_sz.y if vp_sz.y > 0.0 else 720.0
 		var bar_h := 68.0 * letterbox_amount
-		letterbox_top.size = Vector2(1280, bar_h)
-		letterbox_bot.position = Vector2(0, 720.0 - bar_h)
-		letterbox_bot.size = Vector2(1280, bar_h)
+		letterbox_top.position = Vector2.ZERO
+		letterbox_top.size = Vector2(vp_w, bar_h)
+		letterbox_bot.position = Vector2(0.0, vp_h - bar_h)
+		letterbox_bot.size = Vector2(vp_w, bar_h)
 		letterbox_top.visible = bar_h > 0.5
 		letterbox_bot.visible = bar_h > 0.5
 
@@ -192,9 +200,10 @@ func hide_all_overlays() -> void:
 		border_banner.hide_banner()
 	if settings_panel != null and settings_panel.has_method("close_settings"):
 		settings_panel.close_settings()
-	for node in [title_panel, settings_panel, pause_panel, journal_panel, map_panel, playtest_panel, knot_minigame, butcher_minigame, campfire_panel, checkpoint_panel, failure_panel, letterbox_top, letterbox_bot, fade_overlay, cutscene_skip_hint]:
+	for node in [title_panel, settings_panel, pause_panel, journal_panel, map_panel, playtest_panel, knot_minigame, butcher_minigame, campfire_panel, dragon_name_panel, checkpoint_panel, failure_panel, letterbox_top, letterbox_bot, fade_overlay, cutscene_skip_hint]:
 		if node != null:
 			node.visible = false
+	pending_checkpoint_continue = Callable()
 	cutscene_active = false
 	letterbox_target = 0.0
 	letterbox_amount = 0.0
@@ -343,11 +352,21 @@ func open_campfire_roost(region_id: String, fire_pos: Vector2, site_title: Strin
 		campfire_panel.open_roost(region_id, fire_pos, site_title, kestrel_ready, kestrel_label)
 
 
-func show_chapter_checkpoint(title_txt: String, body_txt: String = "") -> void:
+func open_dragon_name_prompt(on_done: Callable = Callable()) -> void:
+	if dragon_name_panel != null:
+		dragon_name_panel.open_prompt(on_done)
+		emit_signal("modal_state_changed")
+
+
+func show_chapter_checkpoint(title_txt: String, body_txt: String = "", continue_label: String = "Continue Free Roam", on_continue: Callable = Callable()) -> void:
 	set_hud_visible(false)
 	checkpoint_label.text = title_txt
 	checkpoint_sub_label.text = body_txt
 	checkpoint_sub_label.visible = body_txt.strip_edges() != ""
+	pending_checkpoint_continue = on_continue
+	if checkpoint_continue_btn != null:
+		checkpoint_continue_btn.text = continue_label
+		checkpoint_continue_btn.custom_minimum_size.x = maxi(180, continue_label.length() * 8 + 36)
 	checkpoint_panel.visible = true
 	emit_signal("modal_state_changed")
 
@@ -427,6 +446,12 @@ func _build_ui() -> void:
 	campfire_panel = CampfirePanelScript.new()
 	campfire_panel.setup(assets, self)
 	add_child(campfire_panel)
+
+	dragon_name_panel = DragonNamePanelScript.new()
+	dragon_name_panel.z_index = 68
+	dragon_name_panel.setup(assets)
+	dragon_name_panel.name_confirmed.connect(func(_nm: String): emit_signal("modal_state_changed"))
+	add_child(dragon_name_panel)
 
 	map_panel = ForestMapPanelScript.new()
 	map_panel.setup(assets)
@@ -526,6 +551,10 @@ func _build_cinematic_curtains() -> void:
 	letterbox_bot.visible = false
 
 	cutscene_skip_hint = _make_lbl("[Space / E] Skip Cutscene", 13, Color(0.84, 0.80, 0.72, 0.78), HORIZONTAL_ALIGNMENT_RIGHT)
+	cutscene_skip_hint.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	cutscene_skip_hint.add_theme_color_override("font_shadow_color", Color(0.02, 0.02, 0.04, 0.88))
+	cutscene_skip_hint.add_theme_constant_override("shadow_offset_x", 1)
+	cutscene_skip_hint.add_theme_constant_override("shadow_offset_y", 2)
 	cutscene_skip_hint.set_anchors_preset(Control.PRESET_TOP_RIGHT)
 	cutscene_skip_hint.offset_left = -220
 	cutscene_skip_hint.offset_top = 20
@@ -605,10 +634,22 @@ func _build_checkpoint_panel(seal_tex: Texture2D) -> void:
 	cp_btns.alignment = BoxContainer.ALIGNMENT_CENTER
 	cp_btns.add_theme_constant_override("separation", 12)
 	cp_box.add_child(cp_btns)
+	checkpoint_continue_btn = Button.new()
+	checkpoint_continue_btn.text = "Continue Free Roam"
+	checkpoint_continue_btn.custom_minimum_size = Vector2(180, 34)
+	checkpoint_continue_btn.pressed.connect(func():
+		checkpoint_panel.visible = false
+		set_hud_visible(true)
+		var cb := pending_checkpoint_continue
+		pending_checkpoint_continue = Callable()
+		emit_signal("modal_state_changed")
+		if cb.is_valid():
+			cb.call()
+	)
+	cp_btns.add_child(checkpoint_continue_btn)
 	for bd in [
-		["Continue Free Roam", 180, func(): checkpoint_panel.visible = false; set_hud_visible(true); emit_signal("modal_state_changed")],
-		["Scene Jump [F1]", 150, func(): checkpoint_panel.visible = false; toggle_playtest_menu()],
-		["Replay from Title", 150, func(): emit_signal("replay_requested")]
+		["Scene Jump [F1]", 150, func(): checkpoint_panel.visible = false; pending_checkpoint_continue = Callable(); toggle_playtest_menu()],
+		["Replay from Title", 150, func(): pending_checkpoint_continue = Callable(); emit_signal("replay_requested")]
 	]:
 		var btn := Button.new()
 		btn.text = bd[0]

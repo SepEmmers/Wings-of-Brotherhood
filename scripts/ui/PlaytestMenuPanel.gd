@@ -508,6 +508,7 @@ func _show_empty_tab_preview(ch_info: Dictionary) -> void:
 
 func _make_row_label(parent: HBoxContainer, txt: String, font_sz: int, col: Color) -> Label:
 	var lbl := _make_lbl(parent, txt, font_sz, col)
+	lbl.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	lbl.add_theme_color_override("font_shadow_color", Color(0.02, 0.02, 0.04, 0.85))
 	lbl.add_theme_constant_override("shadow_offset_x", 1)
@@ -593,7 +594,7 @@ func _refresh_tool_buttons() -> void:
 
 
 func _apply_button_9slice(btn: Button, mod: Color = Color.WHITE) -> void:
-	btn.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	btn.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	btn.add_theme_stylebox_override("normal", _btn_normal_sb)
 	btn.add_theme_stylebox_override("hover", _btn_hover_sb)
 	btn.add_theme_stylebox_override("pressed", _btn_pressed_sb)

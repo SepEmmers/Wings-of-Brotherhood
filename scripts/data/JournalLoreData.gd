@@ -119,8 +119,32 @@ static func get_diary_summary() -> String:
 	elif GameState.current_step == GameState.QuestStep.ACT4_NIGHT_HEIST:
 		s += "• [b]Midnight Sanctuary Heist:[/b] Tonight the egg stays with me—the Council won't take it.\n"
 		s += "• Slip past Night-Watch lanterns, cut alarm tripwires with `[V]`, bind threats with `[F]`, grab the Egg from the center pedestal, and reach Kestrel on the east perch!"
-	elif GameState.current_step >= GameState.QuestStep.BOOK2_BRABANT_FENS:
-		s += "• [b]Book II — The Golden Heir:[/b] Riding east into Brabant beside Kestrel with the Black-and-Gold Egg.\n"
+	elif GameState.current_step == GameState.QuestStep.BOOK2_BRABANT_FENS:
+		s += "• [b]Book II Ch. 1 — Brabant Reed-Fens:[/b] Touchdown west of walled Louvain while Kestrel wings back toward Anna's scouts.\n"
+		if not GameState.brabant_hatched:
+			s += "• Follow the warm mill lantern embers ahead to shelter at the ruined stone watermill."
+		elif not GameState.brabant_vent_unlocked:
+			s += "• %s has hatched! Use your companion's small claws and ember sparks around the mill's barred flood-gate to clear the east causeway to Louvain." % GameState.gold_dragon_name
+		else:
+			s += "• The mill sluice gate is unbarred—head east across the reed dikes toward [b]Louvain's West Gate[/b]."
+		s += "\n• [color=#f2d17a]Golden Bond:[/color] %d%%" % GameState.dragon_bond
+	elif GameState.current_step == GameState.QuestStep.BOOK2_LOUVAIN_HATCH:
+		s += "• [b]Book II Ch. 2 — Louvain (City of Bells):[/b] Your birthplace on the Dijle, now crawling with Church Catchpoles.\n"
+		s += "• Parents' Trail (Hunters' Tavern): " + ("[color=#9fd4a3]Heard from Aleidis[/color]\n" if GameState.louvain_guild_visited else "Visit the Old Hunters' Tavern in the SW quarter\n")
+		s += "• Abbey Scriptorium Infiltration: "
+		if GameState.louvain_breakout_won:
+			s += "[color=#9fd4a3]Decrees Seized & South Gate Broken Open![/color]\n"
+		elif GameState.louvain_archive_read:
+			s += "Break clear of the Abbey Forecourt ambush toward the South Gate!\n"
+		elif GameState.louvain_brazier_lit:
+			s += "Read the chained Church Decrees beside the Scriptorium lantern\n"
+		elif GameState.louvain_vent_opened:
+			s += "Light the dark Abbey vault braziers with %s\n" % GameState.gold_dragon_name
+		else:
+			s += "Keep %s tucked in your Cloak-Sling in the streets; slip him through the low Abbey crypt grate\n" % GameState.gold_dragon_name
+		s += "• [color=#f2d17a]Golden Bond:[/color] %d%%   •   [color=#e07a6a]Church Heat:[/color] %d%%" % [GameState.dragon_bond, int(round(GameState.city_heat))]
+	elif GameState.current_step > GameState.QuestStep.BOOK2_LOUVAIN_HATCH:
+		s += "• [b]Book II — The Golden Heir:[/b] Riding inland beside %s toward Old Heverlee and the Meuse.\n" % GameState.gold_dragon_name
 		s += "• [color=#f2d17a]Active Perspective:[/color] %s   •   [color=#f2d17a]Golden Bond:[/color] %d%%" % ["Captain Anna & Virelai" if GameState.active_perspective == "anna" else GameState.player_name, GameState.dragon_bond]
 		if GameState.city_heat > 0.0:
 			s += "   •   [color=#e07a6a]Church Heat:[/color] %d%%" % int(round(GameState.city_heat))
@@ -189,7 +213,7 @@ static func get_bestiary_bbcode() -> String:
 
 	if GameState.active_companion_stage >= 1:
 		lines += "[b]7. %s (Stage %d Golden Lineage)[/b]\n" % [GameState.gold_dragon_name, GameState.active_companion_stage]
-		lines += "[color=#f2d17a]\"Hatched from the soot-black shell streaked with gold. Sheds obsidian plates piece by piece as nourishment and ancient shrines awaken the Mythic Golden Dragon bloodline within.\"[/color]\n"
+		lines += "[color=#f2d17a]\"Hatched from the soot-black shell streaked with gold. Keeps its sleek obsidian-black scale coat at every stage while luminous royal gold filigree, wing spars, horn trim, and ember veins awaken with your bond and ancient Golden Shrines.\"[/color]\n"
 	return lines
 
 
@@ -233,6 +257,6 @@ static func get_controls_bbcode() -> String:
 		+ "[%s] Move / Steer Virelai   |   [%s] Run / Wing-Boost\n" % [move_str, shift_k]
 		+ "[%s / Space] Interact / Bestiary Aerial Sketch   |   [%s / Right-Click] Cast Knot / Mid-Air Splice\n" % [e_k, f_k]
 		+ "[%s / Left-Click] Dock Knife Slash / Cut Briars / Bolts   |   [%s] Dodge-Roll / Barrel-Roll\n" % [v_k, c_k]
-		+ (("[%s] Dragon Assist   |   [%s] Companion Posture (Assist/Stay/Sling)\n" % [r_k, x_k]) if (GameState.active_companion_stage >= 1 or GameState.current_step >= GameState.QuestStep.BOOK2_BRABANT_FENS) else "")
+		+ (("[%s] Dragon Assist   |   [%s] Companion Posture (Assist/Stay/Sling)   |   [1 / 2] Chime / Smoke-Pellet\n" % [r_k, x_k]) if (GameState.active_companion_stage >= 1 or GameState.current_step >= GameState.QuestStep.BOOK2_BRABANT_FENS) else "")
 		+ "[%s] Switch Knot   |   [%s] Character & Bag   |   [%s] Tie Board Practice   |   [%s] Map   |   [%s] Diary   |   [Esc] Pause / Settings   |   [F1] Jump" % [q_k, i_k, k_k, m_k, j_k]
 	)

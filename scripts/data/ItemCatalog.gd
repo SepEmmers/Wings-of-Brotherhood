@@ -103,6 +103,36 @@ static func get_item_info(item_name: String) -> Dictionary:
 			"category": "Brotherhood Chart [M]",
 			"desc": "Vellum border survey charting safe cairn trails, frost dead-ends, briar thickets, and winched creek crossings toward the Outpost."
 		}
+	if "decree" in n or "abbey" in n or "warrant" in n:
+		return {
+			"icon": "icon_strap.png",
+			"category": "Abbey Scriptorium Evidence",
+			"desc": "Signed Church Decree ordering Inquisitors to bury the Old Heverlee Shrine Key affair—paired with a five-year requisition sending 'Clara of Bruges, rig-master' east to Namur's quarries."
+		}
+	if "river clay" in n or "clay" in n:
+		return {
+			"icon": "icon_hemp_bundle.png",
+			"category": "Dijle Foundry Clay",
+			"desc": "Fine grey alluvial clay dug along the Dijle bank to seal the hairline fracture in Master Pieter's cracked bell-mould."
+		}
+	if "hunter" in n or "brass ring" in n or "signet" in n:
+		return {
+			"icon": "icon_carabiner.png",
+			"category": "Old Heverlee Relic",
+			"desc": "Tarnished guild brass signet recovered for the one-eyed Old Heverlee survivor—bearing the same oak-and-hound stamp as your parents' field kit."
+		}
+	if "chime" in n or "resonance" in n:
+		return {
+			"icon": "prop_resonance_chime.png",
+			"category": "Stealth Distraction",
+			"desc": "Harmonic hand-cast bronze chime from the Louvain Foundry; drop or ring it near patrols to draw Catchpoles out of lanes."
+		}
+	if "smoke" in n or "pellet" in n:
+		return {
+			"icon": "prop_smoke_pellet.png",
+			"category": "Alchemical Cover",
+			"desc": "Beeswaxed ash-and-herb pellet steeped by Louvain's Dyers' Quarter herbalist; bursts into concealing soot-fog for five seconds."
+		}
 	return {
 		"icon": "icon_knot.png",
 		"category": "Satchel Item",
@@ -112,12 +142,14 @@ static func get_item_info(item_name: String) -> Dictionary:
 
 static func get_item_badge(item_name: String) -> String:
 	var nl := item_name.to_lower()
-	if "beeswax" in nl or "compass" in nl:
+	if "beeswax" in nl or "compass" in nl or "timing" in nl:
 		return "PASSIVE"
-	if "shuttle" in nl or "strap" in nl or "requisition" in nl or "writ" in nl:
+	if "shuttle" in nl or "strap" in nl or "requisition" in nl or "writ" in nl or "decree" in nl or "signet" in nl:
 		return "CLUE"
-	if "bread" in nl or "biscuit" in nl:
+	if "bread" in nl or "biscuit" in nl or "ration" in nl:
 		return "FOOD"
+	if "chime" in nl or "smoke" in nl:
+		return "STEALTH"
 	if "egg" in nl:
 		return "RELIC"
 	return "GEAR"

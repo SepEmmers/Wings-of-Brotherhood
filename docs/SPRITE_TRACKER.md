@@ -181,14 +181,20 @@ Each protagonist tier spans **51 `24x28` sprites** (`18` walk/idle + `15` action
 
 ---
 
-## Queue 13 — Book II Golden Companion, Campfire & City Stealth Placeholders (`- [ ]` awaiting Sprite Agent)
+## Queue 13 — Book II Golden Companion, Campfire & City Stealth Art (`[x]` Finished in Sprite Generators)
 
-- [ ] `dragon_gold_s1_down_0.png`, `dragon_gold_s1_down_1.png`, `dragon_gold_s1_up_0.png`, `dragon_gold_s1_up_1.png`, `dragon_gold_s1_side_0.png`, `dragon_gold_s1_side_1.png` (`24x22`) — Stage 1 soot-black hatchling dragonet (`HatchlingCompanion`) with subtle shedding gold scale flecks and fluttering wing frames (`0`/`1`).
-- [ ] `portrait_hatchling_stage1.png`, `portrait_hatchling_stage2.png`, `portrait_hatchling_stage3.png`, `portrait_hatchling_stage4.png` (`48x48`) — Telepathic Mind-Voice & milestone portraits showing progressive scale shedding from soot-black newborn (`stage1`) to radiant Mythical Golden Dragon (`stage4`).
-- [ ] `prop_hatchling_sling.png` (`16x16`) — Leather cloak-sling travel satchel showing a tucked soot-black dragon snout and golden eye glint.
-- [ ] `prop_campfire_0.png`, `prop_campfire_1.png` (`28x24`) — Wayside stone-ring campfire with crossed oak logs and 2-frame dancing amber flames (`CampfirePanel` roosts).
-- [ ] `prop_wanted_poster.png` (`14x18`) — Church Inquisitorial parchment notice pinned to stone walls (seal + dark dragon silhouette).
-- [ ] `prop_resonance_chime.png` (`16x16`), `prop_smoke_pellet.png` (`16x16`) — Bronze distraction chime bell and slate-grey smoke evasion pellet (`CityHeatHelper`).
+- [x] `dragon_gold_s1_down_0.png`, `dragon_gold_s1_down_1.png`, `dragon_gold_s1_up_0.png`, `dragon_gold_s1_up_1.png`, `dragon_gold_s1_side_0.png`, `dragon_gold_s1_side_1.png` (`24x22`) — Stage 1 soot-black hatchling dragonet (`HatchlingCompanion`) with cracking molten-gold seams and fluttering wing/tail frames (`sprite_dragons.py`).
+- [x] `portrait_hatchling_stage1.png`, `portrait_hatchling_stage2.png`, `portrait_hatchling_stage3.png`, `portrait_hatchling_stage4.png` (`48x48`) — Telepathic Mind-Voice & milestone bust portraits showing progressive scale shedding from soot-black newborn (`stage1`) to radiant Mythical Golden Dragon (`stage4`) (`sprite_portraits.py`).
+- [x] `prop_hatchling_sling.png` (`16x16`) — Leather-and-emerald cloak travel-sling showing a tucked soot-black dragon snout and golden eye glint (`sprite_props.py`, `HatchlingCompanion.gd`).
+- [x] `prop_campfire_0.png`, `prop_campfire_1.png` (`28x24`) — Wayside creek-stone campfire with crossed oak logs, glowing embers, and 2-frame dancing amber flames (`sprite_props.py`, `FrontierWildsDraw.gd`, `SanctuaryDraw.gd`).
+- [x] `prop_wanted_poster.png` (`14x18`) — Church Inquisitorial parchment notice pinned to stone walls with seal & dark dragon woodcut (`sprite_props.py`, `CityHeatHelper.gd`).
+- [x] `prop_resonance_chime.png` (`16x16`), `prop_smoke_pellet.png` (`16x16`) — Brass resonance chime stand and beeswaxed ash smoke pellet (`sprite_props.py`, `CityHeatHelper.gd`).
+
+### Queue 14 — Book II Act I: Brabant Fens & Louvain Interactables (`sprite_placeholders.py` `- [ ]`)
+
+- [ ] `prop_dragon_vent_grate.png` (`22x18`) — Low stone drainage/crypt iron bar grate too narrow for the Boy, sized for the soot-black Stage 1 hatchling to crawl through (`BrabantFensRegion.gd`, `LouvainCityRegion.gd`).
+- [ ] `prop_bell_mould.png` (`36x32`) — Cracked loam-and-bronze Louvain foundry casting pit & bell core for the Deaf Bell-Founder's side story (`LouvainCityRegion.gd`).
+- [ ] `prop_archive_desk.png` (`42x30`) — Chained Abbey Scriptorium ledger lectern holding the Old Heverlee Church Decree & Clara's Namur requisition warrant (`LouvainCityRegion.gd`).
 
 ---
 

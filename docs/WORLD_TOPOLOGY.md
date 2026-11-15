@@ -96,6 +96,15 @@ Every seamless border walk-portal uses `RegionBase.register_walk_portal(id, rect
 
 - **`PortOfBrugesAmbush` -> `house` -> `sanctuary`:** Church betrayal / ambush capture cuts to `house` `(640, 445)` during `SNITCH_TO_CHURCH`, then rescue flies/transitions to `sanctuary` (`arrival_cutscene: true`).
 - **`sanctuary` -> `flight` -> `wilds` -> `hearth` -> `sanctuary`:** Brotherhood sorties (`sortie: 1` returns to `sanctuary` `(465, 440)`; `sortie: 2` crash-lands in `wilds`; Watchtower Hearth flies back to `sanctuary` `(342, 504)` with `act4_debate_intro: true`).
+- **`SanctuaryAct4` Finale -> `brabant_fens`:** Completing Kestrel's midnight Sanctuary escape advances via `"Continue to Book II: Brabant Fens"` into `brabant_fens` (`book2_intro: true`).
+
+### 2.4 Brabant Province & Dijle Basin (Book II Act I)
+
+| Connection | From Region | Portal ID | Trigger `Rect2` | `move_dir_hint` | Lands in Region | Spawn `Vector2` | Facing | Paired Return ID | Notes |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **Brabant East ↔ Louvain West** | `brabant_fens` | `brabant_to_louvain` | `Rect2(2092, 650, 68, 128)` | `Vector2.RIGHT` | `louvain` | `(118, 880)` | `Vector2.RIGHT` | `louvain_west_fens` | Locked behind Mill Sluice Gate until Hatchling Vent Crawl (`brabant_vent_unlocked`) |
+| **Louvain West ↔ Brabant East** | `louvain` | `louvain_west_fens` | `Rect2(64, 816, 48, 128)` | `Vector2.LEFT` | `brabant_fens` | `(2040, 710)` | `Vector2.LEFT` | `brabant_to_louvain` | Returns west over the Dijle dike bridge |
+| **Louvain South → Old Heverlee** | `louvain` | `louvain_south_heverlee` | `Rect2(1136, 1734, 128, 66)` | `Vector2.DOWN` | *(Milestone 3 checkpoint)* | `—` | `—` | `—` | Unlocks upon winning the Abbey Breakout & Golden Resonance burst (`louvain_breakout_won`) |
 
 ---
 

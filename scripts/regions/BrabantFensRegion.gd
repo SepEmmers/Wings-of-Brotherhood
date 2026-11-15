@@ -1,0 +1,522 @@
+extends "res://scripts/regions/RegionBase.gd"
+
+## Book II Act I Leg 1 — Brabant Reed-Fens (2160x1440):
+## Kestrel touchdown west of walled Louvain, sheltered mill campfire Egg Hatching
+## & naming ceremony, Hatchling Stage 1 Vent Crawl + Ember Puff + Gold-Sense,
+## and east dike portal to Louvain's West Gate.
+
+const BrabantFensDrawScript := preload("res://scripts/regions/BrabantFensDraw.gd")
+
+const WORLD_SIZE := Vector2(2160, 1440)
+const KESTREL_LANDING_POS := Vector2(228, 708)
+const MILL_COTTAGE_RECT := Rect2(812, 430, 152, 128)
+const CAMPFIRE_POS := Vector2(960, 680)
+const VENT_POS := Vector2(1378, 554)
+const GATE_RECT := Rect2(1352, 646, 52, 128)
+const BRIAR_POS := Vector2(1078, 860)
+const CACHE_POS := Vector2(1078, 924)
+const GOLD_RELIC_POS := Vector2(590, 392)
+const EAST_SIGN_POS := Vector2(2016, 616)
+
+const SLUICE_WALL_SEGMENTS: Array[Rect2] = [
+	Rect2(1352, 430, 52, 216),
+	Rect2(1352, 774, 52, 150),
+]
+
+const REED_CLUMPS: Array[Vector2] = [
+	Vector2(180, 340), Vector2(310, 292), Vector2(460, 980), Vector2(680, 990),
+	Vector2(1180, 320), Vector2(1290, 995), Vector2(1540, 310), Vector2(1660, 960),
+	Vector2(1920, 340), Vector2(2040, 940),
+]
+
+const FEN_TREES: Array[Vector2] = [
+	Vector2(290, 360), Vector2(450, 310), Vector2(710, 300), Vector2(1120, 310),
+	Vector2(1490, 340), Vector2(1670, 410), Vector2(1960, 370),
+	Vector2(280, 985), Vector2(510, 975), Vector2(880, 1005), Vector2(1470, 975),
+	Vector2(1680, 985), Vector2(1960, 965),
+]
+
+var solid_colliders: Array[Rect2] = []
+var gate_body: StaticBody2D
+var briar_body: StaticBody2D
+var region_lights: Array[PointLight2D] = []
+var brazier_lights: Array[PointLight2D] = []
+
+var brazier_states: Array[Dictionary] = [
+	{"pos": Vector2(680, 628), "lit": false},
+	{"pos": Vector2(1660, 628), "lit": false},
+]
+
+var intro_active: bool = false
+var intro_stage: int = 0
+var intro_t: float = 0.0
+var kestrel_visible: bool = false
+var kestrel_pos: Vector2 = KESTREL_LANDING_POS
+var kestrel_alt: float = 0.0
+
+var hatch_anim_active: bool = false
+var hatch_anim_stage: int = 0
+var hatch_anim_t: float = 0.0
+
+var cairn_relic_claimed: bool = false
+var fx_particles: Array[Dictionary] = []
+
+
+func _ready() -> void:
+	_setup_collisions()
+	_setup_lights()
+	BrabantFensDrawScript.setup_layers(self)
+
+	interactables = [
+		{"id": "bf_campfire", "name": "Sheltered Mill Campfire", "pos": CAMPFIRE_POS, "radius": 78.0, "callback": _on_interact_campfire},
+		{"id": "bf_cache", "name": "Smuggler Fen Cache", "pos": CACHE_POS, "radius": 68.0, "callback": _on_interact_cache},
+		{"id": "bf_cairn", "name": "Gold-Sunken Boundary Cairn", "pos": GOLD_RELIC_POS, "radius": 70.0, "callback": _on_interact_cairn},
+		{"id": "bf_east_sign", "name": "Read Louvain Milepost & Decree", "pos": EAST_SIGN_POS, "radius": 74.0, "callback": _on_read_east_sign},
+	]
+	clear_walk_portals()
+	register_walk_portal(
+		"brabant_to_louvain",
+		Rect2(2092, 650, 68, 128),
+		Vector2.RIGHT,
+		_on_enter_louvain,
+		"Louvain West Gate ->",
+		"LOUVAIN — DIJLE CITY",
+		"Birthplace & Locked Archives"
+	)
+
+
+func _setup_collisions() -> void:
+	colliders = StaticBody2D.new()
+	add_child(colliders)
+	solid_colliders.clear()
+
+	# Perimeter world bounds & water pools
+	var base_solids: Array[Rect2] = [
+		Rect2(-24, 0, 24, WORLD_SIZE.y),
+		Rect2(WORLD_SIZE.x, 0, 24, WORLD_SIZE.y),
+		Rect2(MILL_COTTAGE_RECT.position.x + 12, MILL_COTTAGE_RECT.position.y + 52, MILL_COTTAGE_RECT.size.x - 24, MILL_COTTAGE_RECT.size.y - 54),
+	]
+	for wr: Rect2 in BrabantFensDrawScript.get_water_rects():
+		base_solids.append(wr)
+	for ws: Rect2 in SLUICE_WALL_SEGMENTS:
+		base_solids.append(ws)
+	for sr: Rect2 in base_solids:
+		add_box_collider(colliders, sr)
+		solid_colliders.append(sr)
+
+	gate_body = StaticBody2D.new()
+	add_child(gate_body)
+	add_box_collider(gate_body, GATE_RECT)
+
+	briar_body = StaticBody2D.new()
+	add_child(briar_body)
+	add_box_collider(briar_body, Rect2(BRIAR_POS - Vector2(30, 18), Vector2(60, 36)))
+
+
+func _setup_lights() -> void:
+	region_lights.clear()
+	brazier_lights.clear()
+	var camp_pl: PointLight2D = assets.make_point_light(CAMPFIRE_POS + Vector2(0, -10), 2.8, Color(1.0, 0.70, 0.30), 0.88)
+	add_child(camp_pl)
+	region_lights.append(camp_pl)
+
+	for b: Dictionary in brazier_states:
+		var bl: PointLight2D = assets.make_point_light(Vector2(b["pos"]) + Vector2(0, -10), 2.2, Color(1.0, 0.72, 0.34), 0.76)
+		bl.visible = false
+		add_child(bl)
+		brazier_lights.append(bl)
+		region_lights.append(bl)
+
+
+func enter_region(opts: Dictionary = {}) -> void:
+	fx_particles.clear()
+	portal_cooldown = 0.85
+	GameState.active_perspective = "boy"
+	GameState.book2_started = true
+	if int(GameState.current_step) < int(GameState.QuestStep.BOOK2_BRABANT_FENS):
+		GameState.current_step = GameState.QuestStep.BOOK2_BRABANT_FENS
+	GameState.unlock_realm_node("brabant_fens")
+
+	if bool(opts.get("hatched_state", false)):
+		GameState.brabant_hatched = true
+		GameState.active_companion_stage = maxi(1, GameState.active_companion_stage)
+		if GameState.dragon_bond < 10:
+			GameState.dragon_bond = 10
+
+	var spawn: Vector2 = opts.get("spawn", Vector2(276, 708))
+	player.position = spawn
+	player.facing = opts.get("facing", Vector2.RIGHT)
+	player.visible = true
+	player.cutscene_hidden = false
+	player.can_move = true
+	player.set_carry_prop("" if GameState.brabant_hatched else "egg", "" if GameState.brabant_hatched else "cradle")
+
+	set_body_collision_enabled(gate_body, not GameState.brabant_vent_unlocked)
+	set_body_collision_enabled(briar_body, not GameState.brabant_briar_burned)
+
+	if director != null and director.camera != null:
+		director.camera.limit_left = 0
+		director.camera.limit_top = 0
+		director.camera.limit_right = int(WORLD_SIZE.x)
+		director.camera.limit_bottom = int(WORLD_SIZE.y)
+		director.camera.position = player.position
+
+	_connect_campfire_signals()
+
+	kestrel_visible = false
+	intro_active = false
+	hatch_anim_active = false
+
+	if bool(opts.get("book2_intro", false)) and not GameState.brabant_hatched:
+		_start_kestrel_arrival()
+	else:
+		_sync_hint_context()
+
+	ui.set_hud_visible(true)
+	ui.set_flight_hud_mode(false)
+	ui.update_world_map_state("brabant_fens", player.position)
+	ui.refresh_hud()
+	SoundManager.set_ambience(get_ambience_track())
+	step_water_layer()
+	queue_redraw()
+	queue_foreground_redraw()
+
+
+func exit_region() -> void:
+	if director != null and director.companion != null:
+		director.companion.clear_hint_context()
+
+
+func _connect_campfire_signals() -> void:
+	if ui == null or ui.campfire_panel == null:
+		return
+	var cp = ui.campfire_panel
+	if not cp.rested_at_fire.is_connected(_on_camp_rested):
+		cp.rested_at_fire.connect(_on_camp_rested)
+	if not cp.fed_hatchling.is_connected(_on_camp_fed):
+		cp.fed_hatchling.connect(_on_camp_fed)
+
+
+func _on_camp_rested() -> void:
+	GameState.brabant_camp_rested = true
+	_spawn_fx(CAMPFIRE_POS, Color(1.0, 0.84, 0.42), 14)
+
+
+func _on_camp_fed(_new_bond: int) -> void:
+	_spawn_fx(CAMPFIRE_POS + Vector2(18, 4), Color(0.98, 0.84, 0.36), 16)
+	_sync_hint_context()
+
+
+func step_region(delta: float) -> void:
+	step_water_layer()
+	step_walk_portals(delta)
+	_step_particles(delta)
+	if intro_active:
+		_step_kestrel_arrival(delta)
+	elif hatch_anim_active:
+		_step_hatching_sequence(delta)
+	elif player != null and player.visible:
+		update_nearest_interactable(player.position)
+		if ui != null:
+			ui.update_world_map_state("brabant_fens", player.position)
+	queue_redraw()
+	queue_foreground_redraw()
+
+
+func _step_particles(delta: float) -> void:
+	for i in range(fx_particles.size() - 1, -1, -1):
+		var p: Dictionary = fx_particles[i]
+		p["life"] = float(p["life"]) - delta
+		p["pos"] = Vector2(p["pos"]) + Vector2(p["vel"]) * delta
+		if float(p["life"]) <= 0.0:
+			fx_particles.remove_at(i)
+
+
+func _spawn_fx(origin: Vector2, col: Color, count: int = 12) -> void:
+	for _i in range(count):
+		var ang := randf() * TAU
+		var spd := randf_range(24.0, 78.0)
+		fx_particles.append({
+			"pos": origin + Vector2(randf_range(-8.0, 8.0), randf_range(-8.0, 8.0)),
+			"vel": Vector2(cos(ang), sin(ang)) * spd,
+			"life": randf_range(0.35, 0.72),
+			"max_life": 0.72,
+			"sz": randf_range(2.2, 4.2),
+			"col": col,
+		})
+
+
+func _start_kestrel_arrival() -> void:
+	intro_active = true
+	intro_stage = 0
+	intro_t = 0.0
+	kestrel_visible = true
+	kestrel_pos = KESTREL_LANDING_POS
+	kestrel_alt = 190.0
+	player.position = KESTREL_LANDING_POS + Vector2(24, 18)
+	player.cutscene_hidden = true
+	player.can_move = false
+	ui.set_cinematic_mode(true, _skip_kestrel_arrival)
+	SoundManager.play_wing_beat()
+
+
+func _skip_kestrel_arrival() -> void:
+	intro_active = false
+	kestrel_visible = false
+	player.cutscene_hidden = false
+	player.position = KESTREL_LANDING_POS + Vector2(48, 4)
+	player.facing = Vector2.RIGHT
+	player.set_carry_prop("egg", "cradle")
+	ui.set_cinematic_mode(false)
+	_sync_hint_context()
+
+
+func _step_kestrel_arrival(delta: float) -> void:
+	intro_t += delta
+	if intro_stage == 0:
+		var p := clampf(intro_t / 1.5, 0.0, 1.0)
+		kestrel_alt = lerpf(190.0, 0.0, p * (2.0 - p))
+		if director != null and director.camera != null:
+			director.camera.position = kestrel_pos + Vector2(0, -kestrel_alt * 0.4)
+		if p >= 1.0:
+			intro_stage = 1
+			intro_t = 0.0
+			player.cutscene_hidden = false
+			player.position = kestrel_pos + Vector2(36, 12)
+			player.facing = Vector2.LEFT
+			player.set_carry_prop("egg", "cradle")
+			SoundManager.play_hatch_chirp()
+			_spawn_fx(kestrel_pos + Vector2(18, 0), Color(0.84, 0.90, 0.96), 12)
+	elif intro_stage == 1:
+		# Kestrel noses Boy's sleeve quietly before lifting back east to Anna's scout post
+		if intro_t >= 1.0:
+			intro_stage = 2
+			intro_t = 0.0
+			SoundManager.play_wing_beat()
+			_spawn_fx(kestrel_pos, Color(0.86, 0.92, 0.98), 16)
+	else:
+		var p2 := clampf(intro_t / 1.6, 0.0, 1.0)
+		kestrel_pos = KESTREL_LANDING_POS.lerp(KESTREL_LANDING_POS + Vector2(380, -260), p2 * p2)
+		kestrel_alt = 240.0 * p2
+		if p2 >= 1.0:
+			intro_active = false
+			kestrel_visible = false
+			player.facing = Vector2.RIGHT
+			ui.set_cinematic_mode(false)
+			_sync_hint_context()
+
+
+func _on_interact_campfire() -> void:
+	if hatch_anim_active or intro_active:
+		return
+	if not GameState.brabant_hatched:
+		_start_hatching_sequence()
+		return
+	ui.open_campfire_roost("brabant_fens", CAMPFIRE_POS, "Old Mill Campfire", false, "Kestrel Scouted North")
+
+
+func _start_hatching_sequence() -> void:
+	hatch_anim_active = true
+	hatch_anim_stage = 0
+	hatch_anim_t = 0.0
+	player.can_move = false
+	player.position = CAMPFIRE_POS + Vector2(-18, 12)
+	player.facing = Vector2.RIGHT
+	player.set_carry_prop("", "")
+	player.set_cutscene_pose("boy_kneel.png")
+	ui.set_cinematic_mode(true)
+	SoundManager.play_campfire_warm()
+
+
+func _step_hatching_sequence(delta: float) -> void:
+	hatch_anim_t += delta
+	if hatch_anim_stage == 0 and hatch_anim_t >= 0.85:
+		hatch_anim_stage = 1
+		hatch_anim_t = 0.0
+		SoundManager.play_egg_crack()
+		_spawn_fx(CAMPFIRE_POS + Vector2(38, 6), Color(0.96, 0.82, 0.34), 10)
+	elif hatch_anim_stage == 1 and hatch_anim_t >= 0.90:
+		hatch_anim_stage = 2
+		hatch_anim_t = 0.0
+		SoundManager.play_egg_crack()
+		director.trigger_camera_shake(4.0, 0.18)
+		_spawn_fx(CAMPFIRE_POS + Vector2(38, 6), Color(1.0, 0.88, 0.44), 18)
+	elif hatch_anim_stage == 2 and hatch_anim_t >= 0.85:
+		hatch_anim_stage = 3
+		hatch_anim_t = 0.0
+		SoundManager.play_hatch_chirp()
+		SoundManager.play_dragon_purr()
+		_spawn_fx(CAMPFIRE_POS + Vector2(38, 4), Color(1.0, 0.86, 0.38), 24)
+	elif hatch_anim_stage == 3 and hatch_anim_t >= 1.1:
+		hatch_anim_active = false
+		player.set_cutscene_pose("")
+		GameState.brabant_hatched = true
+		GameState.carrying_egg = false
+		GameState.remove_item("Black-and-Gold Dragon Egg")
+		GameState.active_companion_stage = 1
+		GameState.add_dragon_bond(10)
+		if director != null and director.companion != null:
+			director.companion.position = CAMPFIRE_POS + Vector2(38, 8)
+		ui.set_cinematic_mode(false)
+		ui.refresh_hud()
+		ui.open_dragon_name_prompt(func(_chosen: String):
+			SoundManager.play_dragon_purr()
+			_sync_hint_context()
+			ui.refresh_hud()
+		)
+
+
+func _on_interact_cache() -> void:
+	if not GameState.brabant_briar_burned or GameState.brabant_cache_looted:
+		return
+	GameState.brabant_cache_looted = true
+	GameState.raw_rations += 1
+	GameState.smoke_pellets += 1
+	GameState.add_item("Raw River Ration")
+	SoundManager.play_chime()
+	player.show_held_item(assets.get_tex("prop_smoke_pellet.png"), 1.1)
+	_spawn_fx(CACHE_POS, Color(0.98, 0.86, 0.42), 14)
+	ui.pulse_hud_icon("bag")
+	ui.refresh_hud()
+
+
+func _on_interact_cairn() -> void:
+	if cairn_relic_claimed:
+		return
+	cairn_relic_claimed = true
+	GameState.raw_rations += 1
+	GameState.add_dragon_bond(5)
+	SoundManager.play_chime()
+	_spawn_fx(GOLD_RELIC_POS, Color(1.0, 0.88, 0.38), 16)
+	if director != null and director.companion != null:
+		director.companion.notify_progress()
+	ui.refresh_hud()
+
+
+func _on_read_east_sign() -> void:
+	ui.show_dialogue([
+		{
+			"speaker": "Milepost & Church Notice",
+			"portrait": "portrait_inquisitor.png",
+			"text": "\"WALL OF LOUVAIN — WEST DIKE GATE. BY ORDER OF THE INQUISITION: Twenty golden florins for any black-and-gold wyrmling or carrier seized inside Brabant parish walls. All riders inspect harnesses at the tollhouse.\""
+		}
+	])
+
+
+func _on_enter_louvain() -> void:
+	director.load_region("louvain", {"spawn": Vector2(118, 880), "facing": Vector2.RIGHT})
+
+
+func is_portal_unlocked(id: String) -> bool:
+	if id == "brabant_to_louvain":
+		return GameState.brabant_vent_unlocked
+	return true
+
+
+func is_interactable_active(id: String) -> bool:
+	if id == "bf_cache":
+		return GameState.brabant_briar_burned and not GameState.brabant_cache_looted
+	if id == "bf_cairn":
+		return not cairn_relic_claimed
+	return true
+
+
+func get_gold_sense_targets() -> Array:
+	var targets: Array = []
+	if not cairn_relic_claimed:
+		targets.append(GOLD_RELIC_POS)
+	if not GameState.brabant_vent_unlocked:
+		targets.append(VENT_POS)
+	if not GameState.brabant_briar_burned:
+		targets.append(BRIAR_POS)
+	return targets
+
+
+func on_dragon_command(origin: Vector2, target_pos: Vector2, _aim: Vector2, _stage: int) -> bool:
+	# 1. Mill Sluice Vent Crawl (unlocks East Louvain gate from inside)
+	if not GameState.brabant_vent_unlocked and (origin.distance_to(VENT_POS) <= 95.0 or target_pos.distance_to(VENT_POS) <= 90.0):
+		GameState.brabant_vent_unlocked = true
+		GameState.add_dragon_bond(5)
+		set_body_collision_enabled(gate_body, false)
+		SoundManager.play_cage_break()
+		SoundManager.play_door()
+		_spawn_fx(VENT_POS, Color(0.98, 0.84, 0.36), 14)
+		_spawn_fx(GATE_RECT.get_center(), Color(0.55, 0.96, 0.65), 18)
+		if director != null and director.companion != null:
+			director.companion.notify_progress()
+		_sync_hint_context()
+		ui.refresh_hud()
+		return true
+
+	# 2. Ember Puff on Dry Fen Briars
+	if not GameState.brabant_briar_burned and (origin.distance_to(BRIAR_POS) <= 105.0 or target_pos.distance_to(BRIAR_POS) <= 95.0):
+		GameState.brabant_briar_burned = true
+		set_body_collision_enabled(briar_body, false)
+		SoundManager.play_campfire_warm()
+		_spawn_fx(BRIAR_POS, Color(1.0, 0.56, 0.16), 22)
+		if director != null and director.companion != null:
+			director.companion.notify_progress()
+		return true
+
+	# 3. Ember Puff on Stone Way-Braziers
+	for bi in range(brazier_states.size()):
+		var b: Dictionary = brazier_states[bi]
+		if bool(b.get("lit", false)):
+			continue
+		var bp := Vector2(b["pos"])
+		if origin.distance_to(bp) <= 96.0 or target_pos.distance_to(bp) <= 84.0:
+			b["lit"] = true
+			SoundManager.play_campfire_warm()
+			_spawn_fx(bp + Vector2(0, -10), Color(1.0, 0.72, 0.24), 14)
+			return true
+	return false
+
+
+func _sync_hint_context() -> void:
+	if director == null or director.companion == null:
+		return
+	if not GameState.brabant_hatched:
+		director.companion.clear_hint_context()
+		return
+	if not GameState.brabant_vent_unlocked:
+		director.companion.set_hint_context(
+			"bf_vent",
+			["A warm golden tug brushes your ribs—low iron bars by the mill sluice look wide enough for small soot-black claws to squeeze beneath."],
+			VENT_POS,
+			28.0
+		)
+	else:
+		director.companion.clear_hint_context()
+
+
+func get_surface_at(pos: Vector2) -> String:
+	if Rect2(140, 646, 172, 128).has_point(pos) or Rect2(1732, 656, 144, 114).has_point(pos):
+		return "wood"
+	if Rect2(760, 430, 598, 430).has_point(pos):
+		return "cobble"
+	return "grass"
+
+
+func get_ambience_track() -> String:
+	return "amb_wilds"
+
+
+func get_lighting_tint() -> Color:
+	return Color(0.68, 0.76, 0.88)
+
+
+func update_region_lights(_time_val: float) -> void:
+	for bi in range(brazier_lights.size()):
+		if bi < brazier_states.size():
+			brazier_lights[bi].visible = bool(brazier_states[bi].get("lit", false))
+	var lit_only: Array[PointLight2D] = [region_lights[0]]
+	for bi in range(brazier_lights.size()):
+		if bi < brazier_states.size() and bool(brazier_states[bi].get("lit", false)):
+			lit_only.append(brazier_lights[bi])
+		else:
+			brazier_lights[bi].visible = false
+	sync_light_frustum(lit_only, true)
+
+
+func _draw() -> void:
+	BrabantFensDrawScript.draw_region_entities(self, Time.get_ticks_msec() * 0.001)

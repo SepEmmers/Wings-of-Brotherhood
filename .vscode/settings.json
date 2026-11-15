@@ -1,0 +1,23 @@
+{
+  "editor.formatOnSave": false,
+  "editor.formatOnPaste": false,
+  "files.autoSave": "off",
+  "prettier.disableLanguages": [
+    "markdown",
+    "html",
+    "json",
+    "jsonc"
+  ],
+  "files.watcherExclude": {
+    "**/.git/objects/**": true,
+    "**/.git/subtree-cache/**": true,
+    "**/.godot/**": true,
+    "**/tools/godot/**": true,
+    "**/__pycache__/**": true
+  },
+  "search.exclude": {
+    "**/.godot/**": true,
+    "**/tools/godot/**": true,
+    "**/__pycache__/**": true
+  }
+}

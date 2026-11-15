@@ -327,7 +327,7 @@ func _draw() -> void:
 	var is_dawn := GameState.current_step >= GameState.QuestStep.DAWN_MISSING_CLARA
 	var t_now: float = assets.time_elapsed
 
-	draw_rect(Rect2(0, 0, 1280, 720), Color(0.05, 0.04, 0.07))
+	draw_rect(get_camera_rect(80.0), Color(0.05, 0.04, 0.07))
 	draw_rect(Rect2(432, 206, 416, 302), Color(0.18, 0.14, 0.12))
 	assets.draw_tiled_rect(self, Rect2(440, 220, 400, 280), assets.get_tex("tile_wood_floor.png"), 32.0)
 	draw_rect(Rect2(440, 220, 400, 280), Color(0.24, 0.16, 0.10), false, 8.0)

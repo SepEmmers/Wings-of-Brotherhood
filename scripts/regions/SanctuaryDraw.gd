@@ -589,7 +589,7 @@ static func _draw_montage_fx(r, t_now: float) -> void:
 			r.draw_line(Vector2(bx, by), Vector2(bx - 24, by + 68), Color(0.92, 0.96, 1.0, la), 3.0)
 			r.draw_line(Vector2(bx - 24, by + 68), Vector2(bx + 14, by + 132), Color(0.92, 0.96, 1.0, la), 2.5)
 			r.draw_line(Vector2(bx + 14, by + 132), Vector2(bx - 16, by + 210), Color(0.86, 0.92, 1.0, la * 0.85), 2.0)
-		r.draw_rect(Rect2(cam_pt - Vector2(640, 360), Vector2(1280, 720)), Color(0.86, 0.92, 1.0, r.montage_lightning * 0.30))
+		r.draw_rect(r.get_camera_rect(48.0), Color(0.86, 0.92, 1.0, r.montage_lightning * 0.30))
 
 
 static func _draw_foreground(r, fg: Node2D) -> void:

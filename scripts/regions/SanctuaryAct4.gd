@@ -480,7 +480,11 @@ static func _process_kestrel_escape(r, delta: float) -> void:
 			r.ui.set_cinematic_mode(false)
 			r.ui.show_chapter_checkpoint(
 				"INTO THE NIGHT SKY — WINGS OF FREEDOM",
-				"Escaped the Bruges Sanctuary atop Kestrel with the Black-and-Gold Egg while the Church bounty looms at dawn."
+				"Escaped the Bruges Sanctuary atop Kestrel with the Black-and-Gold Egg while the Church bounty looms at dawn.",
+				"Continue to Book II: Brabant Fens",
+				func():
+					GameState.reset_book2_state(true)
+					r.director.load_region("brabant_fens", {"book2_intro": true})
 			)
 
 

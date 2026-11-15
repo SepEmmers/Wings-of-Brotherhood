@@ -293,7 +293,7 @@ func _draw() -> void:
 	var t_now: float = assets.time_elapsed
 
 	# Outer dark stone night backdrop
-	draw_rect(Rect2(0, 0, 1280, 720), Color(0.05, 0.05, 0.08))
+	draw_rect(get_camera_rect(80.0), Color(0.05, 0.05, 0.08))
 	draw_rect(Rect2(432, 206, 416, 302), Color(0.22, 0.21, 0.25))
 	assets.draw_tiled_rect(self, Rect2(440, 220, 400, 280), assets.get_tex("tile_wood_floor.png"), 32.0)
 	draw_rect(Rect2(440, 220, 400, 280), Color(0.24, 0.22, 0.26), false, 8.0)

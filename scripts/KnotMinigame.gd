@@ -85,6 +85,7 @@ func _ready() -> void:
 	vbox.add_child(desc_lbl)
 
 	board = Control.new()
+	board.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	board.custom_minimum_size = Vector2(610, 300)
 	board.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	board.mouse_filter = Control.MOUSE_FILTER_STOP
@@ -333,7 +334,7 @@ func _attempt_cinch() -> void:
 		_damage_integrity("Slipped the cinch! Left-Click inside the GOLD zone!")
 
 func _draw_board() -> void:
-	var font := ThemeDB.fallback_font
+	var font := board.get_theme_default_font()
 	var sz := board.size
 
 	# Oak plank rigging board background with staggered grain & iron corner brackets

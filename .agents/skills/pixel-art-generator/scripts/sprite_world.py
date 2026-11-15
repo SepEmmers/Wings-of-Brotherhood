@@ -16,6 +16,7 @@ from sprite_wilds_env import make_wilds_env
 from sprite_sanctuary import make_sanctuary_assets
 from sprite_bruges_landmarks import make_bruges_landmarks
 from sprite_bruges_forts_water import make_bruges_forts_water
+from sprite_ui_art import make_extra_ui_and_title_art
 
 
 def make_props_and_icons(sprites_dir: str):
@@ -236,3 +237,5 @@ def make_ui_sprites(sprites_dir: str):
     ic.pset(cx_ic, cy_ic - 2, "Y3")
     ic.add_outline("K", selective_hue=True)
     ic.save_png(os.path.join(sprites_dir, "icon_brotherhood_emblem.png"))
+
+    make_extra_ui_and_title_art(sprites_dir)

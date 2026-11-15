@@ -90,16 +90,21 @@ static func _draw_static_ground(r, canvas: Node2D) -> void:
 
 
 static func _draw_wooden_sign(canvas: Node2D, center_pos: Vector2, text: String, font: Font) -> void:
-	var pad_w: float = maxf(66.0, float(text.length()) * 5.9 + 14.0)
+	var a = canvas.get("assets") if canvas != null else null
+	var use_font: Font = a.get_ui_font() if a != null else font
+	var tw: float = use_font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, 10).x
+	var pad_w: float = maxf(66.0, tw + 16.0)
 	var plaque := Rect2(center_pos.x - pad_w * 0.5, center_pos.y - 11.0, pad_w, 16.0)
 	canvas.draw_rect(Rect2(plaque.position + Vector2(1, 2), plaque.size), Color(0.03, 0.03, 0.05, 0.50))
 	canvas.draw_rect(plaque, Color(0.20, 0.13, 0.08, 0.95))
 	canvas.draw_rect(plaque, Color(0.68, 0.52, 0.28, 0.92), false, 1.0)
-	var tw: float = font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, 10).x
-	var tx: float = center_pos.x - tw * 0.5
-	var ty: float = center_pos.y
-	canvas.draw_string(font, Vector2(tx + 1.0, ty + 1.0), text, HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color(0.06, 0.04, 0.03, 0.90))
-	canvas.draw_string(font, Vector2(tx, ty), text, HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color(0.95, 0.88, 0.64))
+	if a != null:
+		a.draw_label_shadowed(canvas, center_pos, text, use_font, 10, Color(0.95, 0.88, 0.64), true)
+	else:
+		var tx: float = center_pos.x - tw * 0.5
+		var ty: float = center_pos.y
+		canvas.draw_string(use_font, Vector2(tx + 1.0, ty + 1.0), text, HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color(0.06, 0.04, 0.03, 0.90))
+		canvas.draw_string(use_font, Vector2(tx, ty), text, HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color(0.95, 0.88, 0.64))
 
 
 static func _draw_fountain(r, t_now: float, cam_rect: Rect2) -> void:

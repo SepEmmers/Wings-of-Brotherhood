@@ -568,6 +568,186 @@ def _make_black_dragon_portrait(sprites_dir: str):
     c.save_png(os.path.join(sprites_dir, "portrait_dragon_black.png"))
 
 
+def _make_golden_hatchling_portraits(sprites_dir: str):
+    """
+    Hand-sculpted 48x48 Golden Prophecy Dragonet portraits (Stages 1-4, open + _blink):
+    High-res (~2.2x) camera-facing zoom matching the overworld Hatchling sprite
+    (`dragon_gold_s1_down`). Preserves the signature obsidian-black and luminous
+    gold trim aesthetic across all hatchling stages, gradually refining gold chest
+    filigree, wing spars, forehead crest, and slightly taller horns.
+    """
+    def _soot_coat_col(dist_norm: float, stage: int, top_lit: bool) -> str:
+        edge = dist_norm > 0.72
+        if edge:
+            return "O0"
+        if stage >= 4 and top_lit and dist_norm < 0.22:
+            return "O3"
+        return "O2" if top_lit else "O1"
+
+    stages = [
+        ("portrait_hatchling_stage1", 1, (32, 29, 60, 255), (15, 14, 30, 255)),
+        ("portrait_hatchling_stage2", 2, (36, 30, 58, 255), (17, 14, 28, 255)),
+        ("portrait_hatchling_stage3", 3, (42, 32, 54, 255), (19, 15, 25, 255)),
+        ("portrait_hatchling_stage4", 4, (50, 36, 46, 255), (22, 16, 22, 255)),
+    ]
+    for stem, stage, bg_top, bg_bot in stages:
+        for blink in (False, True):
+            c = PixelCanvas(48, 48)
+            _paint_portrait_frame(c, bg_top, bg_bot)
+
+            # Subtle far-corner starlight motes
+            if stage >= 2:
+                c.pset(6, 8, "Y1" if stage == 2 else ("Y2" if stage == 3 else "Y3"))
+                c.pset(41, 9, "Y1" if stage < 4 else "Y2")
+            if stage >= 3:
+                c.pset(7, 40, "Y1")
+                c.pset(41, 39, "Y2")
+
+            d = PixelCanvas(48, 48)
+
+            # 1. Gracefully Arched Scalloped Dragonet Wings (deep soot membrane + gold wing-bone & trim)
+            w_lift = 1 if stage == 1 else (0 if stage <= 3 else -1)
+            for side in (-1, 1):
+                apex_dx = 12
+                tip_dx = 17
+                apex_y = 21 + w_lift
+                tip_y = 25 + w_lift
+                for dx in range(7, tip_dx + 1):
+                    wx = 24 + side * dx
+                    if dx <= apex_dx:
+                        t_arm = (dx - 7) / float(apex_dx - 7)
+                        top_y = int(round(29 + w_lift - t_arm * (29 + w_lift - apex_y)))
+                    else:
+                        t_out = (dx - apex_dx) / float(tip_dx - apex_dx)
+                        top_y = int(round(apex_y + t_out * (tip_y - apex_y)))
+                    if dx <= 10:
+                        bot_y = 36 + w_lift - ((dx - 7) // 2)
+                    elif dx <= 14:
+                        bot_y = 33 + w_lift - (dx - 10)
+                    else:
+                        bot_y = 29 + w_lift - (dx - 14) * 2
+                    if dx in (9, 12, 13, 15):
+                        bot_y -= 1
+                    for wy in range(top_y, bot_y + 1):
+                        is_rib = (dx == 10 and wy > top_y + 2) or (dx == 14 and wy > top_y + 1)
+                        if wy == bot_y:
+                            col = "Y1" if stage >= 4 and dx in (10, 14, 17) else "O0"
+                        elif is_rib:
+                            col = "Y1" if stage >= 3 else "O2"
+                        else:
+                            col = "O0"
+                        d.pset(wx, wy, col)
+                spar_col = "Y1" if stage == 1 else ("Y2" if stage <= 3 else "Y3")
+                rim_col = "O3" if stage == 1 else ("Y1" if stage == 2 else "Y2")
+                d.line(24 + side * 7, 29 + w_lift, 24 + side * apex_dx, apex_y, spar_col)
+                d.line(24 + side * apex_dx, apex_y, 24 + side * tip_dx, tip_y, spar_col)
+                d.line(24 + side * 7, 30 + w_lift, 24 + side * apex_dx, apex_y + 1, rim_col)
+                d.line(24 + side * apex_dx, apex_y + 1, 24 + side * tip_dx, tip_y + 1, rim_col)
+                d.pset(24 + side * apex_dx, apex_y - 1, "C4" if stage <= 2 else "L0")
+                d.pset(24 + side * tip_dx, tip_y, "Y2" if stage <= 2 else "Y3")
+
+            # 2. Plump Obsidian Body & Chest with progressive Gold Seam Filigree
+            bx, by = 24.0, 35.5
+            brx, bry = 9.4, 10.6
+            for y in range(25, 46):
+                for x in range(13, 36):
+                    norm = ((x - bx) / brx) ** 2 + ((y - by) / bry) ** 2
+                    if norm <= 1.0:
+                        d.pset(x, y, _soot_coat_col(norm, stage, norm < 0.36))
+            # Signature black-and-gold chest pattern (organic ember seams in S1 -> refined royal filigree by S4)
+            d.pset(21, 33, "Y1" if stage <= 2 else "Y2")
+            d.rect(22, 34, 2, 1, "Y2" if stage <= 2 else "Y3")
+            d.pset(25, 33, "Y1" if stage <= 2 else "Y2")
+            d.line(20, 36, 21, 38, "Y1" if stage == 1 else "Y2")
+            d.rect(23, 37, 2, 2, "Y3" if stage < 4 else "L0")
+            d.line(26, 36, 27, 38, "Y1" if stage == 1 else "Y2")
+            d.pset(22, 41, "Y2" if stage <= 2 else "Y3")
+            d.pset(25, 42, "Y1" if stage <= 2 else "Y2")
+            if stage >= 2:
+                d.line(21, 31, 26, 31, "Y1" if stage == 2 else "Y2")
+            if stage >= 3:
+                d.line(19, 39, 21, 42, "Y2")
+                d.line(28, 39, 26, 42, "Y2")
+            if stage >= 4:
+                d.line(22, 35, 25, 35, "Y3")
+                d.line(21, 43, 26, 43, "Y2")
+
+            # 3. Symmetrical Diverging Black-and-Gold Horns & Cheek Tufts (gradual growth across Stages 1-4)
+            h_h = 4 + (stage - 1)
+            for side in (-1, 1):
+                for s in range(h_h + 1):
+                    hx_p = 24 + side * (6 + (s * 3) // max(1, h_h))
+                    hy_p = 13 - s
+                    w = 2 if s <= h_h // 2 else 1
+                    if stage == 1:
+                        h_col = "C3" if s >= h_h - 1 else "Y1"
+                    elif stage == 2:
+                        h_col = "Y3" if s >= h_h - 1 else "Y1"
+                    else:
+                        h_col = "L0" if s >= h_h else ("Y3" if s >= h_h // 2 else "Y2")
+                    d.rect(hx_p - (1 if w == 2 and side < 0 else 0), hy_p, w, 1, h_col)
+                d.rect(24 + side * 10 - (1 if side < 0 else 0), 21, 2, 2, "O3" if stage == 1 else ("Y1" if stage <= 3 else "Y2"))
+
+            # 4. Plump Centered Facing-Camera Obsidian Dragonet Head
+            hx, hy = 24.0, 20.2
+            hrx, hry = 10.6, 8.6
+            for y in range(11, 30):
+                for x in range(13, 36):
+                    norm = ((x - hx) / hrx) ** 2 + ((y - hy) / hry) ** 2
+                    if norm <= 1.0:
+                        d.pset(x, y, _soot_coat_col(norm, stage, norm < 0.38 and y < hy + 1))
+
+            # Forehead golden diamond crest (intensifies gently Stages 1->4 while staying obsidian-headed)
+            d.rect(23, 13, 2, 2, "Y2" if stage < 4 else "Y3")
+            d.pset(23, 15, "Y1" if stage <= 2 else "Y2")
+            d.pset(24, 15, "Y1" if stage <= 2 else "Y2")
+            d.pset(23, 12, "Y2" if stage <= 2 else "L0")
+            d.pset(24, 12, "Y2" if stage <= 2 else "L0")
+            if stage >= 3:
+                d.pset(21, 14, "Y1" if stage == 3 else "Y2")
+                d.pset(26, 14, "Y1" if stage == 3 else "Y2")
+
+            # 5. BIG Luminous Expressive Camera-Facing Baby-Dragon Eyes (Open or Happy-Blink!)
+            for side in (-1, 1):
+                ex0 = 16 if side < 0 else 28
+                ey0 = 17
+                # Soft golden brow filigree hint (slightly brighter at Stage 3-4)
+                d.line(ex0, ey0 - 1, ex0 + 3, ey0 - 1, "O3" if stage == 1 else ("Y1" if stage <= 3 else "Y2"))
+                if blink:
+                    # Peaceful curved crescent closed eyes + soft golden lash highlight
+                    iris_x = ex0 if side < 0 else ex0 + 1
+                    d.line(iris_x, ey0 + 2, iris_x + 3, ey0 + 2, "O0")
+                    d.line(iris_x + 1, ey0 + 2, iris_x + 2, ey0 + 2, "K")
+                    d.line(iris_x, ey0 + 3, iris_x + 3, ey0 + 3, "K")
+                    d.line(iris_x, ey0 + 4, iris_x + 3, ey0 + 4, "Y1" if stage <= 2 else "Y2")
+                    d.pset(iris_x + (0 if side < 0 else 3), ey0 + 2, "Y2")
+                else:
+                    d.rect(ex0, ey0, 4, 6, "O0")
+                    d.rect(ex0 - 1 if side < 0 else ex0 + 1, ey0 + 1, 5, 4, "O0")
+                    iris_x = ex0 if side < 0 else ex0 + 1
+                    d.rect(iris_x, ey0 + 1, 4, 4, "Y2" if stage <= 3 else "Y3")
+                    d.line(iris_x, ey0 + 4, iris_x + 3, ey0 + 4, "Y1" if stage <= 2 else "Y2")
+                    pup_x = iris_x + 1
+                    d.rect(pup_x, ey0 + 1, 2, 3, "K")
+                    d.pset(iris_x + (3 if side < 0 else 0), ey0 + 2, "K")
+                    d.pset(iris_x + 1, ey0 + 1, "L0")
+                    d.pset(iris_x, ey0 + 2, "L0")
+                    d.pset(iris_x + (2 if side < 0 else 1), ey0 + 4, "Y3")
+
+            # 6. Soft Centered Baby Snout Button + Twin Nostrils + Gentle Warm Smile
+            d.rect(22, 23, 4, 2, "O3" if stage <= 2 else "Y1")
+            d.pset(22, 25, "O0" if stage <= 2 else "Y0")
+            d.pset(25, 25, "O0" if stage <= 2 else "Y0")
+            d.line(21, 26, 26, 26, "O0")
+            d.line(22, 27, 25, 27, "O2" if stage == 1 else ("Y1" if stage <= 3 else "Y2"))
+
+            d.add_outline("DO", selective_hue=True)
+            c.blit(d, 0, 0)
+            _finish_dragon_portrait_border(c)
+            suffix = "_blink.png" if blink else ".png"
+            c.save_png(os.path.join(sprites_dir, stem + suffix))
+
+
 def _make_narrator_portrait(sprites_dir: str):
     """Illuminated medieval parchment scroll & quill emblem for Narrator lines."""
     c = PixelCanvas(48, 48)
@@ -996,6 +1176,7 @@ def generate_all_portraits(sprites_dir: str):
     )
 
     _make_black_dragon_portrait(sprites_dir)
+    _make_golden_hatchling_portraits(sprites_dir)
     _make_virelai_portrait(sprites_dir)
     _make_greyling_portraits(sprites_dir)
     _make_narrator_portrait(sprites_dir)

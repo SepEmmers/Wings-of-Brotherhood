@@ -118,13 +118,20 @@ func draw_overlays(canvas: CanvasItem, assets) -> void:
 			canvas.draw_rect(Rect2(pos - Vector2(7, 10), Vector2(14, 20)), Color(0.88, 0.80, 0.62))
 			canvas.draw_rect(Rect2(pos - Vector2(7, 10), Vector2(14, 20)), Color(0.28, 0.16, 0.10), false, 1.4)
 
+	var chime_tex: Texture2D = assets.get_tex("prop_resonance_chime.png") if assets != null else null
 	for ch in chimes:
 		var pulse := 0.5 + 0.5 * sin(float(ch["t"]) * 12.0)
 		canvas.draw_arc(ch["pos"], 14.0 + pulse * 18.0, 0.0, TAU, 20, Color(0.96, 0.78, 0.30, 0.55), 1.8)
-		canvas.draw_circle(ch["pos"], 5.0, Color(0.86, 0.68, 0.24))
+		if chime_tex != null:
+			canvas.draw_texture_rect(chime_tex, Rect2(ch["pos"] - Vector2(9, 10), Vector2(18, 18)), false)
+		else:
+			canvas.draw_circle(ch["pos"], 5.0, Color(0.86, 0.68, 0.24))
 
+	var smoke_tex: Texture2D = assets.get_tex("prop_smoke_pellet.png") if assets != null else null
 	for sc in smoke_clouds:
 		var a := clampf(float(sc["t"]) / 1.5, 0.0, 0.62)
 		var r := float(sc["radius"])
 		canvas.draw_circle(sc["pos"], r, Color(0.24, 0.25, 0.30, a))
 		canvas.draw_arc(sc["pos"], r, 0.0, TAU, 24, Color(0.55, 0.56, 0.62, a * 0.8), 2.0)
+		if smoke_tex != null:
+			canvas.draw_texture_rect(smoke_tex, Rect2(sc["pos"] - Vector2(8, 8), Vector2(16, 16)), false, Color(1, 1, 1, clampf(a * 1.4, 0.0, 0.9)))

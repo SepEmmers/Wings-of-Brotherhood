@@ -4,6 +4,8 @@ extends RefCounted
 ## Single source of truth for the [F1] Playtest Chapter/Cutscene Jump Menu
 ## chapter grouping, UI metadata, and state presets.
 
+const Book2PresetsScript := preload("res://scripts/data/PlaytestPresetsBook2.gd")
+
 const CHAPTERS: Array = [
 	{
 		"id": "ch1",
@@ -395,6 +397,12 @@ const PRESETS: Array = [
 ]
 
 
+static func get_all_presets() -> Array:
+	var all_presets: Array = PRESETS.duplicate()
+	all_presets.append_array(Book2PresetsScript.PRESETS)
+	return all_presets
+
+
 static func get_chapter_info(tab_id: String) -> Dictionary:
 	for ch in CHAPTERS:
 		if ch["id"] == tab_id:
@@ -404,7 +412,7 @@ static func get_chapter_info(tab_id: String) -> Dictionary:
 
 static func get_presets_for_tab(tab_id: String) -> Array:
 	var out: Array = []
-	for preset in PRESETS:
+	for preset in get_all_presets():
 		if tab_id == "cutscenes":
 			if preset.get("kind", "scene") == "cutscene":
 				out.append(preset)
@@ -414,7 +422,7 @@ static func get_presets_for_tab(tab_id: String) -> Array:
 
 
 static func get_preset_by_id(scene_id: String) -> Dictionary:
-	for preset in PRESETS:
+	for preset in get_all_presets():
 		if preset["id"] == scene_id:
 			return preset
 	return PRESETS[0] if not PRESETS.is_empty() else {}
@@ -469,7 +477,8 @@ static func get_active_preset_id() -> String:
 			return "act4_priest_tail" if GameState.all_city_clues_found() else "act4_bruges_city"
 		GameState.QuestStep.ACT4_NIGHT_HEIST:
 			return "act4_night_heist"
-	return "boat_sailing"
+	var book2_id := Book2PresetsScript.get_active_preset_id()
+	return book2_id if not book2_id.is_empty() else "boat_sailing"
 
 
 static func _unlock_post_sanctuary(include_reaper: bool, include_longwing: bool) -> void:
@@ -767,4 +776,4 @@ static func apply_preset(scene_id: String) -> Dictionary:
 			GameState.current_step = GameState.QuestStep.ACT4_NIGHT_HEIST
 			GameState.sanctuary_phase = 5
 			return {"region": "sanctuary", "params": {"skip_intro": true, "preserve_step": true, "cutscene_kestrel_escape": true}}
-	return {}
+	return Book2PresetsScript.apply_preset(scene_id, Callable(PlaytestPresets, "_unlock_post_sanctuary"))

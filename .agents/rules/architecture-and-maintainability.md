@@ -21,9 +21,9 @@ When parallel agents operate in the workspace, respect file boundaries to avoid 
 1. **State & Quest Progression (`scripts/GameState.gd`):**
    - Never guess or invent `GameState.QuestStep` members. Check `scripts/GameState.gd` directly (Book I uses `0..14`: `ON_THE_SHIP` through `ACT4_NIGHT_HEIST`; Book II+ steps append cleanly above `14`).
    - Always check `GameState.gd` for exact method names before calling helpers from UI or regions.
-2. **Input Actions (`GameState._ensure_input_actions()`):**
-   - Only use registered actions (`move_up`, `move_down`, `move_left`, `move_right`, `interact`, `sprint`, `journal`, `inventory_screen`, `rope_action`, `knife_attack`, `dodge`, `cycle_knot`, `practice_knot`, `toggle_map`, `playtest_menu`).
-   - Keep HUD hints, Journal controls text, and `docs/GAME_DESIGN_DOCUMENT.md` aligned with `GameState.gd`.
+2. **Input Actions (`SettingsConfig.ensure_default_input_actions()` via `GameState`):**
+   - Only use registered actions (`move_up`, `move_down`, `move_left`, `move_right`, `interact`, `sprint`, `journal`, `inventory_screen`, `rope_action`, `knife_attack`, `dodge`, `cycle_knot`, `practice_knot`, `toggle_map`, `playtest_menu`, `dragon_command`, `dragon_posture`).
+   - Keep HUD hints, Journal controls text, and `docs/GAME_DESIGN_DOCUMENT.md` aligned with `SettingsConfig.gd` / `GameState.gd`.
 3. **Regions (`scripts/regions/RegionBase.gd`):**
    - Every playable area/sortie MUST extend `res://scripts/regions/RegionBase.gd` and be registered in:
      1. `scripts/Main.gd` (`load_region`)

@@ -11,8 +11,12 @@ var active: bool = false
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	set_anchors_preset(Control.PRESET_TOP_LEFT)
-	position = Vector2(460, 88)
+	texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	set_anchors_preset(Control.PRESET_CENTER_TOP)
+	offset_left = -180
+	offset_right = 180
+	offset_top = 88
+	offset_bottom = 140
 	size = Vector2(360, 52)
 	z_index = 25
 	visible = false
@@ -46,7 +50,8 @@ func step(delta: float) -> void:
 	var exit_t := clampf((duration - elapsed) / 0.38, 0.0, 1.0)
 	var alpha := minf(enter_t, exit_t)
 	var slide := (1.0 - ease(enter_t, -1.8)) * -12.0
-	position = Vector2(460.0, 90.0 + slide)
+	offset_top = 90.0 + slide
+	offset_bottom = 142.0 + slide
 	modulate.a = alpha
 	queue_redraw()
 
@@ -54,7 +59,9 @@ func step(delta: float) -> void:
 func _draw() -> void:
 	if not active or title_text == "":
 		return
-	var font := ThemeDB.fallback_font
+	var font := get_theme_default_font()
+	if font == null:
+		font = ThemeDB.fallback_font
 	var box := Rect2(Vector2.ZERO, size)
 	var inner := box.grow(-3.0)
 

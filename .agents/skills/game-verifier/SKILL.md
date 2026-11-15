@@ -22,3 +22,14 @@ Validates that the Godot 4.3 project compiles all GDScript files and loads
 2. Confirm `ExitCode` is `0` and `tools\godot_check.log` contains **zero**
    `ERROR:` or `USER SCRIPT ERROR:` lines.
 3. Remove `tools\godot_check.log` after verification.
+
+## Full Smoke Suite & Windows PowerShell Gotchas
+
+- **Full Smoke Suite:** After region, portal, preset, UI/dialogue, or progression changes, also run:
+  ```powershell
+  powershell -ExecutionPolicy Bypass -File tools\smoke_test.ps1
+  ```
+  Confirm `SMOKE_PASS` and zero errors across presets, regions, and portals.
+- **Windows / PowerShell 5.1 Execution Rules:**
+  - Always launch `.\tools\godot\Godot_v4.3-stable_win64.exe` via `Start-Process ... -Wait -PassThru` — never invoke `Godot_v4.3-stable_win64_console.exe` (which fails on Windows with error 193) and never run the `.exe` bare without waiting for exit.
+  - Chain commands with `;` instead of `&&` in Windows PowerShell 5.1, and use `Select-String` or `python` instead of `rg`.

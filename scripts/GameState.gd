@@ -145,6 +145,23 @@ var kestrel_courier_ch1_delivered: bool = false
 var heverlee_shrine_unlocked: bool = false
 var boy_heverlee_relic_found: bool = false
 
+# Book II Act I Milestone 2 flags (Brabant Fens & Louvain)
+var brabant_hatched: bool = false
+var brabant_vent_unlocked: bool = false
+var brabant_briar_burned: bool = false
+var brabant_cache_looted: bool = false
+var brabant_camp_rested: bool = false
+var louvain_guild_visited: bool = false
+var louvain_bell_mould_fixed: bool = false
+var louvain_clay_collected: bool = false
+var louvain_herbalist_done: bool = false
+var louvain_survivor_done: bool = false
+var louvain_ring_found: bool = false
+var louvain_vent_opened: bool = false
+var louvain_brazier_lit: bool = false
+var louvain_archive_read: bool = false
+var louvain_breakout_won: bool = false
+
 # Knot progression
 var rope_unlocked: bool = true
 var unlocked_knots: Array[String] = ["clove_hitch"]
@@ -162,7 +179,7 @@ var control_prompts_enabled: bool = true
 var dialogue_speed_mode: String = "normal"
 var screen_shake_enabled: bool = true
 var display_mode: String = "windowed"
-var show_playtest_hud_btn: bool = true
+var show_playtest_hud_btn: bool = false
 
 
 func _ready() -> void:
@@ -276,11 +293,27 @@ func reset_book2_state(from_book1_finale: bool = false) -> void:
 	kestrel_courier_ch1_delivered = false
 	heverlee_shrine_unlocked = false
 	boy_heverlee_relic_found = false
+	brabant_hatched = false
+	brabant_vent_unlocked = false
+	brabant_briar_burned = false
+	brabant_cache_looted = false
+	brabant_camp_rested = false
+	louvain_guild_visited = false
+	louvain_bell_mould_fixed = false
+	louvain_clay_collected = false
+	louvain_herbalist_done = false
+	louvain_survivor_done = false
+	louvain_ring_found = false
+	louvain_vent_opened = false
+	louvain_brazier_lit = false
+	louvain_archive_read = false
+	louvain_breakout_won = false
 	if from_book1_finale:
 		boy_age = 17
 		boy_hp = boy_max_hp
 		sanctuary_phase = 4
 		sanctuary_jerkin_earned = true
+		active_companion_stage = 0
 		unlock_all_knots()
 		current_step = QuestStep.BOOK2_BRABANT_FENS
 	emit_signal("state_updated")
@@ -442,40 +475,38 @@ func apply_and_save_settings() -> void:
 	emit_signal("settings_changed")
 
 
-func reset_audio_settings() -> void:
+func _apply_audio_defaults() -> void:
 	var defs: Dictionary = SettingsConfigScript.DEFAULTS
 	master_volume = float(defs["master_volume"])
 	ambience_volume = float(defs["ambience_volume"])
 	sfx_volume = float(defs["sfx_volume"])
 	voices_volume = float(defs["voices_volume"])
 	audio_muted = bool(defs["audio_muted"])
+
+
+func _apply_gameplay_defaults() -> void:
+	var defs: Dictionary = SettingsConfigScript.DEFAULTS
+	hints_enabled = bool(defs["hints_enabled"])
+	control_prompts_enabled = bool(defs["control_prompts_enabled"])
+	dialogue_speed_mode = str(defs["dialogue_speed_mode"])
+	screen_shake_enabled = bool(defs["screen_shake_enabled"])
+	display_mode = str(defs["display_mode"])
+	show_playtest_hud_btn = bool(defs["show_playtest_hud_btn"])
+
+
+func reset_audio_settings() -> void:
+	_apply_audio_defaults()
 	apply_and_save_settings()
 
 
 func reset_gameplay_settings() -> void:
-	var defs: Dictionary = SettingsConfigScript.DEFAULTS
-	hints_enabled = bool(defs["hints_enabled"])
-	control_prompts_enabled = bool(defs["control_prompts_enabled"])
-	dialogue_speed_mode = str(defs["dialogue_speed_mode"])
-	screen_shake_enabled = bool(defs["screen_shake_enabled"])
-	display_mode = str(defs["display_mode"])
-	show_playtest_hud_btn = bool(defs["show_playtest_hud_btn"])
+	_apply_gameplay_defaults()
 	apply_and_save_settings()
 
 
 func reset_all_settings() -> void:
-	var defs: Dictionary = SettingsConfigScript.DEFAULTS
-	master_volume = float(defs["master_volume"])
-	ambience_volume = float(defs["ambience_volume"])
-	sfx_volume = float(defs["sfx_volume"])
-	voices_volume = float(defs["voices_volume"])
-	audio_muted = bool(defs["audio_muted"])
-	hints_enabled = bool(defs["hints_enabled"])
-	control_prompts_enabled = bool(defs["control_prompts_enabled"])
-	dialogue_speed_mode = str(defs["dialogue_speed_mode"])
-	screen_shake_enabled = bool(defs["screen_shake_enabled"])
-	display_mode = str(defs["display_mode"])
-	show_playtest_hud_btn = bool(defs["show_playtest_hud_btn"])
+	_apply_audio_defaults()
+	_apply_gameplay_defaults()
 	SettingsConfigScript.reset_controls_to_defaults()
 	apply_and_save_settings()
 

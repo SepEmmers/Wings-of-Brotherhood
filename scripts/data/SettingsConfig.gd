@@ -13,7 +13,7 @@ const DEFAULTS: Dictionary = {
 	"dialogue_speed_mode": "normal",
 	"screen_shake_enabled": true,
 	"display_mode": "windowed",
-	"show_playtest_hud_btn": true,
+	"show_playtest_hud_btn": false,
 }
 
 const DIALOGUE_SPEED_CPS: Dictionary = {

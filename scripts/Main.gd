@@ -16,6 +16,8 @@ const FrontierWildsScript := preload("res://scripts/regions/FrontierWildsRegion.
 const WatchtowerHearthScript := preload("res://scripts/regions/WatchtowerHearthRegion.gd")
 const BrugesCityScript := preload("res://scripts/regions/BrugesCityRegion.gd")
 const BrugesOutskirtsScript := preload("res://scripts/regions/BrugesOutskirtsRegion.gd")
+const BrabantFensScript := preload("res://scripts/regions/BrabantFensRegion.gd")
+const LouvainCityScript := preload("res://scripts/regions/LouvainCityRegion.gd")
 const SmokeRunnerScript := preload("res://scripts/tools/HeadlessSmokeRunner.gd")
 const HatchlingCompanionScript := preload("res://scripts/companions/HatchlingCompanion.gd")
 
@@ -38,6 +40,9 @@ var _smoke_runner = null
 func _ready() -> void:
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	assets = PixelAssetsScript.new()
+	var app_theme := Theme.new()
+	app_theme.default_font = assets.get_ui_font()
+	get_tree().root.theme = app_theme
 
 	world_modulate = CanvasModulate.new()
 	world_modulate.color = Color(0.84, 0.76, 0.88)
@@ -119,6 +124,10 @@ func load_region(region_id: String, opts: Dictionary = {}) -> void:
 			active_region = BrugesCityScript.new()
 		"outskirts":
 			active_region = BrugesOutskirtsScript.new()
+		"brabant_fens":
+			active_region = BrabantFensScript.new()
+		"louvain":
+			active_region = LouvainCityScript.new()
 		_:
 			push_warning("Unknown region_id '%s', defaulting to Port of Bruges." % region_id)
 			active_region = PortOfBrugesScript.new()
@@ -388,6 +397,10 @@ func _get_current_region_label() -> String:
 			return "Coastal Watchtower"
 		"bruges_city":
 			return "Walled City of Bruges"
+		"brabant_fens":
+			return "Brabant Reed-Fens"
+		"louvain":
+			return "Louvain (Dijle City)"
 	return "Flanders"
 
 

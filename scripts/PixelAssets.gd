@@ -1,21 +1,61 @@
 extends RefCounted
 
+const ItemCatalogScript := preload("res://scripts/data/ItemCatalog.gd")
+
 ## Shared palette-locked pixel-art texture cache, 9-slice medieval UI stylers,
 ## atmospheric particle pools, and top-down tile/seam/prop rendering helpers.
+
+class _WorldTextOverlay extends Node2D:
+	var commands: Array[Dictionary] = []
+
+	func _draw() -> void:
+		for cmd in commands:
+			var font: Font = cmd["font"]
+			var pos: Vector2 = cmd["pos"]
+			var text_str: String = cmd["text"]
+			var fsize: int = cmd["size"]
+			var col: Color = cmd["col"]
+			draw_string(font, pos + Vector2(1, 2), text_str, HORIZONTAL_ALIGNMENT_LEFT, -1, fsize, Color(0.02, 0.02, 0.04, 0.88))
+			draw_string(font, pos, text_str, HORIZONTAL_ALIGNMENT_LEFT, -1, fsize, col)
+
 
 var tex: Dictionary = {}
 var _scaled_tex_cache: Dictionary = {}
 var _flipped_tex_cache: Dictionary = {}
 var _npc_shadow_tex: Texture2D
+var _ui_font: SystemFont
+var _world_text_active: Dictionary = {}
+var _world_text_pending: Dictionary = {}
 var smoke_puffs: Array[Dictionary] = []
 var spark_particles: Array[Dictionary] = []
 var time_elapsed: float = 0.0
 
 
 func _init() -> void:
+	_init_ui_font()
 	_load_pixel_textures()
 	_build_npc_shadow_tex()
 	_init_atmosphere_particles()
+
+
+func _init_ui_font() -> void:
+	var sf := SystemFont.new()
+	sf.font_names = PackedStringArray(["Segoe UI", "Noto Sans", "DejaVu Sans", "Liberation Sans", "Arial"])
+	sf.multichannel_signed_distance_field = true
+	sf.subpixel_positioning = TextServer.SUBPIXEL_POSITIONING_AUTO
+	_ui_font = sf
+
+
+func get_ui_font() -> Font:
+	if _ui_font == null:
+		_init_ui_font()
+	return _ui_font
+
+
+func _resolve_ui_font(font: Font) -> Font:
+	if font != null and font != ThemeDB.fallback_font:
+		return font
+	return get_ui_font()
 
 
 func _build_npc_shadow_tex() -> void:
@@ -136,11 +176,43 @@ func style_parchment_panel(panel: PanelContainer, compact: bool = false) -> void
 		panel.add_theme_stylebox_override("panel", make_ui_9slice_style("ui_panel_9slice.png", 12.0, 20.0, 16.0))
 
 
+func style_hslider(slider: HSlider) -> void:
+	slider.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	var grab: Texture2D = tex.get("ui_slider_grabber.png")
+	var grab_hi: Texture2D = tex.get("ui_slider_grabber_hi.png")
+	if grab != null:
+		slider.add_theme_icon_override("grabber", grab)
+		slider.add_theme_icon_override("grabber_disabled", grab)
+	if grab_hi != null:
+		slider.add_theme_icon_override("grabber_highlight", grab_hi)
+	if tex.has("ui_slider_rail.png"):
+		slider.add_theme_stylebox_override("slider", make_ui_9slice_style("ui_slider_rail.png", 4.0, 2.0, 5.0))
+	if tex.has("ui_slider_fill.png"):
+		var fill_sb := make_ui_9slice_style("ui_slider_fill.png", 4.0, 2.0, 5.0)
+		slider.add_theme_stylebox_override("grabber_area", fill_sb)
+		slider.add_theme_stylebox_override("grabber_area_highlight", fill_sb)
+
+
+func style_vscrollbar(scroll: ScrollContainer) -> void:
+	var vsb := scroll.get_v_scroll_bar()
+	if vsb == null:
+		return
+	vsb.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	vsb.custom_minimum_size = Vector2(14, 0)
+	if tex.has("ui_scroll_rail_9slice.png"):
+		vsb.add_theme_stylebox_override("scroll", make_ui_9slice_style("ui_scroll_rail_9slice.png", 5.0, 3.0, 3.0))
+	if tex.has("ui_scroll_grabber_9slice.png"):
+		var grab_sb := make_ui_9slice_style("ui_scroll_grabber_9slice.png", 5.0, 3.0, 3.0)
+		vsb.add_theme_stylebox_override("grabber", grab_sb)
+		vsb.add_theme_stylebox_override("grabber_highlight", grab_sb)
+		vsb.add_theme_stylebox_override("grabber_pressed", grab_sb)
+
+
 func style_buttons_recursive(root_node: Node) -> void:
 	for child in root_node.get_children():
 		if child is Button:
 			var b := child as Button
-			b.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+			b.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 			var normal := make_ui_9slice_style("ui_btn_normal.png", 6.0, 14.0, 6.0)
 			var hover := make_ui_9slice_style("ui_btn_hover.png", 6.0, 14.0, 6.0)
 			var pressed := make_ui_9slice_style("ui_btn_pressed.png", 6.0, 14.0, 6.0)
@@ -154,8 +226,13 @@ func style_buttons_recursive(root_node: Node) -> void:
 			b.add_theme_color_override("font_shadow_color", Color(0.03, 0.02, 0.04, 0.88))
 			b.add_theme_constant_override("shadow_offset_x", 1)
 			b.add_theme_constant_override("shadow_offset_y", 2)
+		elif child is HSlider:
+			style_hslider(child as HSlider)
+		elif child is ScrollContainer:
+			style_vscrollbar(child as ScrollContainer)
 		elif child is LineEdit:
 			var le := child as LineEdit
+			le.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 			var le_sb := StyleBoxFlat.new()
 			le_sb.bg_color = Color(0.07, 0.06, 0.09, 0.96)
 			le_sb.border_color = Color(0.72, 0.55, 0.28, 0.95)
@@ -169,8 +246,11 @@ func style_buttons_recursive(root_node: Node) -> void:
 			le.add_theme_stylebox_override("normal", le_sb)
 			le.add_theme_stylebox_override("focus", le_focus)
 			le.add_theme_color_override("font_color", Color(0.97, 0.92, 0.78))
+		elif child is RichTextLabel:
+			(child as RichTextLabel).texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 		elif child is Label:
 			var lbl := child as Label
+			lbl.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 			lbl.add_theme_color_override("font_shadow_color", Color(0.02, 0.02, 0.04, 0.85))
 			lbl.add_theme_constant_override("shadow_offset_x", 1)
 			lbl.add_theme_constant_override("shadow_offset_y", 2)
@@ -419,13 +499,69 @@ func draw_wharf_curb_seam(canvas: Node2D, x_seam: float, y_start: float, y_end: 
 	canvas.draw_rect(Rect2(x_seam + 5.0, y_start, 4.0, y_end - y_start), Color(0.05, 0.05, 0.08, 0.14))
 
 
+func begin_world_text_pass(canvas: Node2D) -> void:
+	if canvas == null or not is_instance_valid(canvas):
+		return
+	var cid := canvas.get_instance_id()
+	_world_text_active[cid] = true
+	var arr: Array[Dictionary] = []
+	_world_text_pending[cid] = arr
+
+
+func flush_world_text_pass(canvas: Node2D) -> void:
+	if canvas == null or not is_instance_valid(canvas):
+		return
+	var cid := canvas.get_instance_id()
+	_world_text_active.erase(cid)
+	var cmds: Array[Dictionary] = _world_text_pending.get(cid, [] as Array[Dictionary])
+	_world_text_pending.erase(cid)
+	var ov := canvas.get_node_or_null("_WorldTextOverlay") as _WorldTextOverlay
+	if cmds.is_empty() and ov == null:
+		return
+	if ov == null:
+		ov = _WorldTextOverlay.new()
+		ov.name = "_WorldTextOverlay"
+		ov.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+		ov.z_as_relative = true
+		ov.z_index = 1
+		canvas.add_child(ov)
+	if not _world_text_cmds_equal(ov.commands, cmds):
+		ov.commands = cmds
+		ov.queue_redraw()
+
+
+func _world_text_cmds_equal(a: Array[Dictionary], b: Array[Dictionary]) -> bool:
+	if a.size() != b.size():
+		return false
+	for i in range(a.size()):
+		var ca := a[i]
+		var cb := b[i]
+		if int(ca["size"]) != int(cb["size"]) or ca["text"] != cb["text"] or ca["font"] != cb["font"] or ca["col"] != cb["col"]:
+			return false
+		if not (ca["pos"] as Vector2).is_equal_approx(cb["pos"] as Vector2):
+			return false
+	return true
+
+
 func draw_label_shadowed(canvas: Node2D, pos: Vector2, text_str: String, font: Font, font_size: int, col: Color, centered: bool = false) -> void:
+	var use_font := _resolve_ui_font(font)
 	var draw_pos := pos
-	if centered:
-		var tsize := font.get_string_size(text_str, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size)
+	if centered and use_font != null:
+		var tsize := use_font.get_string_size(text_str, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size)
 		draw_pos.x -= tsize.x * 0.5
-	canvas.draw_string(font, draw_pos + Vector2(1, 2), text_str, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, Color(0.02, 0.02, 0.04, 0.88))
-	canvas.draw_string(font, draw_pos, text_str, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, col)
+	var cid := canvas.get_instance_id()
+	if _world_text_active.has(cid):
+		var pending: Array[Dictionary] = _world_text_pending[cid]
+		pending.append({
+			"pos": draw_pos,
+			"text": text_str,
+			"font": use_font,
+			"size": font_size,
+			"col": col,
+		})
+		return
+	canvas.draw_string(use_font, draw_pos + Vector2(1, 2), text_str, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, Color(0.02, 0.02, 0.04, 0.88))
+	canvas.draw_string(use_font, draw_pos, text_str, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, col)
 
 
 func animated_water_tex() -> Texture2D:
@@ -512,6 +648,7 @@ func draw_npc_sprite(canvas: Node2D, pos: Vector2, tex_name: String, npc_name: S
 
 
 func draw_interact_bubble(canvas: Node2D, pos: Vector2, text_str: String, font: Font) -> void:
+	var use_font := _resolve_ui_font(font)
 	var float_y := sin(time_elapsed * 4.2) * 2.0
 	var key_str := ""
 	var body_str := text_str
@@ -521,10 +658,10 @@ func draw_interact_bubble(canvas: Node2D, pos: Vector2, text_str: String, font: 
 			key_str = text_str.substr(1, br - 1)
 			body_str = text_str.substr(br + 1).strip_edges()
 
-	var label_size := font.get_string_size(body_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 12)
+	var label_size := use_font.get_string_size(body_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 12)
 	var key_badge_w := 0.0
 	if key_str != "":
-		var ksize := font.get_string_size(key_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 11)
+		var ksize := use_font.get_string_size(key_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 11)
 		key_badge_w = maxf(20.0, ksize.x + 10.0) + 8.0
 	var w := maxf(104.0, label_size.x + key_badge_w + 22.0)
 	var h := 26.0
@@ -548,91 +685,14 @@ func draw_interact_bubble(canvas: Node2D, pos: Vector2, text_str: String, font: 
 		var kb_rect := Rect2(tx, box.position.y + 4.0, kb_w, h - 8.0)
 		canvas.draw_rect(kb_rect, Color(0.24, 0.18, 0.12))
 		canvas.draw_rect(kb_rect, Color(0.96, 0.82, 0.46), false, 1.0)
-		draw_label_shadowed(canvas, Vector2(kb_rect.position.x + kb_w * 0.5, box.position.y + 16.5), key_str, font, 11, Color(1.0, 0.94, 0.72), true)
+		draw_label_shadowed(canvas, Vector2(kb_rect.position.x + kb_w * 0.5, box.position.y + 16.5), key_str, use_font, 11, Color(1.0, 0.94, 0.72), true)
 		tx += kb_w + 7.0
-	draw_label_shadowed(canvas, Vector2(tx, box.position.y + 17.5), body_str, font, 12, Color(0.96, 0.92, 0.80), false)
+	draw_label_shadowed(canvas, Vector2(tx, box.position.y + 17.5), body_str, use_font, 12, Color(0.96, 0.92, 0.80), false)
 
 
-## Metadata lookup (16x16 pixel icon, category badge, lore & effect text) for carried items
+## Metadata lookup (16x16 pixel icon, category badge, lore & effect text) — delegated to ItemCatalog.
 func get_item_info(item_name: String) -> Dictionary:
-	var n := item_name.to_lower()
-	if "crate" in n or "herring" in n:
-		return {
-			"icon": "icon_crate.png",
-			"category": "Heavy Harbor Cargo",
-			"desc": "Salt-cured North Sea herring bound for Quartermaster Vos's storehouse. Demands both hands to carry; you cannot sprint cleanly until it is set down."
-		}
-	if "egg" in n:
-		return {
-			"icon": "icon_egg.png",
-			"category": "Unseen Dragon Relic",
-			"desc": "Dense black-scaled egg shielded beneath a dying mother's wing. Heavy and fever-warm; shield its heat at hearthfires and reach the Brotherhood Outpost before it goes cold."
-		}
-	if "compass" in n:
-		return {
-			"icon": "icon_compass.png",
-			"category": "Navigator's Instrument",
-			"desc": "Bruges mariner's needle housed in tarnished brass. Helps keep true bearings through the Zwin docks and the wild borderlands beyond Old Heverlee."
-		}
-	if "beeswax" in n or "thimble" in n:
-		return {
-			"icon": "icon_beeswax_thimble.png",
-			"category": "Ropewalk Blessing (Passive)",
-			"desc": "Your mother's Louvain beeswax cake and pitted thimble, kept by Clara. Grants +1 Max Knot Integrity (4 loops), +25% Gold Cinch Zone, and +20% rope cast reach."
-		}
-	if "shuttle" in n:
-		return {
-			"icon": "icon_shuttle.png",
-			"category": "Ropewalk Tool & Clue",
-			"desc": "Clara's polished boxwood and brass shuttle from the Bruges Ropewalk—found fallen with torn cordage outside the silent mill."
-		}
-	if "strap" in n or "leather" in n:
-		return {
-			"icon": "icon_strap.png",
-			"category": "Oiled Harness Evidence",
-			"desc": "Heavy double-stitched wyrm-hide strap cut from a secret rider's flight rig, tied off with a clean Ropewalk bend instead of Hunter knots."
-		}
-	if "carabiner" in n:
-		return {
-			"icon": "icon_carabiner.png",
-			"category": "Brotherhood Rigging Gear",
-			"desc": "Forged brass-and-steel quick-link snapped onto Virelai's shoulder harness so mid-flight splices lock before a dive can shear the belly-band."
-		}
-	if "hook" in n or "whipping" in n:
-		return {
-			"icon": "icon_hook_whip.png",
-			"category": "Splicing & Grappling Kit",
-			"desc": "Tinned mariner's hook and tarred whipping twine used to bind split beams, haul heavy rigging, or snatch timber rings."
-		}
-	if "biscuit" in n or "twine" in n:
-		return {
-			"icon": "icon_biscuit_twine.png",
-			"category": "Canal Provisions",
-			"desc": "Hard-baked ship's biscuit stowed beside a spare coil of light hemp line for emergency splices on the wharf."
-		}
-	if "hemp" in n or "bundle" in n:
-		return {
-			"icon": "icon_hemp_bundle.png",
-			"category": "Cordage Bundle",
-			"desc": "Freshly combed Flanders hemp washed ashore in crates—valued by every quartermaster and sailor along the quay."
-		}
-	if "bread" in n or "rye" in n:
-		return {
-			"icon": "icon_bread.png",
-			"category": "Warm Supper Loaf",
-			"desc": "Crusty evening rye loaf baked by Pieter in Bruges Market, brought home to Uncle Willem and Clara before dusk."
-		}
-	if "map" in n or "chart" in n:
-		return {
-			"icon": "icon_map.png",
-			"category": "Brotherhood Chart [M]",
-			"desc": "Vellum border survey charting safe cairn trails, frost dead-ends, briar thickets, and winched creek crossings toward the Outpost."
-		}
-	return {
-		"icon": "icon_knot.png",
-		"category": "Satchel Item",
-		"desc": "Carried field possession stored safely inside your oilskin dock satchel."
-	}
+	return ItemCatalogScript.get_item_info(item_name)
 
 
 ## Draws a glowing Flemish brick bread oven with hearth glow, rising flue smoke, ember sparks & fresh boules.

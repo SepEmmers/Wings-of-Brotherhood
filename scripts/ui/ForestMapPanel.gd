@@ -222,23 +222,69 @@ func refresh() -> void:
 	map_canvas.queue_redraw()
 
 
+class _MapLabelOverlay extends Control:
+	var commands: Array[Dictionary] = []
+
+	func _draw() -> void:
+		for cmd in commands:
+			var f: Font = cmd["font"]
+			var p: Vector2 = cmd["pos"]
+			var txt: String = cmd["text"]
+			var sz: int = cmd["sz"]
+			var col: Color = cmd["col"]
+			if bool(cmd.get("shadow", true)):
+				draw_string(f, p + Vector2(1, 1), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, sz, Color(0.86, 0.79, 0.62, 0.85))
+			draw_string(f, p, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, sz, col)
+
+
 class ForestMapCanvas extends Control:
 	const WORLD_W := 2880.0
 	const WORLD_H := 2160.0
 	var assets = null
 	var panel_ref = null
+	var _label_overlay: _MapLabelOverlay = null
+	var _pending_labels: Array[Dictionary] = []
+
+	func _ensure_label_overlay() -> _MapLabelOverlay:
+		if _label_overlay == null:
+			_label_overlay = _MapLabelOverlay.new()
+			_label_overlay.name = "MapLabelOverlay"
+			_label_overlay.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+			_label_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			_label_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+			add_child(_label_overlay)
+		return _label_overlay
+
+	func _ink_font(font: Font) -> Font:
+		if assets != null:
+			return assets.get_ui_font()
+		return font
 
 	func _draw_ink_text(font: Font, pos: Vector2, text: String, sz: int, ink: Color) -> void:
-		draw_string(font, pos + Vector2(1, 1), text, HORIZONTAL_ALIGNMENT_LEFT, -1, sz, Color(0.86, 0.79, 0.62, 0.85))
-		draw_string(font, pos, text, HORIZONTAL_ALIGNMENT_LEFT, -1, sz, ink)
+		_pending_labels.append({
+			"font": _ink_font(font),
+			"pos": pos,
+			"text": text,
+			"sz": sz,
+			"col": ink,
+			"shadow": true,
+		})
 
 	func _draw_ink_badge(font: Font, center: Vector2, label: String, fill_col: Color, border_col: Color, text_col: Color) -> void:
-		var tw := font.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, 10).x
+		var use_f := _ink_font(font)
+		var tw := use_f.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, 10).x
 		var rect := Rect2(center - Vector2(tw * 0.5 + 5.0, 8.0), Vector2(tw + 10.0, 15.0))
 		draw_rect(Rect2(rect.position + Vector2(1, 1), rect.size), Color(0.18, 0.12, 0.08, 0.35))
 		draw_rect(rect, fill_col)
 		draw_rect(rect, border_col, false, 1.5)
-		draw_string(font, Vector2(rect.position.x + 5.0, rect.position.y + 11.5), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 10, text_col)
+		_pending_labels.append({
+			"font": use_f,
+			"pos": Vector2(rect.position.x + 5.0, rect.position.y + 11.5),
+			"text": label,
+			"sz": 10,
+			"col": text_col,
+			"shadow": false,
+		})
 
 	func _draw_dashed_curve(pts: PackedVector2Array, col: Color, width: float, dash_len: float, gap_len: float) -> void:
 		if pts.size() < 2:
@@ -301,7 +347,8 @@ class ForestMapCanvas extends Control:
 			draw_texture_rect(bh_emblem, Rect2(Vector2(18, h - 58), Vector2(40, 40)), false, Color(1.0, 1.0, 1.0, 0.88))
 
 	func _draw() -> void:
-		var font := ThemeDB.fallback_font
+		_pending_labels.clear()
+		var font: Font = assets.get_ui_font() if assets != null else get_theme_default_font()
 		var w := size.x
 		var h := size.y
 		_draw_vellum_frame(font, w, h)
@@ -315,6 +362,9 @@ class ForestMapCanvas extends Control:
 			var hov: String = str(panel_ref.hovered_node_id) if panel_ref != null else ""
 			var sel: String = str(panel_ref.selected_node_id) if panel_ref != null else ""
 			RealmChartDraw.draw_realm_chart(self, font, w, h, rid, hov, sel)
+		var ov := _ensure_label_overlay()
+		ov.commands = _pending_labels.duplicate()
+		ov.queue_redraw()
 
 	func _gui_input(event: InputEvent) -> void:
 		if panel_ref == null or int(panel_ref.view_mode) != 2:

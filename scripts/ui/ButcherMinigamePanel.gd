@@ -100,6 +100,7 @@ func _ready() -> void:
 	vbox.add_child(desc_lbl)
 
 	board = Control.new()
+	board.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	board.custom_minimum_size = Vector2(540, 250)
 	board.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	board.mouse_filter = Control.MOUSE_FILTER_STOP
@@ -370,7 +371,7 @@ func _seam_x_at_y(seam_idx: int, y_norm: float) -> float:
 
 
 func _draw_board() -> void:
-	var font := ThemeDB.fallback_font
+	var font := board.get_theme_default_font()
 	var sz := board.size
 	# Heavy Oak Butcher Block surface with wood grain & old chopping scars
 	board.draw_rect(Rect2(Vector2.ZERO, sz), Color(0.18, 0.12, 0.08))

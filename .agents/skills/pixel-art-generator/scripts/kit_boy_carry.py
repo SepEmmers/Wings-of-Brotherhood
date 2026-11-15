@@ -2,12 +2,12 @@
 Modular Empty-Hands Protagonist Carry Poses + Wardrobe Helper for Temeraire.
 
 Replaces N x M bespoke full-body carry sprite explosion with ONLY 2 reusable empty-hands
-carrier postures across 3 cardinal directions x 3 walk frames (18 sprites total):
-  1. Overhead Carry (`boy_carry_hands_{down,up,side}_{0,1,2}.png`) — crates, leather bales, barrels
-  2. Chest Cradle (`boy_cradle_hands_{down,up,side}_{0,1,2}.png`) — Dragon Egg, water pail, fish, parcels
+carrier postures across 5 directions (down, up, side, diag_down, diag_up) x 3 walk frames (30 sprites total):
+  1. Overhead Carry (`boy_carry_hands_{down,up,side,diag_down,diag_up}_{0,1,2}.png`) — crates, leather bales, barrels
+  2. Chest Cradle (`boy_cradle_hands_{down,up,side,diag_down,diag_up}_{0,1,2}.png`) — Dragon Egg, water pail, fish, parcels
 
 Godot's PlayerBoy overlays ANY item (`prop_*.png` / `icon_*.png`) dynamically in
-Bram's hands via `carry_prop_sprite` with automatic directional z-ordering and walk bob.
+the Boy's hands via `carry_prop_sprite` with automatic 8-directional z-ordering and walk bob.
 """
 
 import os
@@ -16,6 +16,8 @@ from sprite_boy_walk import (
     BOY_DOWN_0, BOY_DOWN_1, BOY_DOWN_2,
     BOY_UP_0, BOY_UP_1, BOY_UP_2,
     BOY_SIDE_0, BOY_SIDE_1, BOY_SIDE_2,
+    BOY_DIAG_DOWN_0, BOY_DIAG_DOWN_1, BOY_DIAG_DOWN_2,
+    BOY_DIAG_UP_0, BOY_DIAG_UP_1, BOY_DIAG_UP_2,
 )
 
 # Empty-hands torso replacements (rows 13..19; legs 20..27 & head 0..12 stay intact from walk frames)
@@ -64,6 +66,37 @@ _TORSO_OVERHEAD = {
         18: ".......dtttttttd........",
         19: "........tttttttd........",
     },
+    "diag_down": {
+        7:  ".....sS..........Ss.....",
+        8:  ".....sS..........Ss.....",
+        9:  ".....dm..........md.....",
+        10: ".....dm..........md.....",
+        11: ".....dl..........ld.....",
+        12: ".....dm..........md.....",
+        13: "......dmmllqqddmmd......",
+        14: "......ddmllqqqlmdd......",
+        15: ".......dmmllmmmmd.......",
+        16: ".......dmmlllmmmd.......",
+        17: ".......ddttttGttd.......",
+        18: ".......dtttttGttd.......",
+        19: ".......dmmmmmmmd........",
+    },
+    "diag_up": {
+        6:  ".....sS..........Ss.....",
+        7:  ".....sS..........Ss.....",
+        8:  ".....dm..........md.....",
+        9:  ".....dm..........md.....",
+        10: ".....dl..........ld.....",
+        11: ".....dm..........md.....",
+        12: "......dm........md......",
+        13: "......dmmddqqddmmd......",
+        14: "......ddmmmmmmmmdd......",
+        15: ".......dmmmmmmmmd.......",
+        16: ".......dmmmmmmmmd.......",
+        17: ".......dtttttttd........",
+        18: ".......dtttttttd........",
+        19: ".......dmmmmmmmd........",
+    },
 }
 
 _TORSO_CRADLE = {
@@ -94,12 +127,32 @@ _TORSO_CRADLE = {
         18: "........tttttttd........",
         19: "........dmmmmmd.........",
     },
+    "diag_down": {
+        13: ".......ddmllqmmd........",
+        14: "......dmlllmqmmmd.......",
+        15: "......dmmmllssSmmd......",
+        16: "......ddmmssSSSsmmd.....",
+        17: ".......dmttsSSSsmmd.....",
+        18: ".......dttttGttd........",
+        19: ".......dmmmmmmd.........",
+    },
+    "diag_up": {
+        13: ".......ddmmmmmmdd.......",
+        14: "......dmllmmmmmmmd......",
+        15: "......dmmmmmmmmmmsSd....",
+        16: "......dmmmmmmmmmmssS....",
+        17: ".......dttttttttsSS.....",
+        18: ".......dtttttttd........",
+        19: ".......dmmmmmmd.........",
+    },
 }
 
 _WALK_BASES = {
     "down": (BOY_DOWN_0, BOY_DOWN_1, BOY_DOWN_2),
     "up": (BOY_UP_0, BOY_UP_1, BOY_UP_2),
     "side": (BOY_SIDE_0, BOY_SIDE_1, BOY_SIDE_2),
+    "diag_down": (BOY_DIAG_DOWN_0, BOY_DIAG_DOWN_1, BOY_DIAG_DOWN_2),
+    "diag_up": (BOY_DIAG_UP_0, BOY_DIAG_UP_1, BOY_DIAG_UP_2),
 }
 
 
@@ -124,7 +177,7 @@ def _apply_arm_pose(base_grid: list[str], arm_rows: dict[int, str], bob_arms: bo
 def build_modular_carry_frames(grid_transform=None) -> dict[str, list[str]]:
     frames: dict[str, list[str]] = {}
     for posture_name, table in (("carry_hands", _TORSO_OVERHEAD), ("cradle_hands", _TORSO_CRADLE)):
-        for dname in ("down", "up", "side"):
+        for dname in ("down", "up", "side", "diag_down", "diag_up"):
             bases = _WALK_BASES[dname]
             arm_rows = table[dname]
             for step in (0, 1, 2):

@@ -370,15 +370,20 @@ func _hide_carry_prop() -> void:
 		carry_prop_sprite.visible = false
 
 
-func _apply_carry_visual(carry: Dictionary, card_dir: String, card_flip: bool, step_idx: int, base_y: float) -> void:
+func _apply_carry_visual(carry: Dictionary, dir_key: String, dir_flip: bool, step_idx: int, base_y: float) -> void:
 	var posture := String(carry.get("posture", "cradle"))
 	var hands_prefix := "boy_carry_hands" if posture == "overhead" else "boy_cradle_hands"
-	var body_key := "%s_%s_%d.png" % [hands_prefix, card_dir, step_idx]
+	var card_dir := "up" if dir_key in ["up", "diag_up"] else ("side" if dir_key == "side" else "down")
+	var body_key := "%s_%s_%d.png" % [hands_prefix, dir_key, step_idx]
 	if not anim_textures.has(body_key):
-		var legacy_pfx := "boy_carry" if posture == "overhead" else "boy_carry_egg"
-		var legacy_key := "%s_%s_%d.png" % [legacy_pfx, card_dir, step_idx]
-		body_key = legacy_key if anim_textures.has(legacy_key) else ("boy_%s_%d.png" % [card_dir, step_idx])
-	sprite.flip_h = card_flip
+		var card_hands := "%s_%s_%d.png" % [hands_prefix, card_dir, step_idx]
+		if anim_textures.has(card_hands):
+			body_key = card_hands
+		else:
+			var legacy_pfx := "boy_carry" if posture == "overhead" else "boy_carry_egg"
+			var legacy_key := "%s_%s_%d.png" % [legacy_pfx, card_dir, step_idx]
+			body_key = legacy_key if anim_textures.has(legacy_key) else ("boy_%s_%d.png" % [dir_key, step_idx])
+	sprite.flip_h = dir_flip
 	sprite.texture = _boy_tex(body_key)
 	sprite.position = Vector2(0, base_y)
 
@@ -398,21 +403,32 @@ func _apply_carry_visual(carry: Dictionary, card_dir: String, card_flip: bool, s
 
 	if posture == "overhead":
 		carry_prop_sprite.z_index = 2
-		if card_dir == "side":
-			carry_prop_sprite.flip_h = card_flip
-			carry_prop_sprite.position = Vector2(-7.0 if card_flip else 7.0, (-27.0 + walk_bob) * age_y)
+		if dir_key == "side":
+			carry_prop_sprite.flip_h = dir_flip
+			carry_prop_sprite.position = Vector2(-7.0 if dir_flip else 7.0, (-27.0 + walk_bob) * age_y)
+		elif dir_key in ["diag_down", "diag_up"]:
+			carry_prop_sprite.flip_h = dir_flip
+			carry_prop_sprite.position = Vector2(-3.5 if dir_flip else 3.5, (-27.0 + walk_bob) * age_y)
 		else:
 			carry_prop_sprite.flip_h = false
 			carry_prop_sprite.position = Vector2(0.0, (-27.0 + walk_bob) * age_y)
 	else:
-		if card_dir == "up":
+		if dir_key == "up":
 			carry_prop_sprite.z_index = 0
 			carry_prop_sprite.flip_h = false
 			carry_prop_sprite.position = Vector2(0.0, (-10.0 + walk_bob) * age_y)
-		elif card_dir == "side":
+		elif dir_key == "diag_up":
+			carry_prop_sprite.z_index = 0
+			carry_prop_sprite.flip_h = dir_flip
+			carry_prop_sprite.position = Vector2(-4.5 if dir_flip else 4.5, (-10.0 + walk_bob) * age_y)
+		elif dir_key == "side":
 			carry_prop_sprite.z_index = 2
-			carry_prop_sprite.flip_h = card_flip
-			carry_prop_sprite.position = Vector2(-6.5 if card_flip else 6.5, (-9.5 + walk_bob) * age_y)
+			carry_prop_sprite.flip_h = dir_flip
+			carry_prop_sprite.position = Vector2(-6.5 if dir_flip else 6.5, (-9.5 + walk_bob) * age_y)
+		elif dir_key == "diag_down":
+			carry_prop_sprite.z_index = 2
+			carry_prop_sprite.flip_h = dir_flip
+			carry_prop_sprite.position = Vector2(-4.2 if dir_flip else 4.2, (-9.0 + walk_bob) * age_y)
 		else:
 			carry_prop_sprite.z_index = 2
 			carry_prop_sprite.flip_h = false
@@ -486,31 +502,25 @@ func _update_sprite() -> void:
 		sprite.position = Vector2(0, base_y)
 		return
 
-	var card_dir := "down"
-	var card_flip := false
-	if absf(facing.x) > absf(facing.y) * 1.05:
-		card_dir = "side"
-		card_flip = facing.x < 0.0
+	var dir_key := "down"
+	var dir_flip := false
+	if absf(facing.x) > 0.30 and absf(facing.y) > 0.30:
+		dir_key = "diag_down" if facing.y >= 0.0 else "diag_up"
+		dir_flip = facing.x < 0.0
+	elif absf(facing.x) > absf(facing.y) * 1.05:
+		dir_key = "side"
+		dir_flip = facing.x < 0.0
 	elif facing.y < 0.0:
-		card_dir = "up"
-	var step_idx := (1 if int(walk_phase * 1.3) % 2 == 0 else 2) if is_moving else 0
+		dir_key = "up"
 
+	var step_idx := (1 if int(walk_phase * 1.3) % 2 == 0 else 2) if is_moving else 0
 	var carry := _resolve_active_carry()
 	if not carry.is_empty():
-		_apply_carry_visual(carry, card_dir, card_flip, step_idx, base_y)
+		_apply_carry_visual(carry, dir_key, dir_flip, step_idx, base_y)
 		return
 	_hide_carry_prop()
 
-	var dir_key := "down"
-	sprite.flip_h = false
-	if absf(facing.x) > 0.30 and absf(facing.y) > 0.30:
-		dir_key = "diag_down" if facing.y >= 0.0 else "diag_up"
-		sprite.flip_h = facing.x < 0.0
-	elif absf(facing.x) > absf(facing.y) * 1.05:
-		dir_key = "side"
-		sprite.flip_h = facing.x < 0.0
-	elif facing.y < 0.0:
-		dir_key = "up"
+	sprite.flip_h = dir_flip
 
 	var frame_idx := 0
 	if is_moving:

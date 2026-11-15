@@ -702,4 +702,211 @@ def make_dragons(sprites_dir: str):
         dh.add_outline("DO", selective_hue=True)
         dh.save_png(os.path.join(sprites_dir, f"dragon_black_hatchling_{frame}.png"))
 
+    # 10. Stage 1 Golden Prophecy Hatchling (24x22, 3 dirs x 2 flutter/step frames)
+    # Cat-sized soot-obsidian newborn dragonet with cracking molten-gold seams beneath.
+    for frame in (0, 1):
+        lift = -2 if frame == 1 else 0
+        stride = 1 if frame == 1 else -1
+
+        # DOWN (facing viewer, 3/4 top-down)
+        hd = PixelCanvas(24, 22)
+        hd.ellipse(12, 18, 5.5, 2.2, (12, 14, 18, 95))
+        # Whipping curled tail peeking behind right hip
+        hd.line(15, 16, 19 + frame, 18, "O0")
+        hd.line(15, 15, 19 + frame, 17, "O2")
+        hd.pset(20 if frame == 1 else 19, 17, "Y2")
+        # Fluttering soot wings with glowing gold wing-joint bone
+        for side in (-1, 1):
+            for i in range(1, 7):
+                wx = 12 + side * (3 + i)
+                top_y = 8 + lift + (i // 3)
+                bot_y = 14 + lift - (i // 3)
+                for wy in range(top_y, bot_y + 1):
+                    col = "O0" if wy == bot_y else ("O1" if i < 5 else "O2")
+                    hd.pset(wx, wy, col)
+            # Leading gold-seamed spar & tiny claw spark
+            hd.line(12 + side * 4, 9 + lift, 12 + side * 8, 9 + lift, "Y1")
+            hd.pset(12 + side * 4, 8 + lift, "Y2")
+            hd.pset(12 + side * 9, 9 + lift, "C4")
+        # Plump dragonet torso & stepping fore/hind paws
+        hd.ellipse(12, 14, 4.2, 4.4, "O0")
+        hd.ellipse(12, 14, 3.3, 3.5, "O1")
+        hd.ellipse(12, 13, 2.2, 2.2, "O2")
+        # Molten gold scale-cracks showing on chest & ribs
+        hd.line(11, 13, 11, 16, "Y1")
+        hd.pset(12, 13, "Y2")
+        hd.pset(12, 15, "Y3")
+        hd.pset(10, 14, "Y1")
+        hd.pset(14, 14, "Y1")
+        hd.rect(8, 17 + (0 if frame == 0 else -1), 2, 2, "O2")
+        hd.rect(14, 17 + (-1 if frame == 0 else 0), 2, 2, "O2")
+        # Expressive soot-black head, stub horns, bright amber eyes
+        hd.ellipse(12, 8, 4.4, 3.8, "O0")
+        hd.ellipse(12, 8, 3.5, 3.0, "O1")
+        hd.ellipse(12, 7, 2.4, 1.8, "O2")
+        hd.line(9, 4, 8, 2, "C3")
+        hd.line(15, 4, 16, 2, "C3")
+        hd.pset(12, 5, "Y2")  # forehead gold diamond seam
+        hd.pset(12, 6, "Y1")
+        for ex in (9, 14):
+            hd.rect(ex, 8, 2, 2, "Y2")
+            hd.pset(ex, 8, "Y3")
+        hd.rect(11, 10, 2, 1, "O3")
+        hd.add_outline("DO", selective_hue=True)
+        hd.save_png(os.path.join(sprites_dir, f"dragon_gold_s1_down_{frame}.png"))
+
+        # UP (facing away, golden dorsal ridge & animated tail)
+        hu = PixelCanvas(24, 22)
+        hu.ellipse(12, 18, 5.5, 2.2, (12, 14, 18, 95))
+        for side in (-1, 1):
+            for i in range(1, 7):
+                wx = 12 + side * (3 + i)
+                top_y = 7 + lift + (i // 3)
+                bot_y = 13 + lift - (i // 3)
+                for wy in range(top_y, bot_y + 1):
+                    hu.pset(wx, wy, "O2" if wy == top_y else "O1")
+            hu.line(12 + side * 4, 8 + lift, 12 + side * 8, 8 + lift, "Y1")
+            hu.pset(12 + side * 9, 8 + lift, "C4")
+        # Back torso + glowing shedding dorsal spine
+        hu.ellipse(12, 12, 4.0, 4.4, "O0")
+        hu.ellipse(12, 12, 3.0, 3.5, "O1")
+        hu.line(12, 9, 12, 16, "Y1")
+        hu.pset(12, 10, "Y3")
+        hu.pset(12, 13, "Y2")
+        hu.pset(12, 15, "Y3")
+        # Curving agile tail towards camera
+        t_dx = -1 if frame == 0 else 1
+        hu.line(12, 16, 12 + t_dx, 19, "O1")
+        hu.line(12 + t_dx, 19, 13 + t_dx * 2, 20, "Y1")
+        hu.pset(13 + t_dx * 2, 20, "Y2")
+        # Crown back & swept horns
+        hu.ellipse(12, 7, 3.8, 3.2, "O0")
+        hu.ellipse(12, 7, 2.8, 2.4, "O1")
+        hu.line(9, 4, 8, 2, "C3")
+        hu.line(15, 4, 16, 2, "C3")
+        hu.pset(12, 5, "Y2")
+        hu.add_outline("DO", selective_hue=True)
+        hu.save_png(os.path.join(sprites_dir, f"dragon_gold_s1_up_{frame}.png"))
+
+        # SIDE (facing RIGHT cleanly for flip_h left/right mirroring)
+        hs = PixelCanvas(24, 22)
+        hs.ellipse(12, 18, 6.2, 2.2, (12, 14, 18, 95))
+        # Whip tail streaming left with gold tip spark
+        tail_y = 14 if frame == 0 else 12
+        hs.line(8, 14, 4, tail_y, "O1")
+        hs.line(4, tail_y, 2, tail_y + (1 if frame == 0 else -1), "O2")
+        hs.pset(2, tail_y + (1 if frame == 0 else -1), "Y2")
+        # Hind & fore stepping legs
+        hs.rect(8 - stride, 16, 2, 3, "O1")
+        hs.rect(14 + stride, 16, 2, 3, "O2")
+        hs.pset(9 - stride, 18, "C3")
+        hs.pset(15 + stride, 18, "C3")
+        # Plump dragonet fuselage with flank gold seams peeking beneath obsidian
+        hs.ellipse(11, 13, 4.8, 3.5, "O0")
+        hs.ellipse(11, 13, 3.8, 2.6, "O1")
+        hs.ellipse(11, 12, 2.6, 1.6, "O2")
+        hs.pset(10, 12, "Y2")
+        hs.pset(11, 13, "Y3")
+        hs.pset(13, 13, "Y1")
+        # Upper fluttering wing arching back-up
+        wing_lift = -2 if frame == 1 else 0
+        for i in range(7):
+            wx = 11 - i
+            top_y = 6 + wing_lift + i // 3
+            bot_y = 11 + wing_lift - i // 4
+            for wy in range(top_y, bot_y + 1):
+                hs.pset(wx, wy, "O2" if wy == top_y else ("O1" if (wx + wy) % 3 else "O0"))
+        hs.line(12, 9 + wing_lift, 6, 6 + wing_lift, "Y1")
+        hs.pset(6, 6 + wing_lift, "Y2")
+        # Alert head & tapered muzzle facing right
+        hs.ellipse(16, 9, 3.6, 3.2, "O0")
+        hs.ellipse(16, 9, 2.8, 2.4, "O1")
+        hs.rect(18, 8, 4, 3, "O1")
+        hs.line(18, 8, 21, 8, "O2")
+        hs.pset(21, 9, "Y1")      # tiny nostril glint
+        hs.line(15, 6, 13, 3, "C3") # swept ear-horn
+        hs.pset(15, 6, "Y2")
+        hs.rect(17, 8, 2, 2, "Y2")
+        hs.pset(17, 8, "Y3")
+        hs.add_outline("DO", selective_hue=True)
+        hs.save_png(os.path.join(sprites_dir, f"dragon_gold_s1_side_{frame}.png"))
+
+        # DIAGONAL DOWN-RIGHT (3/4 front-right cute walking dragonet; flip_h mirrors left)
+        hdd = PixelCanvas(24, 22)
+        hdd.ellipse(12, 18, 5.8, 2.2, (12, 14, 18, 95))
+        # Whip tail curving away up-left with gold tip glint
+        tail_dy = 1 if frame == 0 else -1
+        hdd.line(9, 15, 5, 13 + tail_dy, "O0")
+        hdd.line(5, 13 + tail_dy, 3, 10 + tail_dy, "O2")
+        hdd.pset(3, 10 + tail_dy, "Y2")
+        # Far-left raised wing + near-left tucked wing with gold spar
+        for side_w, (wx_off, wy_off, span) in ((-1, (-4, 0, 5)), (1, (4, 1, 4))):
+            for i in range(span):
+                wx = 11 + side_w * (3 + i)
+                top_y = 7 + lift + wy_off + i // 3
+                bot_y = 13 + lift + wy_off - i // 3
+                for wy in range(top_y, bot_y + 1):
+                    hdd.pset(wx, wy, "O0" if wy == bot_y else ("O1" if i < span - 1 else "O2"))
+            hdd.line(11 + side_w * 3, 8 + lift + wy_off, 11 + side_w * (2 + span), 8 + lift + wy_off, "Y1")
+            hdd.pset(11 + side_w * (2 + span), 8 + lift + wy_off, "C4")
+        # Plump chest angled down-right + alternating stepping paws
+        hdd.ellipse(12, 14, 4.4, 3.8, "O0")
+        hdd.ellipse(12, 14, 3.4, 2.9, "O1")
+        hdd.pset(12, 13, "Y2")
+        hdd.pset(13, 14, "Y3")
+        hdd.pset(13, 16, "Y1")
+        hdd.rect(9 - stride, 16, 2, 3, "O1")
+        hdd.rect(14 + stride, 16, 2, 3, "O2")
+        # 3/4 cute rounded head, tiny muzzle toward bottom-right, both bright eyes visible
+        hdd.ellipse(14, 9, 4.2, 3.5, "O0")
+        hdd.ellipse(14, 9, 3.3, 2.7, "O1")
+        hdd.ellipse(14, 8, 2.1, 1.6, "O2")
+        hdd.line(11, 5, 9, 3, "C3")
+        hdd.line(15, 5, 16, 3, "C3")
+        hdd.pset(14, 6, "Y2")
+        hdd.rect(16, 9, 3, 2, "O1")
+        hdd.pset(18, 10, "Y1")
+        hdd.rect(12, 8, 2, 2, "Y2")
+        hdd.pset(12, 8, "Y3")
+        hdd.rect(15, 8, 2, 2, "Y2")
+        hdd.pset(15, 8, "Y3")
+        hdd.add_outline("DO", selective_hue=True)
+        hdd.save_png(os.path.join(sprites_dir, f"dragon_gold_s1_diag_down_{frame}.png"))
+
+        # DIAGONAL UP-RIGHT (3/4 back-right cute walking dragonet; flip_h mirrors left)
+        hdu = PixelCanvas(24, 22)
+        hdu.ellipse(12, 18, 5.6, 2.2, (12, 14, 18, 95))
+        # Stepped legs
+        hdu.rect(9 - stride, 16, 2, 3, "O1")
+        hdu.rect(14 + stride, 16, 2, 3, "O2")
+        # Fluttering back wings across diagonal shoulders
+        for i in range(6):
+            wx = 10 - i
+            top_y = 6 + lift + i // 3
+            bot_y = 12 + lift - i // 3
+            for wy in range(top_y, bot_y + 1):
+                hdu.pset(wx, wy, "O2" if wy == top_y else "O1")
+        hdu.line(10, 7 + lift, 5, 7 + lift, "Y1")
+        hdu.pset(5, 7 + lift, "C4")
+        # 3/4 back torso + glowing shedding dorsal spine seams
+        hdu.ellipse(12, 13, 4.2, 4.0, "O0")
+        hdu.ellipse(12, 13, 3.2, 3.1, "O1")
+        hdu.line(11, 10, 12, 16, "Y1")
+        hdu.pset(11, 11, "Y3")
+        hdu.pset(12, 14, "Y2")
+        # Curving agile tail trailing bottom-left with gold tip spark
+        t_off = -1 if frame == 0 else 1
+        hdu.line(10, 16, 6, 18 + t_off, "O1")
+        hdu.line(6, 18 + t_off, 4, 19 + t_off, "Y1")
+        hdu.pset(4, 19 + t_off, "Y2")
+        # Crown & swept horns + small profile cheek eye glint on right
+        hdu.ellipse(14, 8, 3.8, 3.2, "O0")
+        hdu.ellipse(14, 8, 2.8, 2.4, "O1")
+        hdu.line(11, 5, 9, 2, "C3")
+        hdu.line(15, 5, 16, 2, "C3")
+        hdu.pset(13, 6, "Y2")
+        hdu.pset(17, 8, "Y3")
+        hdu.add_outline("DO", selective_hue=True)
+        hdu.save_png(os.path.join(sprites_dir, f"dragon_gold_s1_diag_up_{frame}.png"))
+
 

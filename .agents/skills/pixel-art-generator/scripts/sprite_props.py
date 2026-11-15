@@ -369,26 +369,124 @@ def make_props(sprites_dir: str):
     sc.pset(20, 16, "O2")
     sc.save_png(os.path.join(sprites_dir, "prop_scorched_clue.png"))
 
-    # Animated Wilderness Campfire (24x24, 2 frames)
+    # Animated Wilderness Campfire (28x24, 2 frames) — Creek-stone hearth ring, glowing oak logs & vivid 2-frame flame
     for frame in (0, 1):
-        cf = PixelCanvas(24, 24)
-        # Stone ring
-        for ang in range(0, 360, 45):
-            rx = int(12 + math.cos(math.radians(ang)) * 7.5)
-            ry = int(15 + math.sin(math.radians(ang)) * 4.5)
-            cf.circle(rx, ry, 2, "C2")
+        cf = PixelCanvas(28, 24)
+        # Warm hearth soot & glow halo beneath logs
+        cf.ellipse(14, 16, 12.0, 6.0, (24, 18, 16, 125))
+        cf.ellipse(14, 15, 8.5, 4.0, (42, 24, 14, 130))
+        # Wide faceted creek-stone ring (back stones first, front stones below logs)
+        back_stones = ((6, 13), (11, 11), (17, 11), (22, 13))
+        front_stones = ((4, 16), (8, 19), (14, 20), (20, 19), (24, 16))
+        for rx, ry in back_stones:
+            cf.ellipse(rx, ry, 2.8, 2.0, "C0")
+            cf.ellipse(rx, ry, 2.0, 1.4, "C2")
             cf.pset(rx, ry - 1, "C3")
-        # Crossed firewood logs
-        cf.line(7, 17, 17, 12, "T1")
-        cf.line(7, 12, 17, 17, "T0")
-        # Lively pixel flame
-        h_shift = -1 if frame == 1 else 0
-        cf.ellipse(12, 13, 4.5, 3.5, "R2")
-        cf.ellipse(12, 11 + h_shift, 3.5, 4.5, "Y1")
-        cf.ellipse(12, 11 + h_shift, 2.0, 3.2, "Y2")
-        cf.pset(12, 9 + h_shift, "Y3")
-        cf.pset(9 + frame * 5, 5, "Y2")
+        # Crossed charred firewood logs with glowing red ember seams
+        cf.line(6, 17, 21, 12, "T0")
+        cf.line(6, 16, 21, 11, "T2")
+        cf.line(7, 12, 22, 17, "T0")
+        cf.line(7, 11, 21, 16, "T1")
+        cf.rect(11, 13, 6, 3, "I1")
+        cf.rect(12, 14, 4, 2, "R2")
+        cf.pset(13 + frame, 14, "Y2")
+        # Lively multi-tone flickering campfire flame tongue
+        sway = -1 if frame == 1 else 1
+        h_tip = 2 if frame == 1 else 3
+        cf.ellipse(14, 12, 5.0, 4.0, "R2")
+        cf.ellipse(14 + sway // 2, 10, 4.0, 4.5, "R3")
+        cf.ellipse(14, 9, 3.0, 4.2, "Y1")
+        cf.ellipse(14 - sway, 10, 2.0, 2.8, "Y2")
+        cf.line(14, 7, 14 + sway, h_tip, "Y2")
+        cf.pset(14, 9, "Y3")
+        cf.pset(14 - sway, 11, "L0")
+        # Rising amber embers
+        cf.pset(10 + frame * 7, 4, "Y2")
+        cf.pset(17 - frame * 5, 2, "Y3")
+        for rx, ry in front_stones:
+            cf.ellipse(rx, ry, 2.8, 2.1, "K")
+            cf.ellipse(rx, ry, 2.2, 1.6, "C1")
+            cf.ellipse(rx - 0.3, ry - 0.3, 1.4, 1.0, "C2")
+            cf.pset(rx - 1, ry - 1, "C3")
         cf.save_png(os.path.join(sprites_dir, f"prop_campfire_{frame}.png"))
+
+    # Queue 13 Book II Companion & City Stealth Props
+    # 1. Hooded Leather Hatchling Travel-Sling (16x16)
+    sl = PixelCanvas(16, 16)
+    sl.ellipse(8, 10, 6.2, 4.5, "T0")
+    sl.ellipse(8, 9, 5.2, 3.8, "E0")
+    sl.ellipse(8, 8, 4.0, 2.8, "E1")
+    # Leather shoulder sling strap & brass D-buckle
+    sl.line(2, 4, 13, 12, "T1")
+    sl.line(3, 3, 14, 11, "T2")
+    sl.rect(10, 5, 3, 3, "Y0")
+    sl.pset(11, 6, "Y3")
+    # Hood flap folded over a tiny tucked soot dragon snout & golden eye glint!
+    sl.ellipse(8, 10, 2.8, 2.0, "O1")
+    sl.pset(7, 9, "O2")
+    sl.rect(8, 10, 2, 1, "Y2")
+    sl.pset(8, 10, "Y3")
+    sl.line(5, 7, 11, 7, "E2")
+    sl.add_outline("K", selective_hue=True)
+    sl.save_png(os.path.join(sprites_dir, "prop_hatchling_sling.png"))
+
+    # 2. Church Inquisitor Wanted Bounty Poster (14x18)
+    wp = PixelCanvas(14, 18)
+    wp.rect(1, 2, 12, 15, "T0")
+    wp.rect(2, 2, 10, 14, "L1")
+    wp.rect(3, 3, 8, 12, "L0")
+    # Carved notched lower parchment tear + brass nail/crimson seal header
+    wp.pset(11, 15, ".")
+    wp.pset(7, 2, "C3")
+    wp.rect(4, 3, 6, 1, "I1")
+    # Charcoal woodcut silhouette of black-and-gold dragon / boy
+    wp.rect(5, 5, 4, 5, "O0")
+    wp.rect(4, 6, 6, 3, "O1")
+    wp.pset(6, 7, "Y2")
+    wp.pset(8, 7, "Y2")
+    # Calligraphy bounty lines & crimson Inquisition wax dot
+    wp.line(4, 11, 9, 11, "T1")
+    wp.line(4, 13, 8, 13, "T1")
+    wp.circle(10, 13, 1.5, "I1")
+    wp.pset(10, 13, "I2")
+    wp.add_outline("K", selective_hue=True)
+    wp.save_png(os.path.join(sprites_dir, "prop_wanted_poster.png"))
+
+    # 3. Acoustic Resonance Chime Decoy Bell (16x16)
+    rc_ch = PixelCanvas(16, 16)
+    # Small forked oak stand & hanging brass bell
+    rc_ch.line(4, 14, 6, 4, "T0")
+    rc_ch.line(11, 14, 9, 4, "T0")
+    rc_ch.rect(4, 3, 8, 2, "T2")
+    rc_ch.line(4, 3, 11, 3, "T3")
+    # Hammered bronze chime bell in center + glowing clapper
+    rc_ch.rect(6, 6, 4, 5, "Y1")
+    rc_ch.rect(5, 10, 6, 2, "Y0")
+    rc_ch.line(6, 6, 9, 6, "Y3")
+    rc_ch.line(6, 8, 6, 10, "Y2")
+    rc_ch.pset(8, 12, "Y3")
+    # Faint shimmer ripple pixels beside bell
+    rc_ch.pset(3, 8, "Y2")
+    rc_ch.pset(2, 7, "Y3")
+    rc_ch.pset(12, 8, "Y2")
+    rc_ch.pset(13, 7, "Y3")
+    rc_ch.add_outline("K", selective_hue=True)
+    rc_ch.save_png(os.path.join(sprites_dir, "prop_resonance_chime.png"))
+
+    # 4. Alchemical Ash & Pitch Smoke Pellet (16x16)
+    sm = PixelCanvas(16, 16)
+    sm.ellipse(8, 10, 5.0, 4.5, "SG0")
+    sm.ellipse(8, 10, 4.2, 3.8, "SG1")
+    sm.ellipse(7, 9, 2.5, 2.0, "SG2")
+    # Tied hemp cord collar & parchment/beeswax twist + sparkling ember wick
+    sm.rect(6, 5, 4, 2, "H1")
+    sm.line(6, 5, 9, 5, "H2")
+    sm.rect(7, 3, 2, 2, "L1")
+    sm.pset(9, 2, "R2")
+    sm.pset(10, 2, "Y3")
+    sm.pset(6, 11, "C4")
+    sm.add_outline("K", selective_hue=True)
+    sm.save_png(os.path.join(sprites_dir, "prop_smoke_pellet.png"))
 
     # Frontier Pine Tree (36x48 -> 72x96) with organic jagged boughs & bark texture
     pt = PixelCanvas(36, 48)
