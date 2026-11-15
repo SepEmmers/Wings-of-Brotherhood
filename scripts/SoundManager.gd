@@ -55,29 +55,45 @@ const SFX_FILES: Array[String] = [
 
 
 func _ready() -> void:
+	_ensure_audio_buses()
+
 	for _i in range(5):
 		var p := AudioStreamPlayer.new()
+		p.bus = "SFX"
 		p.volume_db = -4.0
 		add_child(p)
 		sfx_pool.append(p)
 
 	blip_player = AudioStreamPlayer.new()
+	blip_player.bus = "Voices"
 	blip_player.volume_db = -11.0
 	add_child(blip_player)
 
 	for _i in range(2):
 		var ap := AudioStreamPlayer.new()
+		ap.bus = "Ambience"
 		ap.volume_db = -80.0
 		add_child(ap)
 		amb_players.append(ap)
 
 	layer_pasture_player = AudioStreamPlayer.new()
+	layer_pasture_player.bus = "Ambience"
 	layer_pasture_player.volume_db = -80.0
 	add_child(layer_pasture_player)
 
 	layer_mess_player = AudioStreamPlayer.new()
+	layer_mess_player.bus = "Ambience"
 	layer_mess_player.volume_db = -80.0
 	add_child(layer_mess_player)
+
+	if GameState != null:
+		apply_audio_settings(
+			GameState.master_volume,
+			GameState.ambience_volume,
+			GameState.sfx_volume,
+			GameState.voices_volume,
+			GameState.audio_muted
+		)
 
 	_load_all_wavs()
 	start_ambience()
@@ -352,8 +368,11 @@ func play_campfire_warm() -> void:
 	_play_sfx("sfx_campfire_warm.wav", -5.0, 0.98, 1.02)
 
 
-func play_slash() -> void:
-	_play_sfx("sfx_slash.wav", -3.5, 0.94, 1.08)
+func play_slash(pitch_scale: float = -1.0) -> void:
+	if pitch_scale > 0.0:
+		_play_sfx("sfx_slash.wav", -3.5, pitch_scale - 0.02, pitch_scale + 0.02)
+	else:
+		_play_sfx("sfx_slash.wav", -3.5, 0.94, 1.08)
 
 
 func play_dodge() -> void:
@@ -402,6 +421,33 @@ func play_dragon_chomp() -> void:
 
 func play_church_bell() -> void:
 	_play_sfx("sfx_church_bell.wav", -1.5, 0.98, 1.02)
+
+
+func _ensure_audio_buses() -> void:
+	for bus_name in ["Ambience", "SFX", "Voices"]:
+		if AudioServer.get_bus_index(bus_name) == -1:
+			var idx := AudioServer.bus_count
+			AudioServer.add_bus(idx)
+			AudioServer.set_bus_name(idx, bus_name)
+			AudioServer.set_bus_send(idx, "Master")
+
+
+func apply_audio_settings(master_vol: float, ambience_vol: float, sfx_vol: float, voices_vol: float, mute_all: bool) -> void:
+	_ensure_audio_buses()
+	_set_bus_linear("Master", master_vol, mute_all)
+	_set_bus_linear("Ambience", ambience_vol, mute_all)
+	_set_bus_linear("SFX", sfx_vol, mute_all)
+	_set_bus_linear("Voices", voices_vol, mute_all)
+
+
+func _set_bus_linear(bus_name: String, linear_val: float, force_mute: bool = false) -> void:
+	var idx := AudioServer.get_bus_index(bus_name)
+	if idx < 0:
+		return
+	var clamped := clampf(linear_val, 0.0, 1.0)
+	AudioServer.set_bus_mute(idx, force_mute or clamped <= 0.001)
+	AudioServer.set_bus_volume_db(idx, linear_to_db(maxf(clamped, 0.0001)))
+
 
 
 func play_oven_crackle() -> void:

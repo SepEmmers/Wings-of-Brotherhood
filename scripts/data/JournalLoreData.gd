@@ -207,13 +207,32 @@ static func get_controls_bbcode() -> String:
 			knot_list += "• [color=#f2d17a][b]%s[/b][/color] (%s)\n  [color=#9fd4a3]Ability:[/color] %s\n" % [kd["name"], kd["throw_style"], kd.get("ability", "")]
 		else:
 			knot_list += "• [color=#7a7874]??? (Locked)[/color] — %s\n" % kd.get("subtitle", "")
+	var move_str := "%s/%s/%s/%s / Arrows" % [
+		GameState.get_action_key_label("move_up"),
+		GameState.get_action_key_label("move_left"),
+		GameState.get_action_key_label("move_down"),
+		GameState.get_action_key_label("move_right"),
+	]
+	var shift_k := GameState.get_action_key_label("sprint")
+	var e_k := GameState.get_action_key_label("interact")
+	var f_k := GameState.get_action_key_label("rope_action")
+	var v_k := GameState.get_action_key_label("knife_attack")
+	var c_k := GameState.get_action_key_label("dodge")
+	var r_k := GameState.get_action_key_label("dragon_command")
+	var x_k := GameState.get_action_key_label("dragon_posture")
+	var q_k := GameState.get_action_key_label("cycle_knot")
+	var i_k := GameState.get_action_key_label("inventory_screen")
+	var k_k := GameState.get_action_key_label("practice_knot")
+	var m_k := GameState.get_action_key_label("toggle_map")
+	var j_k := GameState.get_action_key_label("journal")
+
 	return (
 		"[color=#f2d17a][b]KNOTCRAFT ABILITIES & FIELD CONTROLS[/b][/color]\n\n"
 		+ knot_list
 		+ "\n[color=#f2d17a][b]ON-FOOT & DRAGONBACK CONTROLS[/b][/color]\n"
-		+ "[WASD / Arrows] Move / Steer Virelai   |   [Shift] Run / Wing-Boost\n"
-		+ "[E / Space] Interact / Bestiary Aerial Sketch   |   [F / Right-Click] Cast Knot / Mid-Air Splice\n"
-		+ "[V / Left-Click] Dock Knife Slash / Cut Briars / Bolts   |   [C] Dodge-Roll / Barrel-Roll\n"
-		+ ("[R] Dragon Assist   |   [X] Companion Posture (Assist/Stay/Sling)   |   [T] Dragon Insight\n" if (GameState.active_companion_stage >= 1 or GameState.current_step >= GameState.QuestStep.BOOK2_BRABANT_FENS) else "")
-		+ "[Q] Switch Knot   |   [I] Character & Bag   |   [K] Tie Board Practice   |   [M] Map   |   [Tab / J] Diary   |   [F1] Jump"
+		+ "[%s] Move / Steer Virelai   |   [%s] Run / Wing-Boost\n" % [move_str, shift_k]
+		+ "[%s / Space] Interact / Bestiary Aerial Sketch   |   [%s / Right-Click] Cast Knot / Mid-Air Splice\n" % [e_k, f_k]
+		+ "[%s / Left-Click] Dock Knife Slash / Cut Briars / Bolts   |   [%s] Dodge-Roll / Barrel-Roll\n" % [v_k, c_k]
+		+ (("[%s] Dragon Assist   |   [%s] Companion Posture (Assist/Stay/Sling)\n" % [r_k, x_k]) if (GameState.active_companion_stage >= 1 or GameState.current_step >= GameState.QuestStep.BOOK2_BRABANT_FENS) else "")
+		+ "[%s] Switch Knot   |   [%s] Character & Bag   |   [%s] Tie Board Practice   |   [%s] Map   |   [%s] Diary   |   [Esc] Pause / Settings   |   [F1] Jump" % [q_k, i_k, k_k, m_k, j_k]
 	)

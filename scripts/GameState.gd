@@ -30,12 +30,14 @@ enum QuestStep {
 }
 
 const KnotCatalogScript := preload("res://scripts/data/KnotCatalog.gd")
+const SettingsConfigScript := preload("res://scripts/data/SettingsConfig.gd")
 
 const KNOT_ORDER: Array[String] = KnotCatalogScript.KNOT_ORDER
 const KNOT_DATA: Dictionary = KnotCatalogScript.KNOT_DATA
 
 signal state_updated
 signal knot_changed(knot_id: String)
+signal settings_changed
 
 var player_name: String = "Bram"
 var sister_name: String = "Clara"
@@ -149,8 +151,23 @@ var unlocked_knots: Array[String] = ["clove_hitch"]
 var equipped_knot: String = "clove_hitch"
 var playtest_speed_mult: float = 1.0
 
+# Persistent player settings (preserved across New Game resets)
+var master_volume: float = 0.90
+var ambience_volume: float = 0.80
+var sfx_volume: float = 0.85
+var voices_volume: float = 0.85
+var audio_muted: bool = false
+var hints_enabled: bool = true
+var control_prompts_enabled: bool = true
+var dialogue_speed_mode: String = "normal"
+var screen_shake_enabled: bool = true
+var display_mode: String = "windowed"
+var show_playtest_hud_btn: bool = true
+
+
 func _ready() -> void:
-	_ensure_input_actions()
+	SettingsConfigScript.load_into_state(self)
+	apply_audio_and_display()
 
 func reset_prologue(chosen_name: String) -> void:
 	var trimmed := chosen_name.strip_edges()
@@ -404,35 +421,82 @@ func get_bestiary_bbcode() -> String:
 	return lore_script.get_bestiary_bbcode()
 
 func _ensure_input_actions() -> void:
-	_bind_action("move_up", [KEY_W, KEY_UP])
-	_bind_action("move_down", [KEY_S, KEY_DOWN])
-	_bind_action("move_left", [KEY_A, KEY_LEFT])
-	_bind_action("move_right", [KEY_D, KEY_RIGHT])
-	_bind_action("interact", [KEY_E, KEY_SPACE, KEY_ENTER])
-	_bind_action("sprint", [KEY_SHIFT])
-	_bind_action("journal", [KEY_TAB, KEY_J])
-	_bind_action("inventory_screen", [KEY_I])
-	_bind_action("rope_action", [KEY_F])
-	_bind_action("knife_attack", [KEY_V])
-	_bind_action("dodge", [KEY_C])
-	_bind_action("cycle_knot", [KEY_Q])
-	_bind_action("practice_knot", [KEY_K])
-	_bind_action("toggle_map", [KEY_M])
-	_bind_action("playtest_menu", [KEY_F1, KEY_QUOTELEFT])
-	_bind_action("dragon_command", [KEY_R])
-	_bind_action("dragon_posture", [KEY_X])
-	_bind_action("dragon_hint", [KEY_T])
+	SettingsConfigScript.ensure_default_input_actions()
 
-	var rmb := InputEventMouseButton.new()
-	rmb.button_index = MOUSE_BUTTON_RIGHT
-	if not InputMap.action_has_event("rope_action", rmb):
-		InputMap.action_add_event("rope_action", rmb)
 
-func _bind_action(action_name: String, keys: Array[Key]) -> void:
-	if not InputMap.has_action(action_name):
-		InputMap.add_action(action_name)
-	for key_code in keys:
-		var ev := InputEventKey.new()
-		ev.physical_keycode = key_code
-		if not InputMap.action_has_event(action_name, ev):
-			InputMap.action_add_event(action_name, ev)
+func apply_audio_and_display() -> void:
+	if SoundManager != null:
+		SoundManager.apply_audio_settings(
+			master_volume,
+			ambience_volume,
+			sfx_volume,
+			voices_volume,
+			audio_muted
+		)
+	SettingsConfigScript.apply_display_mode(display_mode)
+
+
+func apply_and_save_settings() -> void:
+	apply_audio_and_display()
+	SettingsConfigScript.save_from_state(self)
+	emit_signal("settings_changed")
+
+
+func reset_audio_settings() -> void:
+	var defs: Dictionary = SettingsConfigScript.DEFAULTS
+	master_volume = float(defs["master_volume"])
+	ambience_volume = float(defs["ambience_volume"])
+	sfx_volume = float(defs["sfx_volume"])
+	voices_volume = float(defs["voices_volume"])
+	audio_muted = bool(defs["audio_muted"])
+	apply_and_save_settings()
+
+
+func reset_gameplay_settings() -> void:
+	var defs: Dictionary = SettingsConfigScript.DEFAULTS
+	hints_enabled = bool(defs["hints_enabled"])
+	control_prompts_enabled = bool(defs["control_prompts_enabled"])
+	dialogue_speed_mode = str(defs["dialogue_speed_mode"])
+	screen_shake_enabled = bool(defs["screen_shake_enabled"])
+	display_mode = str(defs["display_mode"])
+	show_playtest_hud_btn = bool(defs["show_playtest_hud_btn"])
+	apply_and_save_settings()
+
+
+func reset_all_settings() -> void:
+	var defs: Dictionary = SettingsConfigScript.DEFAULTS
+	master_volume = float(defs["master_volume"])
+	ambience_volume = float(defs["ambience_volume"])
+	sfx_volume = float(defs["sfx_volume"])
+	voices_volume = float(defs["voices_volume"])
+	audio_muted = bool(defs["audio_muted"])
+	hints_enabled = bool(defs["hints_enabled"])
+	control_prompts_enabled = bool(defs["control_prompts_enabled"])
+	dialogue_speed_mode = str(defs["dialogue_speed_mode"])
+	screen_shake_enabled = bool(defs["screen_shake_enabled"])
+	display_mode = str(defs["display_mode"])
+	show_playtest_hud_btn = bool(defs["show_playtest_hud_btn"])
+	SettingsConfigScript.reset_controls_to_defaults()
+	apply_and_save_settings()
+
+
+func reset_controls() -> void:
+	SettingsConfigScript.reset_controls_to_defaults()
+	SettingsConfigScript.save_from_state(self)
+	emit_signal("settings_changed")
+
+
+func rebind_action(action_name: String, key_code: int) -> Dictionary:
+	var res := SettingsConfigScript.rebind_action_primary_key(action_name, key_code)
+	if bool(res.get("ok", false)):
+		SettingsConfigScript.save_from_state(self)
+		emit_signal("settings_changed")
+	return res
+
+
+func get_action_key_label(action_name: String) -> String:
+	return SettingsConfigScript.get_action_key_label(action_name)
+
+
+func get_dialogue_speed_cps() -> float:
+	return SettingsConfigScript.get_dialogue_speed_cps(dialogue_speed_mode)

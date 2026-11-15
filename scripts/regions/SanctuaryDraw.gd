@@ -469,7 +469,7 @@ static func _draw_montage_fx(r, t_now: float) -> void:
 		var kg_kind: String = String(r.kestrel_greet_kind)
 		var kp: Vector2 = Vector2(r.ACT2_CAGE_POS) + Vector2(r.greyling_offset) + Vector2(r.kestrel_leap_offset)
 		var ka: float = clampf(kg_t * 1.6, 0.0, 1.0)
-		if kg_kind in ["fish_hint", "recoil", "egg_hint"]:
+		if kg_kind == "recoil" or (GameState.hints_enabled and kg_kind in ["fish_hint", "egg_hint"]):
 			var icon_k: String = "prop_herring_fish.png" if kg_kind == "fish_hint" else ("prop_dragon_egg.png" if kg_kind == "egg_hint" else "icon_poultice.png")
 			var bpos: Vector2 = kp + Vector2(-4.0, -78.0 - sin(t_now * 6.0) * 3.0)
 			r.draw_circle(bpos + Vector2(6, 16), 3.0, Color(0.95, 0.92, 0.82, 0.85 * ka))
@@ -485,7 +485,7 @@ static func _draw_montage_fx(r, t_now: float) -> void:
 		elif kg_kind == "nuzzle":
 			var np_c := 1.0 - kg_t
 			r.draw_arc(kp + Vector2(-22.0, -18.0), 10.0 + np_c * 16.0, 0.0, TAU, 16, Color(0.98, 0.88, 0.56, 0.78 * ka), 2.0)
-		elif kg_kind == "clasp_hint":
+		elif kg_kind == "clasp_hint" and GameState.hints_enabled:
 			var cp: Vector2 = Vector2(r.ACT2_CAGE_POS) + Vector2(18, 6)
 			r.draw_line(cp + Vector2(-7, -7), cp + Vector2(2, 0), Color(1.0, 0.62, 0.24, ka), 2.2)
 			r.draw_line(cp + Vector2(2, 0), cp + Vector2(8, 7), Color(1.0, 0.88, 0.42, ka), 2.2)
@@ -495,7 +495,7 @@ static func _draw_montage_fx(r, t_now: float) -> void:
 			r.draw_arc(kp + Vector2(-18.0, -6.0), 34.0, PI * 0.65, PI * 1.15, 12, Color(0.80, 0.90, 0.98, 0.78 * ka), 3.0)
 			r.draw_arc(kp + Vector2(-6.0, -18.0 + wp_c * 0.3), 16.0, -PI * 0.8, -PI * 0.2, 10, Color(0.98, 0.84, 0.42, 0.82 * ka), 2.2)
 
-	if float(r.npc_wave_timer) > 0.0 and not r.npc_wave_target.is_empty():
+	if float(r.npc_wave_timer) > 0.0 and GameState.hints_enabled and not r.npc_wave_target.is_empty():
 		var w_base := Vector2.ZERO
 		var w_icon := ""
 		match String(r.npc_wave_target):

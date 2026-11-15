@@ -224,9 +224,10 @@ func handle_region_input(event: InputEvent) -> bool:
 						_cross_winch(wid)
 						return true
 					SoundManager.play_knot_snag()
-					winch_hint_pos = wp
-					winch_hint_timer = 1.15
-					winch_reach_timer = 1.15
+					if GameState.hints_enabled:
+						winch_hint_pos = wp
+						winch_hint_timer = 1.15
+						winch_reach_timer = 1.15
 					_spawn_wilds_burst(wp + Vector2(0, -14), 8, Color(0.98, 0.86, 0.44), 18.0, 56.0, 0.55, 10.0)
 					return true
 	return false
@@ -235,8 +236,9 @@ func _cross_winch(crossing_id: String) -> void:
 	var has_grapple := GameState.unlocked_knots.has("dragon_splice") or GameState.unlocked_knots.has("bruges_whipping") or GameState.unlocked_knots.has("bowline")
 	if not has_grapple:
 		SoundManager.play_knot_snag()
-		winch_hint_pos = GORGE_WINCH_E if crossing_id == "gorge" else CREEK_WINCH_S
-		winch_hint_timer = 0.95
+		if GameState.hints_enabled:
+			winch_hint_pos = GORGE_WINCH_E if crossing_id == "gorge" else CREEK_WINCH_S
+			winch_hint_timer = 0.95
 		_spawn_wilds_burst(player.position + Vector2(0, -12), 10, Color(0.86, 0.66, 0.38), 28.0, 78.0, 0.50, 30.0)
 		return
 	if GameState.equipped_knot == "clove_hitch" and GameState.unlocked_knots.has("dragon_splice"):
@@ -248,8 +250,9 @@ func _cross_winch(crossing_id: String) -> void:
 	else:
 		if not GameState.black_dragon_found:
 			SoundManager.play_knot_snag()
-			winch_hint_pos = CREEK_WINCH_N
-			winch_hint_timer = 1.10
+			if GameState.hints_enabled:
+				winch_hint_pos = CREEK_WINCH_N
+				winch_hint_timer = 1.10
 			_spawn_wilds_burst(CREEK_WINCH_N + Vector2(0, -14), 10, Color(0.72, 0.78, 0.86), 22.0, 64.0, 0.55, 45.0)
 			return
 		var go_north := player.position.y >= 540.0

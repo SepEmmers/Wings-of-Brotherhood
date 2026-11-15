@@ -163,8 +163,56 @@ _PROP_AND_ICON_BOXES = {
     "prop_hay_bale.png": (24, 20, [(3, 5, 18, 12, "H1"), (5, 6, 14, 5, "H2"), (8, 5, 2, 12, "T1"), (14, 5, 2, 12, "T1")]),
     "prop_fence_h.png": (32, 16, [(2, 3, 5, 11, "T1"), (25, 3, 5, 11, "T1"), (0, 6, 32, 3, "T2"), (0, 11, 32, 3, "T2")]),
     "prop_fence_v.png": (12, 32, [(3, 1, 6, 30, "T2"), (2, 2, 8, 5, "T1"), (2, 14, 8, 5, "T1"), (2, 25, 8, 5, "T1")]),
+    # Book II Companion & City Stealth Placeholders (Queue 13)
+    "prop_hatchling_sling.png": (16, 16, [(3, 2, 10, 3, "T0"), (4, 5, 8, 9, "T1"), (5, 7, 6, 5, "C3"), (7, 8, 2, 2, "Y2")]),
+    "prop_wanted_poster.png": (14, 18, [(1, 1, 12, 16, "L0"), (2, 2, 10, 2, "R2"), (4, 5, 6, 6, "C3"), (6, 7, 2, 2, "Y2"), (3, 13, 8, 2, "T0")]),
+    "prop_resonance_chime.png": (16, 16, [(5, 2, 6, 3, "T0"), (4, 5, 8, 7, "Y1"), (6, 6, 4, 5, "Y2"), (7, 12, 2, 2, "T1")]),
+    "prop_smoke_pellet.png": (16, 16, [(4, 5, 8, 8, "SG1"), (6, 6, 4, 4, "SG2"), (7, 3, 2, 3, "L1")]),
     # Trim & ration items use sprite_sanctuary.py; Queue 6 capture shackles use sprite_sanctuary.py too.
 }
+
+
+def _make_box_campfire(frame: int) -> PixelCanvas:
+    """28x24 wayside stone-ring campfire geometric placeholder (2 flame frames)."""
+    c = PixelCanvas(28, 24)
+    # Stone hearth ring
+    for sx, sy in ((4, 15), (9, 17), (15, 17), (20, 15), (6, 12), (18, 12)):
+        _box(c, sx, sy, 4, 4, "SG1")
+    # Crossed oak logs
+    _box(c, 6, 14, 16, 4, "B0")
+    _box(c, 8, 12, 12, 3, "B1")
+    # Dancing flame tongues
+    sway = -1 if frame == 0 else 1
+    _box(c, 9 + sway, 6, 10, 8, "R3")
+    _box(c, 11, 4 - (frame % 2), 6, 8, "Y1")
+    _box(c, 12 + sway, 7, 4, 4, "Y2")
+    return c
+
+
+def _make_box_hatchling(direction: str, frame: int) -> PixelCanvas:
+    """24x22 Stage 1 soot-black dragonet with shedding gold scale flecks."""
+    c = PixelCanvas(24, 22)
+    flap = -2 if frame == 1 else 1
+    if direction == "side":
+        _box(c, 3, 13, 5, 3, "C3")          # whip tail
+        _box(c, 7, 10, 9, 7, "C3")          # soot body
+        _box(c, 9, 12, 2, 2, "Y2")          # shedding gold scale fleck
+        _box(c, 8, 5 + flap, 7, 5, "C0")    # small wing
+        _box(c, 15, 7, 6, 6, "C3")          # snouted head facing right
+        c.rect(19, 9, 1, 1, "Y2")           # golden eye
+        return c
+    # "down" or "up"
+    _box(c, 2, 7 + flap, 6, 6, "C0")        # left wing
+    _box(c, 16, 7 + flap, 6, 6, "C0")       # right wing
+    _box(c, 8, 9, 8, 8, "C3")               # soot torso
+    _box(c, 10, 12, 2, 2, "Y2")             # shedding gold chest fleck
+    _box(c, 9, 4, 6, 6, "C3")               # head
+    if direction == "down":
+        c.rect(10, 7, 1, 1, "Y2")
+        c.rect(13, 7, 1, 1, "Y2")
+    else:
+        _box(c, 11, 16, 2, 4, "C0")         # rear tail tip
+    return c
 
 
 def _make_box_virelai_eat(frame: int) -> PixelCanvas:
@@ -251,6 +299,10 @@ _PORTRAIT_SPECS = {
     "portrait_herdsman.png": ((50, 62, 42, 255), "T1", "E1", "BL0", False, False, True),
     "portrait_virelai.png": ((26, 62, 54, 255), "E1", "T2", "E2", True, False, False),
     "portrait_greyling.png": ((42, 52, 66, 255), "SG1", "L1", "SG2", True, False, False),
+    "portrait_hatchling_stage1.png": ((28, 30, 38, 255), "C3", "Y2", "C0", True, False, False),
+    "portrait_hatchling_stage2.png": ((34, 34, 38, 255), "C3", "Y1", "Y2", True, False, False),
+    "portrait_hatchling_stage3.png": ((46, 40, 28, 255), "Y1", "C3", "Y2", True, False, False),
+    "portrait_hatchling_stage4.png": ((58, 48, 26, 255), "Y2", "L0", "Y1", True, False, False),
 }
 
 
@@ -317,6 +369,21 @@ def generate_placeholder_sprites(sprites_dir: str) -> int:
             if fname in done:
                 continue
             _make_box_character(fname, torso, trim, hair).save_png(os.path.join(sprites_dir, fname))
+            written += 1
+
+    for frame in (0, 1):
+        fname = f"prop_campfire_{frame}.png"
+        if fname in done:
+            continue
+        _make_box_campfire(frame).save_png(os.path.join(sprites_dir, fname))
+        written += 1
+
+    for direction in ("down", "up", "side"):
+        for frame in (0, 1):
+            fname = f"dragon_gold_s1_{direction}_{frame}.png"
+            if fname in done:
+                continue
+            _make_box_hatchling(direction, frame).save_png(os.path.join(sprites_dir, fname))
             written += 1
 
     return written

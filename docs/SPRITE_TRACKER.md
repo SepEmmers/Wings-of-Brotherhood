@@ -181,6 +181,17 @@ Each protagonist tier spans **51 `24x28` sprites** (`18` walk/idle + `15` action
 
 ---
 
+## Queue 13 — Book II Golden Companion, Campfire & City Stealth Placeholders (`- [ ]` awaiting Sprite Agent)
+
+- [ ] `dragon_gold_s1_down_0.png`, `dragon_gold_s1_down_1.png`, `dragon_gold_s1_up_0.png`, `dragon_gold_s1_up_1.png`, `dragon_gold_s1_side_0.png`, `dragon_gold_s1_side_1.png` (`24x22`) — Stage 1 soot-black hatchling dragonet (`HatchlingCompanion`) with subtle shedding gold scale flecks and fluttering wing frames (`0`/`1`).
+- [ ] `portrait_hatchling_stage1.png`, `portrait_hatchling_stage2.png`, `portrait_hatchling_stage3.png`, `portrait_hatchling_stage4.png` (`48x48`) — Telepathic Mind-Voice & milestone portraits showing progressive scale shedding from soot-black newborn (`stage1`) to radiant Mythical Golden Dragon (`stage4`).
+- [ ] `prop_hatchling_sling.png` (`16x16`) — Leather cloak-sling travel satchel showing a tucked soot-black dragon snout and golden eye glint.
+- [ ] `prop_campfire_0.png`, `prop_campfire_1.png` (`28x24`) — Wayside stone-ring campfire with crossed oak logs and 2-frame dancing amber flames (`CampfirePanel` roosts).
+- [ ] `prop_wanted_poster.png` (`14x18`) — Church Inquisitorial parchment notice pinned to stone walls (seal + dark dragon silhouette).
+- [ ] `prop_resonance_chime.png` (`16x16`), `prop_smoke_pellet.png` (`16x16`) — Bronze distraction chime bell and slate-grey smoke evasion pellet (`CityHeatHelper`).
+
+---
+
 ## Completed Archive (`[x]`)
 
 *(Crossed-off items move or flip `- [x]` here cleanly once polished pixel art is committed into `assets/sprites/`.)*

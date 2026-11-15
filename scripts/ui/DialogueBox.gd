@@ -149,13 +149,14 @@ func process_typewriter(delta: float) -> void:
 		_telepathic_panel_sb.border_color = Color(0.92 + 0.08 * g, 0.74 + 0.14 * g, 0.24 + 0.16 * g, 0.98)
 	if dialogue_visible_chars < dialogue_full_text.length():
 		var prev_chars := int(dialogue_visible_chars)
-		dialogue_visible_chars = minf(dialogue_full_text.length(), dialogue_visible_chars + delta * 62.0)
+		var speed_cps := GameState.get_dialogue_speed_cps()
+		dialogue_visible_chars = minf(dialogue_full_text.length(), dialogue_visible_chars + delta * speed_cps)
 		var cur_chars := int(dialogue_visible_chars)
 		dialogue_label.text = dialogue_full_text.substr(0, cur_chars)
 		var cadence := 5 if _line_telepathic else 3
 		if cur_chars > prev_chars and cur_chars % cadence == 0:
 			SoundManager.play_voice_blip(current_voice_kind, current_voice_pitch)
-	continue_hint.visible = int(dialogue_visible_chars) >= dialogue_full_text.length()
+	continue_hint.visible = (int(dialogue_visible_chars) >= dialogue_full_text.length()) and GameState.control_prompts_enabled
 
 
 func _load_current_line() -> void:

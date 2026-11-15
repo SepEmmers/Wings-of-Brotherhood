@@ -156,6 +156,7 @@ func start_knot(knot_id: String) -> void:
 	title_lbl.text = "KNOTTING BOARD: %s" % data["name"]
 	desc_lbl.text = "Ability: %s  |  Cast: %s" % [data.get("ability", data["desc"]), data["throw_style"]]
 	hint_lbl.text = "MOUSE ONLY: Drag or Left-Click each glowing numbered peg in order — avoid RED iron snags!"
+	hint_lbl.visible = GameState.hints_enabled
 	visible = true
 	board.queue_redraw()
 

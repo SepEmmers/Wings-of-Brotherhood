@@ -336,7 +336,7 @@ func _draw_portal_hints(canvas: Node2D) -> void:
 		var perp := Vector2(-dn.y, dn.x)
 		var col := Color(0.98, 0.84, 0.42, 0.55 + 0.35 * pulse) if unlocked else Color(0.88, 0.36, 0.28, 0.65 + 0.25 * pulse)
 		var c_base := ctr - dn * (4.0 - pulse * 3.0)
-		if unlocked:
+		if unlocked and GameState.hints_enabled:
 			var tip := c_base + dn * 7.0
 			canvas.draw_colored_polygon(PackedVector2Array([tip, c_base - dn * 3.0 + perp * 6.0, c_base - dn * 3.0 - perp * 6.0]), col)
 		var lbl := str(wp.get("sign_label", ""))

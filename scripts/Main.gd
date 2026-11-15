@@ -17,6 +17,7 @@ const WatchtowerHearthScript := preload("res://scripts/regions/WatchtowerHearthR
 const BrugesCityScript := preload("res://scripts/regions/BrugesCityRegion.gd")
 const BrugesOutskirtsScript := preload("res://scripts/regions/BrugesOutskirtsRegion.gd")
 const SmokeRunnerScript := preload("res://scripts/tools/HeadlessSmokeRunner.gd")
+const HatchlingCompanionScript := preload("res://scripts/companions/HatchlingCompanion.gd")
 
 var assets
 var current_region_id: String = "bruges"
@@ -24,6 +25,7 @@ var world_modulate: CanvasModulate
 var world_root: Node2D
 var active_region: Node2D
 var player: CharacterBody2D
+var companion: Node2D
 var camera: Camera2D
 var ui: CanvasLayer
 
@@ -67,10 +69,16 @@ func _ready() -> void:
 	ui.playtest_jump_requested.connect(_playtest_jump_to)
 	ui.lighting_mode_changed.connect(_on_lighting_mode_changed)
 	ui.replay_requested.connect(_on_replay_requested)
+	ui.quit_requested.connect(_on_quit_requested)
 	ui.modal_state_changed.connect(_sync_player_can_move)
 
+	companion = HatchlingCompanionScript.new()
+	companion.setup(assets, player, ui, null)
+	companion.visible = false
+	world_root.add_child(companion)
+
 	load_region("bruges", {"title_bg": true})
-	ui.show_name_prompt()
+	ui.show_title_screen()
 	_sync_player_can_move()
 
 	if SmokeRunnerScript.should_run():
@@ -121,6 +129,10 @@ func load_region(region_id: String, opts: Dictionary = {}) -> void:
 	current_region_id = region_id
 	active_region.portal_cooldown = 0.85
 	active_region.enter_region(opts)
+	if companion != null:
+		companion.region = active_region
+		companion.clear_hint_context()
+		companion.step(0.0)
 	ui.update_world_map_state(current_region_id, player.position)
 	camera.reset_smoothing()
 
@@ -129,6 +141,8 @@ func load_region(region_id: String, opts: Dictionary = {}) -> void:
 
 
 func trigger_camera_shake(strength: float, duration: float = 0.25) -> void:
+	if not GameState.screen_shake_enabled:
+		return
 	_shake_strength = maxf(_shake_strength, strength)
 	_shake_timer = maxf(_shake_timer, duration)
 
@@ -141,7 +155,11 @@ func _process(delta: float) -> void:
 	if _smoke_runner != null and _smoke_runner.active:
 		_smoke_runner.step(delta)
 
-	if _shake_timer > 0.0:
+	if not GameState.screen_shake_enabled and _shake_timer > 0.0:
+		_shake_timer = 0.0
+		_shake_strength = 0.0
+		camera.offset = Vector2.ZERO
+	elif _shake_timer > 0.0:
 		_shake_timer = maxf(0.0, _shake_timer - delta)
 		camera.offset = Vector2(
 			randf_range(-_shake_strength, _shake_strength),
@@ -158,22 +176,65 @@ func _process(delta: float) -> void:
 			SoundManager.current_surface = active_region.get_surface_at(player.position)
 			active_region.update_nearest_interactable(player.position)
 			active_region.step_walk_portals(delta)
+		if companion != null:
+			if ui.is_title_visible():
+				companion.visible = false
+			else:
+				companion.step(delta)
 		ui.update_world_map_state(current_region_id, player.position)
 		active_region.update_region_lights(assets.time_elapsed)
 		_sync_ambience_and_lighting(false, delta)
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if ui.is_rebind_active():
+		return
+
 	if event.is_action_pressed("playtest_menu"):
-		if ui.playtest_panel.visible or not ui.name_panel.visible or (event is InputEventKey and event.physical_keycode == KEY_F1):
+		if ui.settings_panel != null and ui.settings_panel.visible:
+			pass
+		elif ui.playtest_panel.visible or not ui.is_title_visible() or (event is InputEventKey and event.physical_keycode == KEY_F1):
+			if ui.pause_panel != null and ui.pause_panel.visible:
+				ui.pause_panel.visible = false
 			ui.toggle_playtest_menu()
 			get_viewport().set_input_as_handled()
 			return
 
-	if event.is_action_pressed("ui_cancel") and ui.playtest_panel.visible:
-		ui.toggle_playtest_menu()
-		get_viewport().set_input_as_handled()
-		return
+	if event.is_action_pressed("ui_cancel"):
+		if ui.settings_panel != null and ui.settings_panel.visible:
+			ui.close_settings()
+			get_viewport().set_input_as_handled()
+			return
+		if ui.playtest_panel.visible:
+			ui.toggle_playtest_menu()
+			get_viewport().set_input_as_handled()
+			return
+		if ui.campfire_panel != null and ui.campfire_panel.visible:
+			ui.campfire_panel.close_panel()
+			get_viewport().set_input_as_handled()
+			return
+		if ui.map_panel != null and ui.map_panel.visible:
+			ui.toggle_map()
+			get_viewport().set_input_as_handled()
+			return
+		if ui.journal_panel != null and ui.journal_panel.visible:
+			ui.toggle_journal()
+			get_viewport().set_input_as_handled()
+			return
+		if ui.pause_panel != null and ui.pause_panel.visible:
+			ui.toggle_pause_menu()
+			get_viewport().set_input_as_handled()
+			return
+		if ui.is_title_visible():
+			if ui.title_panel != null and ui.title_panel.is_name_entry_visible():
+				SoundManager.play_ui_click()
+				ui.title_panel.show_main_menu()
+				get_viewport().set_input_as_handled()
+			return
+		if not ui.is_blocking_gameplay():
+			ui.toggle_pause_menu(_get_current_region_label())
+			get_viewport().set_input_as_handled()
+			return
 
 	if ui.checkpoint_panel.visible:
 		return
@@ -189,44 +250,33 @@ func _unhandled_input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 		return
 
-	if (
-		event.is_action_pressed("inventory_screen")
-		and not ui.name_panel.visible
-		and not ui.knot_minigame.visible
-		and (ui.butcher_minigame == null or not ui.butcher_minigame.visible)
-		and not ui.playtest_panel.visible
-	):
+	var menus_locked: bool = (
+		ui.is_title_visible()
+		or ui.knot_minigame.visible
+		or (ui.butcher_minigame != null and ui.butcher_minigame.visible)
+		or ui.playtest_panel.visible
+		or (ui.settings_panel != null and ui.settings_panel.visible)
+		or (ui.pause_panel != null and ui.pause_panel.visible)
+	)
+	if event.is_action_pressed("inventory_screen") and not menus_locked:
 		ui.toggle_character_inventory()
 		get_viewport().set_input_as_handled()
 		return
 
-	if (
-		event.is_action_pressed("journal")
-		and not ui.name_panel.visible
-		and not ui.knot_minigame.visible
-		and (ui.butcher_minigame == null or not ui.butcher_minigame.visible)
-		and not ui.playtest_panel.visible
-	):
+	if event.is_action_pressed("journal") and not menus_locked:
 		ui.toggle_journal()
 		get_viewport().set_input_as_handled()
 		return
-	if (
-		event.is_action_pressed("toggle_map")
-		and not ui.name_panel.visible
-		and not ui.knot_minigame.visible
-		and (ui.butcher_minigame == null or not ui.butcher_minigame.visible)
-		and not ui.playtest_panel.visible
-		and not ui.dialogue_active
-	):
-		ui.toggle_map()
-		get_viewport().set_input_as_handled()
-		return
-	if event.is_action_pressed("ui_cancel") and ui.map_panel != null and ui.map_panel.visible:
+	if event.is_action_pressed("toggle_map") and not menus_locked and not ui.dialogue_active:
 		ui.toggle_map()
 		get_viewport().set_input_as_handled()
 		return
 
 	if ui.is_blocking_gameplay():
+		return
+
+	if companion != null and companion.handle_input(event):
+		get_viewport().set_input_as_handled()
 		return
 
 	if active_region != null and active_region.handle_region_input(event):
@@ -309,12 +359,36 @@ func _on_start_game_requested(chosen_name: String) -> void:
 func _on_replay_requested() -> void:
 	ui.hide_all_overlays()
 	load_region("bruges", {"title_bg": true})
-	ui.show_name_prompt()
+	ui.show_title_screen()
 	_sync_player_can_move()
 
 	if SmokeRunnerScript.should_run():
 		_smoke_runner = SmokeRunnerScript.new()
 		_smoke_runner.start(self)
+
+
+func _on_quit_requested() -> void:
+	GameState.apply_and_save_settings()
+	get_tree().quit()
+
+
+func _get_current_region_label() -> String:
+	match current_region_id:
+		"bruges":
+			return "Port of Bruges"
+		"willem_house":
+			return "Uncle Willem's Cottage"
+		"outskirts":
+			return "Bruges Outskirts"
+		"sanctuary":
+			return "Brotherhood Sanctuary"
+		"frontier_wilds":
+			return "Flemish Frontier Wilds"
+		"watchtower_hearth":
+			return "Coastal Watchtower"
+		"bruges_city":
+			return "Walled City of Bruges"
+	return "Flanders"
 
 
 func _playtest_jump_to(scene_id: String) -> void:

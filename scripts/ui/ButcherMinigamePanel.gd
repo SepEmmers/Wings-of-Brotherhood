@@ -151,6 +151,8 @@ func start_butchering() -> void:
 	feedback_msg = "0 / 4 Quarters Carved — Hold & Drag Blade Through Each Seam"
 	particles.clear()
 	slash_trail.clear()
+	if hint_lbl != null:
+		hint_lbl.visible = GameState.hints_enabled
 	visible = true
 	board.queue_redraw()
 

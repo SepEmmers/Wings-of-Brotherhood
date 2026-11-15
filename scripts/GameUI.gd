@@ -7,6 +7,7 @@ signal start_game_requested(player_name: String)
 signal playtest_jump_requested(scene_id: String)
 signal lighting_mode_changed(mode: String)
 signal replay_requested
+signal quit_requested
 signal modal_state_changed
 
 const KnotMinigameScript := preload("res://scripts/KnotMinigame.gd")
@@ -18,28 +19,21 @@ const PlaytestMenuPanelScript := preload("res://scripts/ui/PlaytestMenuPanel.gd"
 const TimeSkipPanelScript := preload("res://scripts/ui/TimeSkipPanel.gd")
 const FailureScreenPanelScript := preload("res://scripts/ui/FailureScreenPanel.gd")
 const BorderBannerPanelScript := preload("res://scripts/ui/BorderBannerPanel.gd")
+const CampfirePanelScript := preload("res://scripts/ui/CampfirePanel.gd")
+const TitleScreenPanelScript := preload("res://scripts/ui/TitleScreenPanel.gd")
+const SettingsPanelScript := preload("res://scripts/ui/SettingsPanel.gd")
+const PauseMenuPanelScript := preload("res://scripts/ui/PauseMenuPanel.gd")
+const HudOverlayScript := preload("res://scripts/ui/HudOverlay.gd")
 
 var assets
 var lighting_mode: String = "auto"
 
-var name_panel: PanelContainer
+var title_panel: Control
+var name_panel: Control
 var name_input: LineEdit
-
-var hud_panel: PanelContainer
-var hud_knot_icon: TextureRect
-var hud_egg_icon: TextureRect
-var hud_compass_icon: TextureRect
-var hud_map_icon: TextureRect
-var hud_wing_icon: TextureRect
-var status_label: Label
-var hud_hp_label: Label
-var hud_bag_btn: Button
-var hud_warmth_wrap: HBoxContainer
-var hud_warmth_title_lbl: Label
-var hud_warmth_fill: ColorRect
-var hud_warmth_pct_lbl: Label
-var knot_hud_label: Label
-var hud_playtest_btn: Button
+var settings_panel: Control
+var pause_panel: Control
+var hud_overlay: Control
 
 var dialogue_panel: PanelContainer
 var journal_panel: PanelContainer
@@ -48,6 +42,7 @@ var butcher_minigame: Control
 var map_panel: PanelContainer
 var playtest_panel: PanelContainer
 var failure_panel: Control
+var campfire_panel: PanelContainer
 
 var checkpoint_panel: ColorRect
 var checkpoint_label: Label
@@ -75,24 +70,30 @@ var dialogue_active: bool:
 var pending_knot_callback: Callable
 var pending_knot_fail_callback: Callable
 var pending_butcher_callback: Callable
-var is_flight_hud_mode: bool = false
-var custom_flight_status: String = ""
-var hud_bag_pulse_t: float = 0.0
-var hud_map_pulse_t: float = 0.0
+var pending_butcher_cancel_callback: Callable
 
 
 func setup_ui(assets_ref) -> void:
 	assets = assets_ref
 	_build_ui()
-	GameState.state_updated.connect(func(): refresh_hud(is_flight_hud_mode, custom_flight_status))
-	GameState.knot_changed.connect(func(_id): refresh_hud(is_flight_hud_mode, custom_flight_status))
+	GameState.state_updated.connect(func(): refresh_current_hud())
+	GameState.knot_changed.connect(func(_id): refresh_current_hud())
+	GameState.settings_changed.connect(_on_settings_changed)
 
 
 func is_blocking_gameplay() -> bool:
-	for p in [name_panel, journal_panel, map_panel, playtest_panel, knot_minigame, butcher_minigame, checkpoint_panel, failure_panel]:
+	for p in [title_panel, settings_panel, pause_panel, journal_panel, map_panel, playtest_panel, knot_minigame, butcher_minigame, campfire_panel, checkpoint_panel, failure_panel]:
 		if p != null and p.visible:
 			return true
 	return dialogue_active or cutscene_active
+
+
+func is_title_visible() -> bool:
+	return title_panel != null and title_panel.visible
+
+
+func is_rebind_active() -> bool:
+	return settings_panel != null and settings_panel.visible and settings_panel.is_rebind_active()
 
 
 func process_ui(delta: float) -> void:
@@ -117,32 +118,69 @@ func process_ui(delta: float) -> void:
 		border_banner.step(delta)
 	if dialogue_panel != null:
 		dialogue_panel.process_typewriter(delta)
-
-	hud_bag_pulse_t = maxf(0.0, hud_bag_pulse_t - delta)
-	hud_map_pulse_t = maxf(0.0, hud_map_pulse_t - delta)
-	if hud_bag_btn != null:
-		var bw := (0.5 + 0.5 * sin(hud_bag_pulse_t * 11.0)) if hud_bag_pulse_t > 0.0 else 0.0
-		hud_bag_btn.modulate = Color(1.0 + 0.35 * bw, 1.0 + 0.18 * bw, 1.0 - 0.25 * bw) if bw > 0.0 else Color.WHITE
-	if hud_map_icon != null:
-		var mw := (0.5 + 0.5 * sin(hud_map_pulse_t * 11.0)) if hud_map_pulse_t > 0.0 else 0.0
-		hud_map_icon.modulate = Color(1.0 + 0.45 * mw, 1.0 + 0.25 * mw, 1.0 - 0.20 * mw) if mw > 0.0 else Color.WHITE
-		if knot_hud_label != null:
-			knot_hud_label.modulate = Color(1.0 + 0.18 * mw, 1.0 + 0.10 * mw, 1.0 - 0.10 * mw) if mw > 0.0 else Color.WHITE
+	if hud_overlay != null:
+		hud_overlay.step(delta)
 
 
 func pulse_hud_icon(kind: String, duration: float = 2.6) -> void:
-	if kind == "bag":
-		hud_bag_pulse_t = maxf(hud_bag_pulse_t, duration)
-	elif kind == "map":
-		hud_map_pulse_t = maxf(hud_map_pulse_t, duration)
-		hud_bag_pulse_t = maxf(hud_bag_pulse_t, duration)
+	if hud_overlay != null:
+		hud_overlay.pulse_icon(kind, duration)
+
+
+func show_title_screen(open_name_step: bool = false) -> void:
+	hide_all_overlays()
+	set_hud_visible(false)
+	if title_panel != null:
+		title_panel.visible = true
+		if open_name_step:
+			title_panel.show_name_entry()
+		else:
+			title_panel.show_main_menu()
+	emit_signal("modal_state_changed")
 
 
 func show_name_prompt() -> void:
-	hide_all_overlays()
-	set_hud_visible(false)
-	name_panel.visible = true
-	name_input.grab_focus()
+	show_title_screen(false)
+
+
+func open_settings(initial_tab: int = -1) -> void:
+	if settings_panel != null:
+		SoundManager.play_ui_click()
+		settings_panel.open_settings(initial_tab)
+		emit_signal("modal_state_changed")
+
+
+func close_settings() -> void:
+	if settings_panel != null and settings_panel.visible:
+		settings_panel.close_settings()
+		emit_signal("modal_state_changed")
+
+
+func toggle_pause_menu(region_title: String = "") -> void:
+	if pause_panel == null:
+		return
+	SoundManager.play_ui_click()
+	if pause_panel.visible:
+		pause_panel.visible = false
+	else:
+		pause_panel.open_pause(region_title)
+	emit_signal("modal_state_changed")
+
+
+func _on_settings_changed() -> void:
+	if not GameState.hints_enabled and hud_overlay != null:
+		hud_overlay.clear_pulses()
+	if settings_panel != null:
+		settings_panel.sync_from_state()
+	if title_panel != null:
+		title_panel.refresh_status()
+	if journal_panel != null and journal_panel.visible:
+		journal_panel.refresh()
+	if hud_overlay != null:
+		hud_overlay.sync_playtest_btn_visibility()
+	if cutscene_skip_hint != null:
+		cutscene_skip_hint.visible = cutscene_active and skip_cutscene_cb.is_valid() and GameState.control_prompts_enabled
+	refresh_current_hud()
 
 
 func hide_all_overlays() -> void:
@@ -152,7 +190,9 @@ func hide_all_overlays() -> void:
 		time_skip_panel.hide_stamp()
 	if border_banner != null:
 		border_banner.hide_banner()
-	for node in [name_panel, journal_panel, map_panel, playtest_panel, knot_minigame, butcher_minigame, checkpoint_panel, failure_panel, letterbox_top, letterbox_bot, fade_overlay, cutscene_skip_hint]:
+	if settings_panel != null and settings_panel.has_method("close_settings"):
+		settings_panel.close_settings()
+	for node in [title_panel, settings_panel, pause_panel, journal_panel, map_panel, playtest_panel, knot_minigame, butcher_minigame, campfire_panel, checkpoint_panel, failure_panel, letterbox_top, letterbox_bot, fade_overlay, cutscene_skip_hint]:
 		if node != null:
 			node.visible = false
 	cutscene_active = false
@@ -176,8 +216,10 @@ func set_cinematic_mode(active: bool, on_skip: Callable = Callable()) -> void:
 	letterbox_target = 1.0 if active else 0.0
 	skip_cutscene_cb = on_skip if active else Callable()
 	if cutscene_skip_hint != null:
-		cutscene_skip_hint.visible = active and on_skip.is_valid()
-	if hud_panel != null and not name_panel.visible and not checkpoint_panel.visible:
+		var interact_k := GameState.get_action_key_label("interact")
+		cutscene_skip_hint.text = "[%s] Skip Cutscene" % interact_k
+		cutscene_skip_hint.visible = active and on_skip.is_valid() and GameState.control_prompts_enabled
+	if hud_overlay != null and not is_title_visible() and not checkpoint_panel.visible:
 		set_hud_visible(not active)
 	emit_signal("modal_state_changed")
 
@@ -210,14 +252,13 @@ func trigger_cutscene_skip() -> bool:
 
 
 func set_hud_visible(show_hud: bool) -> void:
-	hud_panel.visible = show_hud
-	hud_playtest_btn.visible = show_hud
+	if hud_overlay != null:
+		hud_overlay.set_hud_visible(show_hud)
 
 
 func set_flight_hud_mode(active: bool, mission_status: String = "") -> void:
-	is_flight_hud_mode = active
-	custom_flight_status = mission_status
-	refresh_hud(active, mission_status)
+	if hud_overlay != null:
+		hud_overlay.set_flight_mode(active, mission_status)
 
 
 func toggle_character_inventory() -> void:
@@ -289,11 +330,17 @@ func open_knot_minigame(knot_id: String, on_done: Callable = Callable(), on_fail
 	emit_signal("modal_state_changed")
 
 
-func open_butcher_minigame(on_done: Callable = Callable()) -> void:
+func open_butcher_minigame(on_done: Callable = Callable(), on_cancel: Callable = Callable()) -> void:
 	pending_butcher_callback = on_done
+	pending_butcher_cancel_callback = on_cancel
 	if butcher_minigame != null:
 		butcher_minigame.start_butchering()
 	emit_signal("modal_state_changed")
+
+
+func open_campfire_roost(region_id: String, fire_pos: Vector2, site_title: String = "Wayside Campfire", kestrel_ready: bool = false, kestrel_label: String = "Meet Kestrel Courier") -> void:
+	if campfire_panel != null:
+		campfire_panel.open_roost(region_id, fire_pos, site_title, kestrel_ready, kestrel_label)
 
 
 func show_chapter_checkpoint(title_txt: String, body_txt: String = "") -> void:
@@ -321,94 +368,39 @@ func show_mission_failed_screen(reason_text: String, on_retry: Callable = Callab
 		failure_panel.show_mission_failed(reason_text, on_retry)
 
 
-const _CARRY_TAGS := {
-	"leather": "  |  Hands: Harness-Leather Bale",
-	"water": "  |  Hands: Cliff-Spring Bucket",
-	"fish": "  |  Hands: Fresh Silver Herring",
-	"mutton": "  |  Hands: Butchered Mutton Quarter",
-}
-
-
-func _set_bar(pct_raw: float, title_txt: String, col: Color) -> void:
-	var pct := clampf(pct_raw, 0.0, 100.0)
-	hud_warmth_wrap.visible = true
-	hud_warmth_title_lbl.text = title_txt
-	hud_warmth_fill.size = Vector2(maxf(2.0, 80.0 * (pct / 100.0)), 8.0)
-	hud_warmth_fill.color = col
-	hud_warmth_pct_lbl.text = "%d%%" % int(round(pct))
+func refresh_current_hud() -> void:
+	if journal_panel != null and journal_panel.visible:
+		journal_panel.refresh()
+	if hud_overlay != null:
+		hud_overlay.refresh_current()
 
 
 func refresh_hud(flight_mode: bool = false, flight_status: String = "") -> void:
-	if hud_panel == null:
-		return
-	is_flight_hud_mode = flight_mode
-	custom_flight_status = flight_status
 	if journal_panel != null and journal_panel.visible:
 		journal_panel.refresh()
-
-	if flight_mode:
-		for ic in [hud_compass_icon, hud_egg_icon, hud_map_icon, hud_bag_btn, hud_hp_label]:
-			if ic != null:
-				ic.visible = false
-		hud_wing_icon.visible = true
-		status_label.text = flight_status if flight_status != "" else "Crewing Virelai"
-		var hp_pct := float(GameState.virelai_harness_hp)
-		var bar_col := Color(0.92, 0.24, 0.22) if GameState.virelai_loose_straps > 0 else (Color(0.38, 0.84, 0.56) if hp_pct >= 55.0 else Color(0.95, 0.62, 0.22))
-		_set_bar(hp_pct, "Harness", bar_col)
-		if GameState.virelai_loose_straps > 0:
-			knot_hud_label.text = "[!] SHEARED BUCKLE — PRESS [F] TO SPLICE RIGGING!"
-			knot_hud_label.add_theme_color_override("font_color", Color(1.0, 0.56, 0.48))
-		else:
-			knot_hud_label.text = "[WASD] Fly  [Click/V] Crossbow Bolts  [C] Barrel-Roll  [E] Sketch" if GameState.flight_sortie_id == 1 else "[WASD] Fly  [Click/V] Bolts  [C] Barrel-Roll  [Clouds] Hide  [E] Sketch  [F] Splice"
-			knot_hud_label.add_theme_color_override("font_color", Color(0.75, 0.90, 0.80))
-		return
-
-	hud_wing_icon.visible = false
-	hud_compass_icon.visible = GameState.has_mariner_compass
-	hud_egg_icon.visible = GameState.carrying_egg
-	if hud_map_icon != null:
-		hud_map_icon.visible = GameState.has_forest_map
-
-	var carry_tag := "  |  Hands: Herring Crate" if GameState.carrying_crate else ("  |  Cradling Dragon Egg" if GameState.carrying_egg else str(_CARRY_TAGS.get(GameState.sanctuary_carrying_item, "")))
-	var era_tag := ""
-	if GameState.current_step == GameState.QuestStep.ACT2_SANCTUARY:
-		era_tag = "  •  Yr %d (Trust %d%%)" % [1 if GameState.sanctuary_phase == 1 else (3 if GameState.sanctuary_phase == 2 else 5), GameState.dragon_trust]
-	elif GameState.current_step == GameState.QuestStep.ACT4_SANCTUARY_DEBATE:
-		era_tag = "  •  Council Debate"
-	elif GameState.current_step == GameState.QuestStep.ACT4_BRUGES_CITY:
-		era_tag = "  •  Walled Bruges"
-	elif GameState.current_step == GameState.QuestStep.ACT4_NIGHT_HEIST:
-		era_tag = "  •  Midnight Heist"
-	status_label.text = "%s (Age %d)%s%s" % [GameState.player_name, GameState.boy_age, era_tag, carry_tag]
-
-	var bag_count := GameState.inventory.size() + (1 if GameState.carrying_crate else 0)
-	if hud_bag_btn != null:
-		hud_bag_btn.visible = true
-		hud_bag_btn.text = "Bag [I]: %d" % bag_count if bag_count > 0 else "Bag [I]"
-
-	var show_hp := GameState.current_step in [GameState.QuestStep.SNITCH_TO_CHURCH, GameState.QuestStep.ACT4_BRUGES_CITY, GameState.QuestStep.ACT4_NIGHT_HEIST] or GameState.boy_hp < GameState.boy_max_hp
-	hud_hp_label.visible = show_hp
-	if show_hp:
-		var hearts := ""
-		for i in range(GameState.boy_max_hp):
-			hearts += "♥" if i < GameState.boy_hp else "♡"
-		hud_hp_label.text = "Health: " + hearts
-
-	hud_warmth_wrap.visible = GameState.carrying_egg
-	if GameState.carrying_egg:
-		var pct := GameState.egg_warmth
-		var w_col := Color(0.95, 0.68, 0.24) if pct >= 55.0 else (Color(0.92, 0.45, 0.18) if pct >= 30.0 else Color(0.90, 0.24, 0.22))
-		_set_bar(pct, "Warmth", w_col)
-
-	var kdata: Dictionary = GameState.KNOT_DATA[GameState.equipped_knot]
-	knot_hud_label.add_theme_color_override("font_color", Color(0.75, 0.88, 0.78))
-	knot_hud_label.text = "Knot [Q]: %s (%s)  |  [F] Cast  [V] Knife  [I] Bag  [Tab] Diary  |  [M] World Map" % [kdata["name"], kdata.get("ability_short", kdata["throw_style"])]
+	if hud_overlay != null:
+		hud_overlay.refresh(flight_mode, flight_status)
 
 
 func _build_ui() -> void:
 	var seal_tex: Texture2D = assets.get_tex("ui_wax_seal.png")
-	_build_name_prompt(seal_tex)
-	_build_hud()
+	title_panel = TitleScreenPanelScript.new()
+	title_panel.z_index = 60
+	title_panel.setup_panel(assets)
+	title_panel.start_game_requested.connect(func(nm: String): _emit_start(nm))
+	title_panel.settings_requested.connect(func(): open_settings())
+	title_panel.playtest_requested.connect(toggle_playtest_menu)
+	title_panel.quit_requested.connect(func(): emit_signal("quit_requested"))
+	add_child(title_panel)
+	name_panel = title_panel
+	name_input = title_panel.name_input
+
+	hud_overlay = HudOverlayScript.new()
+	hud_overlay.setup(assets)
+	hud_overlay.bag_pressed.connect(func(): SoundManager.play_ui_click(); toggle_character_inventory())
+	hud_overlay.menu_pressed.connect(func(): toggle_pause_menu())
+	hud_overlay.playtest_pressed.connect(toggle_playtest_menu)
+	add_child(hud_overlay)
 	_build_cinematic_curtains()
 
 	dialogue_panel = DialogueBoxScript.new()
@@ -429,8 +421,12 @@ func _build_ui() -> void:
 
 	butcher_minigame = ButcherMinigameScript.new()
 	butcher_minigame.chop_completed.connect(_on_butcher_minigame_completed)
-	butcher_minigame.chop_cancelled.connect(func(): pending_butcher_callback = Callable(); emit_signal("modal_state_changed"))
+	butcher_minigame.chop_cancelled.connect(_on_butcher_minigame_cancelled)
 	add_child(butcher_minigame)
+
+	campfire_panel = CampfirePanelScript.new()
+	campfire_panel.setup(assets, self)
+	add_child(campfire_panel)
 
 	map_panel = ForestMapPanelScript.new()
 	map_panel.setup(assets)
@@ -448,7 +444,7 @@ func _build_ui() -> void:
 	playtest_panel.lighting_mode_changed.connect(func(mode: String): lighting_mode = mode; emit_signal("lighting_mode_changed", mode))
 	playtest_panel.open_knot_requested.connect(func(knot_id: String): open_knot_minigame(knot_id))
 	playtest_panel.title_requested.connect(func():
-		if name_panel.visible:
+		if is_title_visible():
 			if playtest_panel.visible:
 				toggle_playtest_menu()
 		else:
@@ -458,14 +454,31 @@ func _build_ui() -> void:
 	playtest_panel.close_requested.connect(toggle_playtest_menu)
 	add_child(playtest_panel)
 
+	pause_panel = PauseMenuPanelScript.new()
+	pause_panel.z_index = 72
+	pause_panel.setup_panel(assets)
+	pause_panel.resume_requested.connect(func(): toggle_pause_menu())
+	pause_panel.settings_requested.connect(func(): open_settings())
+	pause_panel.journal_requested.connect(func(): pause_panel.visible = false; toggle_journal())
+	pause_panel.map_requested.connect(func(): pause_panel.visible = false; toggle_map())
+	pause_panel.playtest_requested.connect(func(): pause_panel.visible = false; toggle_playtest_menu())
+	pause_panel.title_requested.connect(func(): pause_panel.visible = false; emit_signal("replay_requested"))
+	pause_panel.quit_requested.connect(func(): emit_signal("quit_requested"))
+	add_child(pause_panel)
+
+	settings_panel = SettingsPanelScript.new()
+	settings_panel.z_index = 80
+	settings_panel.setup_panel(assets)
+	settings_panel.close_requested.connect(close_settings)
+	add_child(settings_panel)
+
 	_build_checkpoint_panel(seal_tex)
 
 	assets.style_buttons_recursive(self)
 	journal_panel.apply_post_theme_fixes()
-	if playtest_panel.has_method("apply_post_theme_fixes"):
-		playtest_panel.apply_post_theme_fixes()
-	if hud_bag_btn != null:
-		hud_bag_btn.add_theme_font_size_override("font_size", 12)
+	for themed in [title_panel, pause_panel, settings_panel, playtest_panel, hud_overlay]:
+		if themed != null and themed.has_method("apply_post_theme_fixes"):
+			themed.apply_post_theme_fixes()
 	var p_sb: StyleBox = assets.make_ui_9slice_style("ui_panel_9slice.png", 12.0, 20.0, 16.0)
 	var b_norm: StyleBox = assets.make_ui_9slice_style("ui_btn_normal.png", 6.0, 14.0, 6.0)
 	var b_hov: StyleBox = assets.make_ui_9slice_style("ui_btn_hover.png", 6.0, 14.0, 6.0)
@@ -502,156 +515,6 @@ func _make_c_rect(col: Color, pos: Vector2, sz: Vector2, parent: Node = null) ->
 	if parent != null:
 		parent.add_child(c)
 	return c
-
-
-func _build_name_prompt(seal_tex: Texture2D) -> void:
-	name_panel = PanelContainer.new()
-	name_panel.set_anchors_preset(Control.PRESET_CENTER)
-	name_panel.offset_left = -335
-	name_panel.offset_top = -255
-	name_panel.offset_right = 335
-	name_panel.offset_bottom = 255
-	assets.style_parchment_panel(name_panel)
-	add_child(name_panel)
-
-	var vbox := VBoxContainer.new()
-	vbox.add_theme_constant_override("separation", 10)
-	name_panel.add_child(vbox)
-
-	var crest_tex: Texture2D = assets.get_tex("ui_brotherhood_emblem.png")
-	if crest_tex != null:
-		vbox.add_child(_make_icon_rect(crest_tex, Vector2(56, 56)))
-
-	var title_row := HBoxContainer.new()
-	title_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	title_row.add_theme_constant_override("separation", 12)
-	vbox.add_child(title_row)
-	if seal_tex != null:
-		title_row.add_child(_make_icon_rect(seal_tex, Vector2(32, 32)))
-	title_row.add_child(_make_lbl("WINGS OF THE BROTHERHOOD", 22, Color(0.96, 0.84, 0.50), HORIZONTAL_ALIGNMENT_CENTER))
-	if seal_tex != null:
-		title_row.add_child(_make_icon_rect(seal_tex, Vector2(32, 32)))
-
-	vbox.add_child(_make_lbl("Book I: Opening Chapters — Aboard 'De Zwaan' & The Port of Bruges", 15, Color(0.78, 0.75, 0.68), HORIZONTAL_ALIGNMENT_CENTER))
-	var title_rule := _make_c_rect(Color(0.66, 0.52, 0.26, 0.55), Vector2.ZERO, Vector2.ZERO, vbox)
-	title_rule.custom_minimum_size = Vector2(0, 1)
-
-	var lore_blurb := _make_lbl(
-		"Dusk settles over the Zwin canal. At twelve years old, your palms are raw from hauling lines aboard the merchant cog 'De Zwaan'.\n\n"
-		+ "Ahead lie the timber wharves of the Port of Bruges, where your sister Clara twists cordage at the Ropewalk and Uncle Willem keeps a warm hearth—all the home you two have left since your parents failed to return from Old Heverlee four years ago.",
-		14, Color(0.92, 0.90, 0.85)
-	)
-	lore_blurb.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	vbox.add_child(lore_blurb)
-	vbox.add_child(_make_lbl("What is the boy's name?", 16, Color(0.95, 0.82, 0.48)))
-
-	name_input = LineEdit.new()
-	name_input.placeholder_text = "Enter name (e.g. Bram, Hendrik, Pieter...)"
-	name_input.text = "Bram"
-	name_input.max_length = 24
-	name_input.text_submitted.connect(func(_t): _emit_start())
-	vbox.add_child(name_input)
-
-	var btn_row := HBoxContainer.new()
-	btn_row.add_theme_constant_override("separation", 12)
-	vbox.add_child(btn_row)
-	var start_btn := Button.new()
-	start_btn.text = "Begin on Deck of 'De Zwaan'"
-	start_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	start_btn.custom_minimum_size = Vector2(0, 42)
-	start_btn.pressed.connect(_emit_start)
-	btn_row.add_child(start_btn)
-	var title_pt_btn := Button.new()
-	title_pt_btn.text = "Chapters / Debug [F1]"
-	title_pt_btn.custom_minimum_size = Vector2(215, 42)
-	title_pt_btn.pressed.connect(toggle_playtest_menu)
-	btn_row.add_child(title_pt_btn)
-
-
-func _build_hud() -> void:
-	hud_panel = PanelContainer.new()
-	hud_panel.position = Vector2(16, 14)
-	hud_panel.custom_minimum_size = Vector2(560, 0)
-	hud_panel.visible = false
-	assets.style_parchment_panel(hud_panel, true)
-	add_child(hud_panel)
-
-	var hud_box := VBoxContainer.new()
-	hud_box.add_theme_constant_override("separation", 5)
-	hud_panel.add_child(hud_box)
-
-	var status_row := HBoxContainer.new()
-	status_row.add_theme_constant_override("separation", 8)
-	hud_box.add_child(status_row)
-	hud_compass_icon = _make_hud_icon("icon_compass.png")
-	hud_egg_icon = _make_hud_icon("icon_egg.png")
-	hud_map_icon = _make_hud_icon("icon_map.png")
-	hud_wing_icon = _make_hud_icon("icon_wing.png")
-	for ic in [hud_compass_icon, hud_egg_icon, hud_map_icon, hud_wing_icon]:
-		status_row.add_child(ic)
-
-	status_label = _make_lbl("", 14, Color(0.96, 0.86, 0.56))
-	status_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	status_label.clip_text = true
-	status_row.add_child(status_label)
-
-	hud_hp_label = _make_lbl("", 13, Color(0.95, 0.52, 0.48))
-	hud_hp_label.visible = false
-	status_row.add_child(hud_hp_label)
-
-	hud_warmth_wrap = HBoxContainer.new()
-	hud_warmth_wrap.add_theme_constant_override("separation", 6)
-	hud_warmth_wrap.visible = false
-	status_row.add_child(hud_warmth_wrap)
-
-	hud_bag_btn = Button.new()
-	hud_bag_btn.text = "Bag [I]"
-	hud_bag_btn.custom_minimum_size = Vector2(88, 24)
-	hud_bag_btn.add_theme_font_size_override("font_size", 12)
-	hud_bag_btn.pressed.connect(func(): SoundManager.play_ui_click(); toggle_character_inventory())
-	status_row.add_child(hud_bag_btn)
-
-	hud_warmth_title_lbl = _make_lbl("Warmth", 12, Color(0.92, 0.78, 0.50))
-	hud_warmth_wrap.add_child(hud_warmth_title_lbl)
-
-	var warmth_track_wrap := Control.new()
-	warmth_track_wrap.custom_minimum_size = Vector2(84, 14)
-	warmth_track_wrap.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	hud_warmth_wrap.add_child(warmth_track_wrap)
-	_make_c_rect(Color(0.64, 0.50, 0.25), Vector2(0, 1), Vector2(84, 12), warmth_track_wrap)
-	_make_c_rect(Color(0.08, 0.06, 0.08), Vector2(2, 3), Vector2(80, 8), warmth_track_wrap)
-	hud_warmth_fill = _make_c_rect(Color(0.95, 0.68, 0.24), Vector2(2, 3), Vector2(80, 8), warmth_track_wrap)
-	hud_warmth_pct_lbl = _make_lbl("100%", 12, Color(0.98, 0.88, 0.62))
-	hud_warmth_wrap.add_child(hud_warmth_pct_lbl)
-
-	var hud_rule := _make_c_rect(Color(0.62, 0.48, 0.24, 0.48), Vector2.ZERO, Vector2.ZERO, hud_box)
-	hud_rule.custom_minimum_size = Vector2(0, 1)
-
-	var knot_row := HBoxContainer.new()
-	knot_row.add_theme_constant_override("separation", 8)
-	hud_box.add_child(knot_row)
-	hud_knot_icon = _make_hud_icon("icon_knot.png")
-	hud_knot_icon.visible = true
-	knot_row.add_child(hud_knot_icon)
-	knot_hud_label = _make_lbl("", 13, Color(0.75, 0.88, 0.78))
-	knot_row.add_child(knot_hud_label)
-
-	hud_playtest_btn = Button.new()
-	hud_playtest_btn.text = "Chapters / Debug [F1]"
-	hud_playtest_btn.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	hud_playtest_btn.offset_left = -188
-	hud_playtest_btn.offset_top = 14
-	hud_playtest_btn.offset_right = -16
-	hud_playtest_btn.offset_bottom = 48
-	hud_playtest_btn.visible = false
-	hud_playtest_btn.pressed.connect(toggle_playtest_menu)
-	add_child(hud_playtest_btn)
-
-
-func _make_hud_icon(fname: String) -> TextureRect:
-	var icon := _make_icon_rect(assets.get_tex(fname), Vector2(20, 20))
-	icon.visible = false
-	return icon
 
 
 func _build_cinematic_curtains() -> void:
@@ -754,10 +617,14 @@ func _build_checkpoint_panel(seal_tex: Texture2D) -> void:
 		cp_btns.add_child(btn)
 
 
-func _emit_start() -> void:
+func _emit_start(boy_name: String = "") -> void:
 	SoundManager.play_ui_click()
-	name_panel.visible = false
-	emit_signal("start_game_requested", name_input.text)
+	if title_panel != null:
+		title_panel.visible = false
+	var chosen := boy_name.strip_edges()
+	if chosen == "" and name_input != null:
+		chosen = name_input.text.strip_edges()
+	emit_signal("start_game_requested", chosen if chosen != "" else "Bram")
 
 
 func _on_knot_minigame_completed(knot_id: String) -> void:
@@ -776,10 +643,19 @@ func _on_knot_minigame_cancelled() -> void:
 
 
 func _on_butcher_minigame_completed() -> void:
+	pending_butcher_cancel_callback = Callable()
 	emit_signal("modal_state_changed")
 	if pending_butcher_callback.is_valid():
 		var cb := pending_butcher_callback
 		pending_butcher_callback = Callable()
+		cb.call()
+
+func _on_butcher_minigame_cancelled() -> void:
+	pending_butcher_callback = Callable()
+	emit_signal("modal_state_changed")
+	if pending_butcher_cancel_callback.is_valid():
+		var cb := pending_butcher_cancel_callback
+		pending_butcher_cancel_callback = Callable()
 		cb.call()
 
 

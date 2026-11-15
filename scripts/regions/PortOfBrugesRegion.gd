@@ -132,10 +132,11 @@ func enter_region(opts: Dictionary = {}) -> void:
 		cam.limit_right = 1600
 		cam.limit_bottom = 1040
 		if title_bg_mode:
+			ship_pos = Vector2(210, 145)
 			player.visible = false
 			player.can_move = false
 			player.on_ship = false
-			cam.position = Vector2(220, 80)
+			cam.position = Vector2(500, 210)
 			step_water_layer()
 			return
 		GameState.current_step = GameState.QuestStep.ON_THE_SHIP
@@ -670,9 +671,10 @@ func _on_enter_house_door() -> void:
 		SoundManager.play_door()
 		portal_cooldown = 1.0
 		player.position.y = maxf(player.position.y, 892.0)
-		errand_hint_timer = 2.6
+		if GameState.hints_enabled:
+			errand_hint_timer = 2.6
+			ui.pulse_hud_icon("bag")
 		spawn_fx_burst(Vector2(1310, 868), 6, Color(0.92, 0.80, 0.44), 22.0, 52.0, 0.40, 2.2)
-		ui.pulse_hud_icon("bag")
 		return
 	GameState.remove_item("Evening Rye Bread")
 	director.load_region("house", {"spawn": Vector2(640, 455), "step": GameState.QuestStep.EVENING_HOME, "first_entry": true})

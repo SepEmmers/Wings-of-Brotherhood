@@ -31,9 +31,9 @@ The Golden Dragon hatches in Act I and physically **follows the player** through
   - *Stage 2 (Fledgling):* **Glide-Boost** across wider chasms (`winch`-style glide arc), **Knot-Combo Lunge** (strikes armored Catchpoles currently snared by `[F]`), **Resonance Chirp** (cracks brittle walls & jams Church alarm bells).
   - *Stage 3 (Young Drake):* **Fortress Wall-Vault**, **Golden Flame** (melts iron grates/shields), **Wing-Shield** (blocks crossbow volleys).
 - **AI Posture Toggle (e.g., `[X]` / `dragon_posture`):** Cycles **Assist** (follows, auto-lights unlit braziers, flanks roped foes) vs **Stay / Cloak-Sling** (silent stealth inside cities / wait behind cover).
-- **Navi-Style Telepathic Hints (`[T]` / `dragon_hint`):**
+- **Automatic Stuck-Time Telepathic Hints (No Manual Button):**
   - The hatchling starts mute (chirps/purrs) in early Act I, then **awakens telepathic speech stage-by-stage** heard *only* in the Boy's mind.
-  - Triggering `[T]` (or subtle golden pulse on a context prompt) opens a brief telepathic thought bubble/dialogue line giving physical intuition about the nearby puzzle, lock, or enemy weak point (never embed raw button keys like `[F]`/`[V]` inside the speech text!).
+  - Instead of a manual hint button, `HatchlingCompanion` tracks inactivity / lack of objective progress (`stall_timer`) and automatically surfaces a brief non-intrusive Mind-Voice observation if the player stays stuck on a puzzle, stealth choke-point, or armored foe for a long stretch (resetting whenever progress advances; never embedding raw button keys inside the speech text!).
   - **Rule Note:** Telepathic speech is real dialogue inside the Boy-Dragon bond (see `.agents/rules/story-and-lore-continuity.md` & `docs/ENVIRONMENTAL_STORYTELLING.md`). Style its dialogue frame subtly differently from spoken human/Virelai speech (e.g., warm gold-rimmed border, no physical lip-voice blip—use gentle golden chime/hum!).
 
 ### 2.2 Combat & Knot Fine-Tuning (`PlayerBoy.gd` + combat helpers)
@@ -72,7 +72,7 @@ Support switching `active_protagonist: String` (`"boy"` vs `"anna"`):
 - Register new `InputMap` actions in `GameState._ensure_input_actions()`:
   - `dragon_command` (`R`)
   - `dragon_posture` (`X`)
-  - `dragon_hint` (`T`)
+  - *(No manual hint hotkey — `HatchlingCompanion` triggers automatic stuck-time telepathic hints.)*
 - Add new `QuestStep` entries for Book II Act I (`BOOK2_BRABANT_FENS`, `BOOK2_LOUVAIN`, `BOOK2_OLD_HEVERLEE`, `BOOK2_ANNA_RAID_1`, etc.) without altering indices `0..14`.
 - Update `GameUI.gd` checkpoint overlay (`SanctuaryAct4.gd` finale `"INTO THE NIGHT SKY — WINGS OF FREEDOM"`) so pressing Continue can transition cleanly into Book II once Brabant Fens is ready (and register every new beat in `PlaytestPresets.gd` `[F1]`).
 

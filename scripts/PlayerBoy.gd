@@ -8,6 +8,8 @@ signal rope_cast_hit(target_pos: Vector2, knot_id: String)
 signal knife_slash(tip_pos: Vector2, dir: Vector2)
 signal dodged
 
+const CombatHelperScript := preload("res://scripts/systems/PlayerCombatHelper.gd")
+
 @export var walk_speed: float = 175.0
 @export var sprint_speed: float = 245.0
 
@@ -34,11 +36,15 @@ var winch_dash_timer: float = 0.0
 var winch_dash_duration: float = 0.44
 
 # Dockworker's Knife Slash & Quick Dodge-Roll state
+var combat_helper = CombatHelperScript.new()
 var knife_timer: float = 0.0
 var knife_duration: float = 0.22
 var knife_cooldown: float = 0.0
 var knife_dir: Vector2 = Vector2.DOWN
 var knife_hit_sent: bool = false
+var _slash_reach: float = 38.0
+var _slash_lunge: float = 70.0
+var _slash_step: int = 0
 
 var dodge_timer: float = 0.0
 var dodge_duration: float = 0.26
@@ -178,11 +184,20 @@ func handle_tool_input(event: InputEvent) -> bool:
 	return false
 
 func _trigger_knife_slash() -> void:
+	var meta: Dictionary = combat_helper.begin_slash()
+	knife_duration = float(meta.get("duration", 0.22))
 	knife_timer = knife_duration
-	knife_cooldown = 0.28
+	knife_cooldown = float(meta.get("cooldown", 0.24))
+	_slash_reach = float(meta.get("reach", 38.0))
+	_slash_lunge = float(meta.get("lunge", 70.0))
+	_slash_step = int(meta.get("combo_step", 0))
 	knife_dir = facing.normalized()
 	knife_hit_sent = false
-	SoundManager.play_slash()
+	SoundManager.play_slash(float(meta.get("pitch", 1.0)))
+
+
+func get_last_slash_meta() -> Dictionary:
+	return combat_helper.last_slash_meta
 
 func _trigger_dodge_roll() -> void:
 	dodge_timer = dodge_duration
@@ -223,6 +238,7 @@ func _physics_process(delta: float) -> void:
 	knife_cooldown = maxf(0.0, knife_cooldown - delta)
 	dodge_cooldown = maxf(0.0, dodge_cooldown - delta)
 	hurt_flash_timer = maxf(0.0, hurt_flash_timer - delta)
+	combat_helper.step(delta, knife_timer > 0.0, dodge_timer > 0.0)
 	if held_item_timer > 0.0:
 		held_item_timer = maxf(0.0, held_item_timer - delta)
 	if sprite != null:
@@ -262,6 +278,8 @@ func _physics_process(delta: float) -> void:
 
 	if dodge_timer > 0.0:
 		dodge_timer = maxf(0.0, dodge_timer - delta)
+		if dodge_timer <= 0.0:
+			combat_helper.on_dodge_finished()
 		var rp := 1.0 - (dodge_timer / maxf(0.01, dodge_duration))
 		var roll_spd := (335.0 - 85.0 * rp) * GameState.playtest_speed_mult
 		velocity = dodge_dir * roll_spd
@@ -276,8 +294,8 @@ func _physics_process(delta: float) -> void:
 		var kp := 1.0 - (knife_timer / knife_duration)
 		if kp >= 0.35 and not knife_hit_sent:
 			knife_hit_sent = true
-			emit_signal("knife_slash", global_position + knife_dir * 38.0, knife_dir)
-		velocity = knife_dir * (70.0 * (1.0 - kp))
+			emit_signal("knife_slash", global_position + knife_dir * _slash_reach, knife_dir)
+		velocity = knife_dir * (_slash_lunge * (1.0 - kp))
 		move_and_slide()
 		is_moving = false
 		_update_sprite()
@@ -551,8 +569,11 @@ func _draw() -> void:
 		if slash_tex != null:
 			var kp := 1.0 - (knife_timer / knife_duration)
 			var ang := knife_dir.angle()
-			draw_set_transform(Vector2(0, -10) + knife_dir * 20.0, ang, Vector2(1.4, 1.4))
-			draw_texture(slash_tex, Vector2(-12, -12), Color(1.0, 0.96, 0.84, 1.0 - kp * 0.55))
+			var s_scale := 1.75 if _slash_step == 2 else 1.40
+			var flip_y := -s_scale if _slash_step == 1 else s_scale
+			var tint := Color(1.0, 0.90, 0.56, 1.0 - kp * 0.45) if _slash_step == 2 else Color(1.0, 0.96, 0.84, 1.0 - kp * 0.55)
+			draw_set_transform(Vector2(0, -10) + knife_dir * (20.0 + float(_slash_step) * 3.0), ang, Vector2(s_scale, flip_y))
+			draw_texture(slash_tex, Vector2(-12, -12), tint)
 			draw_set_transform(Vector2.ZERO)
 
 	if winch_dash_active:
