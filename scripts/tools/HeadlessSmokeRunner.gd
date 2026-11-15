@@ -251,7 +251,49 @@ func _verify_book2_systems() -> bool:
 		_fail("DragonNamePanel confirmation did not persist gold_dragon_name.")
 		return false
 
-	# Verify Milestone 2 Brabant Fens & Louvain Dragon Assist puzzle triggers end-to-end
+	# Verify [F1] CHAPTERS puts Book II before Cutscenes
+	var ch_ids: Array = []
+	for ch in PlaytestPresetsScript.CHAPTERS:
+		ch_ids.append(str(ch.get("id", "")))
+	if ch_ids.find("book2") < 0 or ch_ids.find("cutscenes") < 0 or ch_ids.find("book2") > ch_ids.find("cutscenes"):
+		_fail("PlaytestPresets.CHAPTERS did not order 'book2' before 'cutscenes'.")
+		return false
+
+	# Verify Sanctuary Kestrel escape flows continuously into Brabant night arrival + farewell + camera follow
+	main._playtest_jump_to("cutscene_kestrel_escape")
+	for _t in range(28):
+		main.active_region.step_region(0.25)
+		if main.current_region_id == "brabant_fens":
+			break
+	if main.current_region_id != "brabant_fens" or main.ui.checkpoint_panel.visible:
+		_fail("cutscene_kestrel_escape did not transition directly into brabant_fens without an end screen.")
+		return false
+	var night_tint: Color = main.active_region.get_lighting_tint()
+	if night_tint.r > 0.50:
+		_fail("BrabantFens arrival did not begin in midnight lighting before hatching.")
+		return false
+	for _t in range(18):
+		main.active_region.step_region(0.25)
+		if main.ui.dialogue_active:
+			break
+	if not main.ui.dialogue_active:
+		_fail("BrabantFens arrival did not present Kestrel farewell & explanation dialogue.")
+		return false
+	for _d in range(6):
+		if not main.ui.dialogue_active:
+			break
+		main.ui.advance_dialogue()
+	for _t in range(12):
+		main.active_region.step_region(0.25)
+		if not bool(main.active_region.get("intro_active")):
+			break
+	main.player.position = Vector2(620, 700)
+	main.active_region.step_region(0.1)
+	if main.camera.position.distance_to(main.player.position) > 2.0:
+		_fail("BrabantFens camera remained stuck instead of following player.")
+		return false
+
+	# Verify Milestone 2 Brabant Fens & Louvain Dragon Assist puzzle triggers & camera follow end-to-end
 	main._playtest_jump_to("book2_brabant_hatchling")
 	if not main.active_region.on_dragon_command(Vector2(1378, 565), Vector2(1378, 554), Vector2.UP, 1) or not GameState.brabant_vent_unlocked:
 		_fail("BrabantFens Hatchling Vent Crawl did not unlock sluice gate.")
@@ -260,6 +302,11 @@ func _verify_book2_systems() -> bool:
 		_fail("BrabantFens Hatchling Ember Puff did not burn fen briars.")
 		return false
 	main._playtest_jump_to("book2_louvain_abbey")
+	main.player.position = Vector2(1820, 820)
+	main.active_region.step_region(0.1)
+	if main.camera.position.distance_to(main.player.position) > 2.0:
+		_fail("LouvainCity camera remained stuck instead of following player.")
+		return false
 	if not main.active_region.on_dragon_command(Vector2(2044, 730), Vector2(2044, 714), Vector2.UP, 1) or not GameState.louvain_vent_opened:
 		_fail("Louvain Abbey Vent Crawl did not open cloister gate.")
 		return false

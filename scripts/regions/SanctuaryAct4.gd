@@ -429,6 +429,15 @@ static func interact_kestrel_escape(r) -> bool:
 	return true
 
 
+static func _finish_kestrel_escape(r) -> void:
+	r.act4_escape_active = false
+	r.act4_escape_stage = 3
+	r.ui.set_cinematic_mode(false)
+	GameState.reset_book2_state(true)
+	r.director.load_region("brabant_fens", {"book2_intro": true, "from_escape": true})
+	r.ui.play_border_transition("BOOK II: THE GOLDEN HEIR", "Brabant Reed-Fens — Before Dawn")
+
+
 static func start_kestrel_escape(r) -> void:
 	GameState.act4_kestrel_escaped = true
 	r.act4_escape_active = true
@@ -436,7 +445,7 @@ static func start_kestrel_escape(r) -> void:
 	r.act4_escape_t = 0.0
 	r.act4_escape_wait_dlg = false
 	_clear_guard_lights(r)
-	r.ui.set_cinematic_mode(true)
+	r.ui.set_cinematic_mode(true, func(): _finish_kestrel_escape(r))
 	r.player.can_move = false
 	r.player.facing = Vector2.RIGHT
 	r.player.set_cutscene_pose("boy_kneel.png")
@@ -477,15 +486,16 @@ static func _process_kestrel_escape(r, delta: float) -> void:
 			SoundManager.play_wing_beat()
 		if p >= 1.0:
 			r.act4_escape_stage = 2
-			r.ui.set_cinematic_mode(false)
-			r.ui.show_chapter_checkpoint(
-				"INTO THE NIGHT SKY — WINGS OF FREEDOM",
-				"Escaped the Bruges Sanctuary atop Kestrel with the Black-and-Gold Egg while the Church bounty looms at dawn.",
-				"Continue to Book II: Brabant Fens",
-				func():
-					GameState.reset_book2_state(true)
-					r.director.load_region("brabant_fens", {"book2_intro": true})
-			)
+			r.act4_escape_t = 0.0
+			r.ui.set_fade(1.0, false)
+	elif r.act4_escape_stage == 2:
+		var p2: float = clampf(r.act4_escape_t / 0.85, 0.0, 1.0)
+		var cont_start: Vector2 = r.ACT2_CAGE_POS + Vector2(360, -290)
+		var cont_end: Vector2 = cont_start + Vector2(180, -145)
+		r.montage_kestrel_fly_pos = cont_start.lerp(cont_end, p2)
+		r.director.camera.position = r.montage_kestrel_fly_pos
+		if p2 >= 1.0:
+			_finish_kestrel_escape(r)
 
 
 static func draw_act4_overlays(r, t_now: float, cam_rect: Rect2) -> void:

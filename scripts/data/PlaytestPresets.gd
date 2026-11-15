@@ -32,16 +32,16 @@ const CHAPTERS: Array = [
 		"subtitle": "Council egg debate, 7-district Bruges recon, Catchpole shield combat, Anselm stealth tail & Kestrel escape.",
 	},
 	{
-		"id": "cutscenes",
-		"tab_label": "Cutscenes",
-		"title": "All Story Cutscenes — Book I Cinematics",
-		"subtitle": "Jump directly to any scripted story cutscene across Book I Chapters 1–4.",
-	},
-	{
 		"id": "book2",
 		"tab_label": "II: Golden Heir",
 		"title": "Book II — The Golden Heir (Brabant, Louvain & Meuse)",
 		"subtitle": "Eastward escape atop Kestrel, Golden Hatchling bonding, stealth heat & dual-perspective campaigns.",
+	},
+	{
+		"id": "cutscenes",
+		"tab_label": "Cutscenes",
+		"title": "All Story Cutscenes — Campaign Cinematics",
+		"subtitle": "Jump directly to any scripted story cutscene across the campaign.",
 	},
 ]
 

@@ -178,6 +178,9 @@ func step_region(delta: float) -> void:
 	if GameState.louvain_archive_read and not GameState.louvain_breakout_won and breakout_enemies.is_empty() and player.position.y > 708.0 and player.position.x > 1640.0:
 		_spawn_abbey_breakout()
 
+	if director != null and director.camera != null and player != null:
+		director.camera.position = player.position
+
 	if player != null and player.visible:
 		update_nearest_interactable(player.position)
 		if ui != null:

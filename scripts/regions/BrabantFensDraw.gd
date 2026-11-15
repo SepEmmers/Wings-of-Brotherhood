@@ -181,13 +181,21 @@ static func draw_region_entities(r, t_now: float) -> void:
 
 	# Kestrel courier sprite during Book II intro descent & takeoff
 	if r.kestrel_visible:
-		var kpos: Vector2 = r.kestrel_pos + Vector2(0, -r.kestrel_alt)
+		var nuzzle_off := Vector2(4.0 * maxf(0.0, sin(t_now * 3.2)), 0.0) if (r.intro_active and r.intro_stage == 1) else Vector2.ZERO
+		var kpos: Vector2 = r.kestrel_pos + nuzzle_off + Vector2(0, -r.kestrel_alt)
 		if cam_rect.intersects(Rect2(kpos - Vector2(96, 96), Vector2(192, 192))):
 			r.draw_circle(r.kestrel_pos + Vector2(0, 12), clampf(38.0 - r.kestrel_alt * 0.1, 14.0, 38.0), Color(0.03, 0.04, 0.06, 0.32))
 			var kf := int(t_now * (10.0 if r.kestrel_alt > 6.0 else 3.2)) % 2
 			var ktex: Texture2D = assets.get_tex("dragon_greyling_y5_%d.png" % kf, "dragon_greyling_%d.png" % kf)
 			if ktex != null:
 				r.draw_texture_rect(ktex, Rect2(kpos - Vector2(44, 38), Vector2(88, 72)), false)
+
+	# Warm golden aura around cradled egg before hatching at midnight
+	if not GameState.brabant_hatched and r.player != null and not r.player.cutscene_hidden:
+		var ep: Vector2 = Vector2(r.player.position) + Vector2(0, -10)
+		if cam_rect.has_point(ep):
+			var ep_pulse := 0.5 + 0.5 * sin(t_now * 4.2)
+			r.draw_circle(ep, 17.0 + ep_pulse * 3.0, Color(0.98, 0.80, 0.34, 0.14 + 0.08 * ep_pulse))
 
 	# Reeds, river stones & fen trees (culled tightly to cam_rect)
 	var stone_tex: Texture2D = assets.get_tex("prop_river_stone_0.png")

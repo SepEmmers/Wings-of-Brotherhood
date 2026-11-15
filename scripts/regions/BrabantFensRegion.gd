@@ -41,6 +41,7 @@ var gate_body: StaticBody2D
 var briar_body: StaticBody2D
 var region_lights: Array[PointLight2D] = []
 var brazier_lights: Array[PointLight2D] = []
+var egg_light: PointLight2D
 
 var brazier_states: Array[Dictionary] = [
 	{"pos": Vector2(680, 628), "lit": false},
@@ -50,6 +51,8 @@ var brazier_states: Array[Dictionary] = [
 var intro_active: bool = false
 var intro_stage: int = 0
 var intro_t: float = 0.0
+var intro_wait_dlg: bool = false
+var intro_dlg_done: bool = false
 var kestrel_visible: bool = false
 var kestrel_pos: Vector2 = KESTREL_LANDING_POS
 var kestrel_alt: float = 0.0
@@ -116,12 +119,16 @@ func _setup_collisions() -> void:
 func _setup_lights() -> void:
 	region_lights.clear()
 	brazier_lights.clear()
-	var camp_pl: PointLight2D = assets.make_point_light(CAMPFIRE_POS + Vector2(0, -10), 2.8, Color(1.0, 0.70, 0.30), 0.88)
+	var camp_pl: PointLight2D = assets.make_point_light(CAMPFIRE_POS + Vector2(0, -10), 3.4, Color(1.0, 0.72, 0.32), 0.96)
 	add_child(camp_pl)
 	region_lights.append(camp_pl)
 
+	egg_light = assets.make_point_light(KESTREL_LANDING_POS, 2.1, Color(0.98, 0.80, 0.36), 0.72)
+	add_child(egg_light)
+	region_lights.append(egg_light)
+
 	for b: Dictionary in brazier_states:
-		var bl: PointLight2D = assets.make_point_light(Vector2(b["pos"]) + Vector2(0, -10), 2.2, Color(1.0, 0.72, 0.34), 0.76)
+		var bl: PointLight2D = assets.make_point_light(Vector2(b["pos"]) + Vector2(0, -10), 2.4, Color(1.0, 0.72, 0.34), 0.78)
 		bl.visible = false
 		add_child(bl)
 		brazier_lights.append(bl)
@@ -215,7 +222,11 @@ func step_region(delta: float) -> void:
 		_step_kestrel_arrival(delta)
 	elif hatch_anim_active:
 		_step_hatching_sequence(delta)
+		if director != null and director.camera != null:
+			director.camera.position = CAMPFIRE_POS + Vector2(14, 4)
 	elif player != null and player.visible:
+		if director != null and director.camera != null:
+			director.camera.position = player.position
 		update_nearest_interactable(player.position)
 		if ui != null:
 			ui.update_world_map_state("brabant_fens", player.position)
@@ -250,6 +261,8 @@ func _start_kestrel_arrival() -> void:
 	intro_active = true
 	intro_stage = 0
 	intro_t = 0.0
+	intro_wait_dlg = false
+	intro_dlg_done = false
 	kestrel_visible = true
 	kestrel_pos = KESTREL_LANDING_POS
 	kestrel_alt = 190.0
@@ -262,46 +275,90 @@ func _start_kestrel_arrival() -> void:
 
 func _skip_kestrel_arrival() -> void:
 	intro_active = false
+	intro_wait_dlg = false
+	intro_dlg_done = true
 	kestrel_visible = false
 	player.cutscene_hidden = false
 	player.position = KESTREL_LANDING_POS + Vector2(48, 4)
 	player.facing = Vector2.RIGHT
 	player.set_carry_prop("egg", "cradle")
-	ui.set_cinematic_mode(false)
+	if director != null and director.camera != null:
+		director.camera.position = player.position
+		director.camera.reset_smoothing()
+	if ui != null:
+		if ui.dialogue_panel != null:
+			ui.dialogue_panel.hide_box()
+		ui.set_cinematic_mode(false)
 	_sync_hint_context()
 
 
 func _step_kestrel_arrival(delta: float) -> void:
+	if intro_wait_dlg:
+		if director != null and director.camera != null:
+			director.camera.position = kestrel_pos.lerp(player.position, 0.5)
+		return
 	intro_t += delta
 	if intro_stage == 0:
-		var p := clampf(intro_t / 1.5, 0.0, 1.0)
+		var p := clampf(intro_t / 1.6, 0.0, 1.0)
 		kestrel_alt = lerpf(190.0, 0.0, p * (2.0 - p))
 		if director != null and director.camera != null:
-			director.camera.position = kestrel_pos + Vector2(0, -kestrel_alt * 0.4)
+			director.camera.position = kestrel_pos + Vector2(0, -kestrel_alt * 0.45)
+		if int(intro_t * 2.4) > int((intro_t - delta) * 2.4):
+			SoundManager.play_wing_beat()
 		if p >= 1.0:
 			intro_stage = 1
 			intro_t = 0.0
 			player.cutscene_hidden = false
-			player.position = kestrel_pos + Vector2(36, 12)
+			player.position = kestrel_pos + Vector2(44, 10)
 			player.facing = Vector2.LEFT
 			player.set_carry_prop("egg", "cradle")
 			SoundManager.play_hatch_chirp()
+			SoundManager.play_dragon_purr()
 			_spawn_fx(kestrel_pos + Vector2(18, 0), Color(0.84, 0.90, 0.96), 12)
 	elif intro_stage == 1:
-		# Kestrel noses Boy's sleeve quietly before lifting back east to Anna's scout post
-		if intro_t >= 1.0:
-			intro_stage = 2
-			intro_t = 0.0
-			SoundManager.play_wing_beat()
-			_spawn_fx(kestrel_pos, Color(0.86, 0.92, 0.98), 16)
+		if director != null and director.camera != null:
+			director.camera.position = kestrel_pos.lerp(player.position, 0.5)
+		if not intro_dlg_done and intro_t >= 0.75:
+			intro_wait_dlg = true
+			ui.show_dialogue([
+				{
+					"speaker": GameState.player_name,
+					"portrait": "portrait_boy17.png",
+					"text": "Easy now, Kestrel... you carried us miles south of Bruges before first watch even changed. Those old millstones out in the mist—we've reached the fens west of Louvain."
+				},
+				{
+					"speaker": GameState.player_name,
+					"portrait": "portrait_boy17.png",
+					"text": "You can't stay hunkered in these reeds till sunrise. If Captain Anna finds your perch empty at dawn, Saddler Hendrick will turn every parish road in Brabant upside down looking for us."
+				},
+				{
+					"speaker": GameState.player_name,
+					"portrait": "portrait_boy17.png",
+					"text": "Get back above the clouds while the dark still covers your wings. I have to find what my parents died hiding near Old Heverlee, and keep this black-and-gold egg out of any iron vault. I'll hail Anna's forward scouts from quiet campfires once it's safe."
+				}
+			], func():
+				intro_wait_dlg = false
+				intro_dlg_done = true
+				intro_stage = 2
+				intro_t = 0.0
+				SoundManager.play_hatch_chirp()
+				SoundManager.play_wing_beat()
+				_spawn_fx(kestrel_pos, Color(0.86, 0.92, 0.98), 18)
+			)
 	else:
-		var p2 := clampf(intro_t / 1.6, 0.0, 1.0)
+		var p2 := clampf(intro_t / 1.75, 0.0, 1.0)
 		kestrel_pos = KESTREL_LANDING_POS.lerp(KESTREL_LANDING_POS + Vector2(380, -260), p2 * p2)
 		kestrel_alt = 240.0 * p2
+		if int(intro_t * 2.5) > int((intro_t - delta) * 2.5):
+			SoundManager.play_wing_beat()
+		if director != null and director.camera != null:
+			director.camera.position = player.position.lerp(CAMPFIRE_POS, p2 * 0.15)
 		if p2 >= 1.0:
 			intro_active = false
 			kestrel_visible = false
 			player.facing = Vector2.RIGHT
+			if director != null and director.camera != null:
+				director.camera.position = player.position
 			ui.set_cinematic_mode(false)
 			_sync_hint_context()
 
@@ -502,16 +559,19 @@ func get_ambience_track() -> String:
 
 
 func get_lighting_tint() -> Color:
-	return Color(0.68, 0.76, 0.88)
+	return Color(0.68, 0.76, 0.88) if GameState.brabant_hatched else Color(0.38, 0.45, 0.62)
 
 
 func update_region_lights(_time_val: float) -> void:
-	for bi in range(brazier_lights.size()):
-		if bi < brazier_states.size():
-			brazier_lights[bi].visible = bool(brazier_states[bi].get("lit", false))
+	if egg_light != null and player != null:
+		egg_light.visible = not GameState.brabant_hatched and not player.cutscene_hidden
+		egg_light.position = player.position + Vector2(0, -8)
 	var lit_only: Array[PointLight2D] = [region_lights[0]]
+	if egg_light != null and egg_light.visible:
+		lit_only.append(egg_light)
 	for bi in range(brazier_lights.size()):
 		if bi < brazier_states.size() and bool(brazier_states[bi].get("lit", false)):
+			brazier_lights[bi].visible = true
 			lit_only.append(brazier_lights[bi])
 		else:
 			brazier_lights[bi].visible = false
