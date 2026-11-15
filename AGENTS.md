@@ -57,6 +57,7 @@ Follow `.agents/workflows/feature-pipeline.md` for every feature:
    - **No Hand-Holding in Dialogue:** Never embed explicit key-spoilers (`[F]`, `[V]`, `[C]`, `[M]`, `[E]`) or blunt step-by-step puzzle commands inside character speech or inspect thoughts. Convey physical intuition naturally (*"looks brittle enough to snap if something heavy struck it with enough force"*), letting HUD labels and environmental cues teach controls.
 4. **Verification:** Activate `.agents/skills/game-verifier/SKILL.md` and run the Godot 4.3 headless check (`--headless --path "." --quit-after 20 --log-file`) after every change.
 5. **Playtesting Accessibility:** Every new scene, act, or major story beat added to the game MUST be registered in the `[F1]` Playtest Scene/Act Jump Menu so the developer can test any moment immediately without replaying earlier chapters.
+6. **Playtesting Walkthrough in Final Replies:** Always include a dedicated **"What's New to Playtest"** section in your response after any feature, fix, or milestone—listing exact menus, `[F1]` presets, controls, and areas to test in `run_game.bat`, and clearly noting which backend/helper systems are verified headlessly while awaiting upcoming regions.
 
 ---
 
