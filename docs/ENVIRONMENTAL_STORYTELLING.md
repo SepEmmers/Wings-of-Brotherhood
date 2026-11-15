@@ -72,6 +72,11 @@
 
 ---
 
+### Queue 5 — Dramatic Cutscene & Hand-Drawn Upgrade Pass (Awaiting Bespoke Animation Art)
+- [ ] **Dramatic Multi-Beat Brabant Egg Lead-Up & Hand-Drawn Hatching Cutscene** (`scripts/regions/BrabantFensRegion.gd`, `scripts/regions/BrabantFensDraw.gd`, `.agents/skills/pixel-art-generator/scripts/sprite_dragons.py`): Upgrade the placeholder campfire wobble & 4-step crack timer into an extended, hand-drawn cinematic hatching sequence and fuller pre-hatch lead-up—including chilled frost vapor rising off the shell on arrival, tending dry mill kindling to build heat over time, dramatic close-up lighting as molten royal-gold veins widen along obsidian cracks, bespoke shell-peel frames revealing wet obsidian-and-gold scales steaming in firelight, and intimate Boy-kneeling-to-Hatchling imprinting framing.
+
+---
+
 ## Completed Environmental Upgrades (`- [x]`)
 
 - [x] **Sanctuary Living Quarters & Livestock Pastures** (`scripts/regions/SanctuaryVillageData.gd`, `scripts/regions/SanctuaryDraw.gd`): Built cozy covert cottages, victualer stalls, mess tables, dragon pavilions, fenced sheep/cow/hog pastures, water troughs, and proximity pasture/mess ambience mixing.

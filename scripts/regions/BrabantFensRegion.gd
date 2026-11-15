@@ -61,6 +61,9 @@ var hatch_anim_active: bool = false
 var hatch_anim_stage: int = 0
 var hatch_anim_t: float = 0.0
 
+var vent_dash_t: float = 0.0
+var _frost_emit_t: float = 0.0
+var _sling_gate_warned: bool = false
 var cairn_relic_claimed: bool = false
 var fx_particles: Array[Dictionary] = []
 
@@ -169,12 +172,18 @@ func enter_region(opts: Dictionary = {}) -> void:
 		director.camera.position = player.position
 
 	_connect_campfire_signals()
+	_sync_campfire_label()
 
 	kestrel_visible = false
 	intro_active = false
 	hatch_anim_active = false
+	vent_dash_t = 0.0
+	_frost_emit_t = 0.0
+	_sling_gate_warned = false
 
 	if bool(opts.get("book2_intro", false)) and not GameState.brabant_hatched:
+		GameState.carrying_egg = true
+		GameState.egg_warmth = 38.0
 		_start_kestrel_arrival()
 	else:
 		_sync_hint_context()
@@ -202,6 +211,8 @@ func _connect_campfire_signals() -> void:
 		cp.rested_at_fire.connect(_on_camp_rested)
 	if not cp.fed_hatchling.is_connected(_on_camp_fed):
 		cp.fed_hatchling.connect(_on_camp_fed)
+	if not cp.closed.is_connected(_on_camp_closed):
+		cp.closed.connect(_on_camp_closed)
 
 
 func _on_camp_rested() -> void:
@@ -210,14 +221,62 @@ func _on_camp_rested() -> void:
 
 
 func _on_camp_fed(_new_bond: int) -> void:
-	_spawn_fx(CAMPFIRE_POS + Vector2(18, 4), Color(0.98, 0.84, 0.36), 16)
+	_spawn_fx(CAMPFIRE_POS + Vector2(28, 4), Color(1.0, 0.64, 0.24), 18)
+	_sync_campfire_label()
 	_sync_hint_context()
+
+
+func _on_camp_closed() -> void:
+	if GameState.brabant_hatched and GameState.hatchling_fed_count >= 1 and not GameState.brabant_feed_intro_done:
+		GameState.brabant_feed_intro_done = true
+		_sync_campfire_label()
+		SoundManager.play_campfire_warm()
+		SoundManager.play_dragon_purr()
+		_spawn_fx(CAMPFIRE_POS + Vector2(34, 4), Color(1.0, 0.60, 0.20), 22)
+		ui.show_dialogue([
+			{
+				"speaker": GameState.gold_dragon_name,
+				"portrait": GameState.get_hatchling_portrait(),
+				"telepathic": true,
+				"text": "Warm... snapping embers right down in my throat! Look—orange soot sparks!"
+			},
+			{
+				"speaker": GameState.player_name,
+				"portrait": "portrait_boy17.png",
+				"text": "Wait—did you just throw your voice straight inside my head? Quietly then, little one... My mother and father walked Louvain's Hunters' Guild before Old Heverlee killed them. If Church vaults or old guild-ledgers still record what they died hiding—and where Clara was dragged—we'll find the trail behind that city gate."
+			},
+			{
+				"speaker": GameState.gold_dragon_name,
+				"portrait": GameState.get_hatchling_portrait(),
+				"telepathic": true,
+				"text": "Heavy iron sluice bars seal the bridge road ahead... though that low drain grate beside them looks plenty wide for soot-black claws. And dry dead brambles south smell ready for one hot spark."
+			}
+		], func():
+			_sync_hint_context()
+			ui.refresh_hud()
+		)
+
+
+func _sync_campfire_label() -> void:
+	var lbl := "Sheltered Mill Campfire — Warm Egg"
+	if GameState.brabant_hatched:
+		lbl = ("Feed %s at Fire" % GameState.gold_dragon_name) if GameState.hatchling_fed_count == 0 else "Old Mill Campfire"
+	for item: Dictionary in interactables:
+		if str(item.get("id", "")) == "bf_campfire":
+			item["name"] = lbl
+			break
 
 
 func step_region(delta: float) -> void:
 	step_water_layer()
 	step_walk_portals(delta)
 	_step_particles(delta)
+	if vent_dash_t > 0.0:
+		vent_dash_t = maxf(0.0, vent_dash_t - delta)
+	if GameState.brabant_hatched and GameState.companion_posture == "sling" and not GameState.brabant_sling_practiced:
+		GameState.brabant_sling_practiced = true
+		_sync_hint_context()
+		ui.refresh_hud()
 	if intro_active:
 		_step_kestrel_arrival(delta)
 	elif hatch_anim_active:
@@ -227,6 +286,14 @@ func step_region(delta: float) -> void:
 	elif player != null and player.visible:
 		if director != null and director.camera != null:
 			director.camera.position = player.position
+		if not GameState.brabant_hatched:
+			GameState.egg_warmth = maxf(16.0, GameState.egg_warmth - delta * 0.42)
+			_frost_emit_t -= delta
+			if _frost_emit_t <= 0.0:
+				_frost_emit_t = 0.55
+				_spawn_fx(player.position + Vector2(0, -10), Color(0.66, 0.84, 0.98, 0.72), 3)
+		elif GameState.brabant_vent_unlocked and not GameState.brabant_sling_practiced and not _sling_gate_warned and player.position.x >= 1975.0 and not ui.is_blocking_gameplay():
+			_trigger_louvain_sling_threshold()
 		update_nearest_interactable(player.position)
 		if ui != null:
 			ui.update_world_map_state("brabant_fens", player.position)
@@ -345,20 +412,30 @@ func _step_kestrel_arrival(delta: float) -> void:
 				SoundManager.play_wing_beat()
 				_spawn_fx(kestrel_pos, Color(0.86, 0.92, 0.98), 18)
 			)
-	else:
+	elif intro_stage == 2:
 		var p2 := clampf(intro_t / 1.75, 0.0, 1.0)
 		kestrel_pos = KESTREL_LANDING_POS.lerp(KESTREL_LANDING_POS + Vector2(380, -260), p2 * p2)
 		kestrel_alt = 240.0 * p2
 		if int(intro_t * 2.5) > int((intro_t - delta) * 2.5):
 			SoundManager.play_wing_beat()
 		if director != null and director.camera != null:
-			director.camera.position = player.position.lerp(CAMPFIRE_POS, p2 * 0.15)
+			director.camera.position = player.position
 		if p2 >= 1.0:
-			intro_active = false
+			intro_stage = 3
+			intro_t = 0.0
 			kestrel_visible = false
+	else:
+		# Brief seamless BotW-style camera glimpse down the causeway toward the glowing Mill Hearth
+		var g_prog := clampf(intro_t / 0.90, 0.0, 1.0)
+		var g_arc := sin(g_prog * PI)
+		if director != null and director.camera != null:
+			director.camera.position = player.position.lerp(CAMPFIRE_POS, g_arc * 0.85)
+		if g_prog >= 1.0:
+			intro_active = false
 			player.facing = Vector2.RIGHT
 			if director != null and director.camera != null:
 				director.camera.position = player.position
+				director.camera.reset_smoothing()
 			ui.set_cinematic_mode(false)
 			_sync_hint_context()
 
@@ -409,17 +486,34 @@ func _step_hatching_sequence(delta: float) -> void:
 		player.set_cutscene_pose("")
 		GameState.brabant_hatched = true
 		GameState.carrying_egg = false
+		GameState.egg_warmth = 100.0
 		GameState.remove_item("Black-and-Gold Dragon Egg")
 		GameState.active_companion_stage = 1
-		GameState.add_dragon_bond(10)
+		if GameState.dragon_bond < 10:
+			GameState.dragon_bond = 10
 		if director != null and director.companion != null:
 			director.companion.position = CAMPFIRE_POS + Vector2(38, 8)
+		_sync_campfire_label()
 		ui.set_cinematic_mode(false)
 		ui.refresh_hud()
 		ui.open_dragon_name_prompt(func(_chosen: String):
 			SoundManager.play_dragon_purr()
-			_sync_hint_context()
-			ui.refresh_hud()
+			_sync_campfire_label()
+			ui.show_dialogue([
+				{
+					"speaker": GameState.player_name,
+					"portrait": "portrait_boy17.png",
+					"text": "Look at those scales... dark as bog iron, yet traced all down your crest in living royal gold. No ordinary marsh beast."
+				},
+				{
+					"speaker": GameState.player_name,
+					"portrait": "portrait_boy17.png",
+					"text": "Easy now, %s... that cold flight drained the heat right out of you. Good thing I packed dried smoked ration—let's carve a warm share by these coals first before even thinking of Louvain." % GameState.gold_dragon_name
+				}
+			], func():
+				_sync_hint_context()
+				ui.refresh_hud()
+			)
 		)
 
 
@@ -460,13 +554,37 @@ func _on_read_east_sign() -> void:
 	])
 
 
+func _trigger_louvain_sling_threshold() -> void:
+	_sling_gate_warned = true
+	player.velocity = Vector2.ZERO
+	ui.show_dialogue([
+		{
+			"speaker": GameState.player_name,
+			"portrait": "portrait_boy17.png",
+			"text": "Hold up—see those crimson Church lanterns and halberd silhouettes beyond the gate arch? Twenty golden florins on a black-and-gold wyrmling means Watchmen will slam the portcullis before we reach the first bridge."
+		},
+		{
+			"speaker": GameState.gold_dragon_name,
+			"portrait": GameState.get_hatchling_portrait(),
+			"telepathic": true,
+			"text": "Then pull up your oiled hood and tuck me tight inside your cloak-sling across your ribs. Claws curled quiet until we clear their watch-torches!"
+		}
+	], func():
+		_sync_hint_context()
+	)
+
+
 func _on_enter_louvain() -> void:
+	if not is_portal_unlocked("brabant_to_louvain"):
+		if GameState.brabant_vent_unlocked and not _sling_gate_warned:
+			_trigger_louvain_sling_threshold()
+		return
 	director.load_region("louvain", {"spawn": Vector2(118, 880), "facing": Vector2.RIGHT})
 
 
 func is_portal_unlocked(id: String) -> bool:
 	if id == "brabant_to_louvain":
-		return GameState.brabant_vent_unlocked
+		return GameState.brabant_vent_unlocked and (GameState.brabant_sling_practiced or GameState.companion_posture == "sling")
 	return true
 
 
@@ -493,6 +611,7 @@ func on_dragon_command(origin: Vector2, target_pos: Vector2, _aim: Vector2, _sta
 	# 1. Mill Sluice Vent Crawl (unlocks East Louvain gate from inside)
 	if not GameState.brabant_vent_unlocked and (origin.distance_to(VENT_POS) <= 95.0 or target_pos.distance_to(VENT_POS) <= 90.0):
 		GameState.brabant_vent_unlocked = true
+		vent_dash_t = 0.65
 		GameState.add_dragon_bond(5)
 		set_body_collision_enabled(gate_body, false)
 		SoundManager.play_cage_break()
@@ -535,12 +654,33 @@ func _sync_hint_context() -> void:
 	if not GameState.brabant_hatched:
 		director.companion.clear_hint_context()
 		return
-	if not GameState.brabant_vent_unlocked:
+	if GameState.hatchling_fed_count == 0:
+		director.companion.set_hint_context(
+			"bf_feed",
+			["Cold wet ribs against empty scales..."],
+			CAMPFIRE_POS,
+			24.0
+		)
+	elif not GameState.brabant_briar_burned:
+		director.companion.set_hint_context(
+			"bf_briar",
+			["Those dry dead thorns south of the fire smell dusty enough to catch a warm hearth-spark."],
+			BRIAR_POS,
+			30.0
+		)
+	elif not GameState.brabant_vent_unlocked:
 		director.companion.set_hint_context(
 			"bf_vent",
 			["A warm golden tug brushes your ribs—low iron bars by the mill sluice look wide enough for small soot-black claws to squeeze beneath."],
 			VENT_POS,
 			28.0
+		)
+	elif not GameState.brabant_sling_practiced:
+		director.companion.set_hint_context(
+			"bf_sling",
+			["Keep scales hidden in folds of dark wool before stepping beneath Louvain's watch lanterns."],
+			EAST_SIGN_POS,
+			32.0
 		)
 	else:
 		director.companion.clear_hint_context()

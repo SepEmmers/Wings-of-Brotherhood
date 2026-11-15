@@ -283,7 +283,7 @@ func _verify_book2_systems() -> bool:
 		if not main.ui.dialogue_active:
 			break
 		main.ui.advance_dialogue()
-	for _t in range(12):
+	for _t in range(18):
 		main.active_region.step_region(0.25)
 		if not bool(main.active_region.get("intro_active")):
 			break

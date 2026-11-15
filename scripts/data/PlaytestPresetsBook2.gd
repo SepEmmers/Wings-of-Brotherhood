@@ -85,10 +85,13 @@ static func apply_preset(scene_id: String, unlock_post_sanctuary: Callable) -> D
 			unlock_post_sanctuary.call(true, true)
 			GameState.reset_book2_state(true)
 			GameState.brabant_hatched = true
+			GameState.brabant_feed_intro_done = true
+			GameState.brabant_sling_practiced = true
+			GameState.hatchling_fed_count = 1
 			GameState.brabant_vent_unlocked = true
 			GameState.active_companion_stage = 1
 			GameState.gold_dragon_name = "Aurelius"
-			GameState.dragon_bond = 20
+			GameState.dragon_bond = 22
 			GameState.current_step = GameState.QuestStep.BOOK2_LOUVAIN_HATCH
 			GameState.add_item("Bronze Resonance Chime")
 			GameState.add_item("Smoke-Pellet")
@@ -97,6 +100,9 @@ static func apply_preset(scene_id: String, unlock_post_sanctuary: Callable) -> D
 			unlock_post_sanctuary.call(true, true)
 			GameState.reset_book2_state(true)
 			GameState.brabant_hatched = true
+			GameState.brabant_feed_intro_done = true
+			GameState.brabant_sling_practiced = true
+			GameState.hatchling_fed_count = 1
 			GameState.brabant_vent_unlocked = true
 			GameState.louvain_bell_mould_fixed = true
 			GameState.louvain_herbalist_done = true

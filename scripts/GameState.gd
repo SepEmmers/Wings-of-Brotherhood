@@ -147,6 +147,8 @@ var boy_heverlee_relic_found: bool = false
 
 # Book II Act I Milestone 2 flags (Brabant Fens & Louvain)
 var brabant_hatched: bool = false
+var brabant_feed_intro_done: bool = false
+var brabant_sling_practiced: bool = false
 var brabant_vent_unlocked: bool = false
 var brabant_briar_burned: bool = false
 var brabant_cache_looted: bool = false
@@ -294,6 +296,8 @@ func reset_book2_state(from_book1_finale: bool = false) -> void:
 	heverlee_shrine_unlocked = false
 	boy_heverlee_relic_found = false
 	brabant_hatched = false
+	brabant_feed_intro_done = false
+	brabant_sling_practiced = false
 	brabant_vent_unlocked = false
 	brabant_briar_burned = false
 	brabant_cache_looted = false

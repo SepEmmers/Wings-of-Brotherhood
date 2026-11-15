@@ -121,7 +121,14 @@ static func draw_region_entities(r, t_now: float) -> void:
 			var shimmer := 0.5 + 0.5 * sin(t_now * 4.4)
 			r.draw_arc(vent_pos, 18.0 + shimmer * 3.0, 0.0, TAU, 18, Color(0.96, 0.80, 0.32, 0.45 + 0.30 * shimmer), 1.6)
 
-	# Smuggler briar patch & hidden chest
+	# Animated tiny soot-black hatchling zipping behind sluice gate during Vent Crawl
+	if float(r.get("vent_dash_t")) > 0.0:
+		var prog := 1.0 - clampf(float(r.get("vent_dash_t")) / 0.65, 0.0, 1.0)
+		var dash_p := vent_pos.lerp(gate_r.get_center() + Vector2(20, -4), prog)
+		r.draw_circle(dash_p, 8.0, Color(0.12, 0.12, 0.14, 0.90))
+		r.draw_circle(dash_p, 11.0, Color(0.98, 0.80, 0.32, 0.48 * (1.0 - prog)))
+
+	# Smuggler briar patch & hidden chest (static crisp dry bramble, no random hopping)
 	var cache_pos: Vector2 = r.CACHE_POS
 	if cam_rect.has_point(cache_pos):
 		var ctex: Texture2D = assets.get_tex("prop_crate.png")
@@ -129,10 +136,13 @@ static func draw_region_entities(r, t_now: float) -> void:
 			var mod_c := Color(0.65, 0.65, 0.65, 0.8) if GameState.brabant_cache_looted else Color.WHITE
 			r.draw_texture_rect(ctex, Rect2(cache_pos - Vector2(16, 14), Vector2(32, 28)), false, mod_c)
 	if not GameState.brabant_briar_burned and cam_rect.intersects(Rect2(r.BRIAR_POS - Vector2(44, 34), Vector2(88, 68))):
-		var bframe := int(t_now * 3.0) % 3
-		var btex: Texture2D = assets.get_tex("prop_bramble_thicket_%d.png" % bframe, "prop_bramble_thicket.png")
+		var btex: Texture2D = assets.get_tex("prop_bramble_thicket_1.png", "prop_bramble_thicket.png")
 		if btex != null:
-			r.draw_texture_rect(btex, Rect2(r.BRIAR_POS - Vector2(34, 24), Vector2(68, 48)), false)
+			r.draw_texture_rect(btex, Rect2(r.BRIAR_POS - Vector2(34, 24), Vector2(68, 48)), false, Color(0.86, 0.78, 0.64))
+		if GameState.brabant_hatched and GameState.hatchling_fed_count > 0:
+			var glint := 0.5 + 0.5 * sin(t_now * 5.2)
+			r.draw_circle(r.BRIAR_POS + Vector2(-10, -6), 2.5, Color(1.0, 0.72, 0.28, 0.45 + 0.35 * glint))
+			r.draw_circle(r.BRIAR_POS + Vector2(12, 2), 2.2, Color(1.0, 0.66, 0.24, 0.40 + 0.35 * (1.0 - glint)))
 
 	# Sheltered Wayside Campfire
 	var fpos: Vector2 = r.CAMPFIRE_POS
@@ -147,6 +157,23 @@ static func draw_region_entities(r, t_now: float) -> void:
 		elif not GameState.brabant_hatched:
 			var pulse := 0.5 + 0.5 * sin(t_now * 3.6)
 			r.draw_arc(fpos, 26.0 + pulse * 4.0, 0.0, TAU, 24, Color(0.96, 0.80, 0.34, 0.55), 1.8)
+		elif GameState.hatchling_fed_count == 0 and r.director != null and r.director.companion != null:
+			var cp_pos: Vector2 = Vector2(r.director.companion.global_position) + Vector2(0, -28)
+			var h_bob := sin(t_now * 4.5) * 2.5
+			r.draw_circle(cp_pos + Vector2(0, h_bob), 10.0, Color(0.14, 0.10, 0.08, 0.85))
+			r.draw_arc(cp_pos + Vector2(0, h_bob), 10.5, 0.0, TAU, 16, Color(0.98, 0.78, 0.32, 0.85), 1.4)
+			var rtex: Texture2D = assets.get_tex("prop_ration.png", "prop_crate.png")
+			if rtex != null:
+				r.draw_texture_rect(rtex, Rect2(cp_pos + Vector2(-7, -7 + h_bob), Vector2(14, 14)), false)
+
+	# Distant Louvain West Dike Gate flank stonework & crimson Inquisition lanterns
+	if cam_rect.intersects(Rect2(2040, 560, 130, 300)):
+		var b_wall: Texture2D = assets.get_tex("prop_wall_v.png")
+		for wy: float in [594.0, 774.0]:
+			if b_wall != null:
+				r.draw_texture_rect(b_wall, Rect2(2092, wy, 58, 72), false)
+			r.draw_rect(Rect2(2096, wy + 12, 16, 26), Color(0.58, 0.14, 0.14, 0.92))
+			r.draw_circle(Vector2(2092, wy + 34), 16.0, Color(1.0, 0.62, 0.22, 0.18 + 0.06 * sin(t_now * 6.0)))
 
 	# Ancient Gold-Sense cairn NW
 	var cairn_pos: Vector2 = r.GOLD_RELIC_POS
@@ -268,3 +295,28 @@ static func _draw_foreground(r, fg: Node2D) -> void:
 	if ctex != null and cam_rect.intersects(r.MILL_COTTAGE_RECT.grow(24.0)):
 		r.draw_building_roof_overhang(fg, r.MILL_COTTAGE_RECT, ctex, 0.44)
 	r._draw_portal_hints(fg)
+	_draw_integrated_prompts(r, fg)
+
+
+static func _draw_integrated_prompts(r, fg: Node2D) -> void:
+	if r.player == null or not r.player.visible or (r.ui != null and r.ui.is_blocking_gameplay()):
+		return
+	if not GameState.brabant_hatched:
+		return
+	var ppos: Vector2 = r.player.position
+	var font: Font = r.assets.get_ui_font()
+	var cmd_k := GameState.get_action_key_label("dragon_command")
+	var post_k := GameState.get_action_key_label("dragon_posture")
+
+	if not GameState.brabant_briar_burned and GameState.hatchling_fed_count > 0 and ppos.distance_to(r.BRIAR_POS) <= 115.0:
+		r.assets.draw_interact_bubble(fg, r.BRIAR_POS + Vector2(0, -34), "[%s] Kindle Dry Briar" % cmd_k, font)
+	elif not GameState.brabant_vent_unlocked and (ppos.distance_to(r.VENT_POS) <= 130.0 or ppos.distance_to(r.GATE_RECT.get_center()) <= 115.0):
+		r.assets.draw_interact_bubble(fg, r.VENT_POS + Vector2(0, -32), "[%s] Send Through Grate" % cmd_k, font)
+	elif GameState.hatchling_fed_count > 0:
+		for b: Dictionary in r.brazier_states:
+			if not bool(b.get("lit", false)) and ppos.distance_to(Vector2(b["pos"])) <= 105.0:
+				r.assets.draw_interact_bubble(fg, Vector2(b["pos"]) + Vector2(0, -32), "[%s] Kindle Brazier" % cmd_k, font)
+				break
+
+	if GameState.brabant_vent_unlocked and ppos.x >= 1915.0 and GameState.companion_posture != "sling" and not GameState.brabant_sling_practiced:
+		r.assets.draw_interact_bubble(fg, ppos + Vector2(0, -48), "[%s] Tuck Into Cloak-Sling" % post_k, font)
