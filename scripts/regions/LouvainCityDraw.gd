@@ -175,8 +175,6 @@ static func draw_region_entities(r, t_now: float) -> void:
 			_draw_fountain(r, assets, t_now, item["pos"])
 		elif kind == "oven":
 			assets.draw_bakery_oven_fx(r, item["rect"], t_now)
-		elif kind == "brazier":
-			_draw_brazier(r, assets, t_now, item["pos"])
 		elif kind == "lantern":
 			_draw_lantern(r, assets, t_now, item["pos"])
 		elif kind == "npc":
@@ -227,27 +225,27 @@ static func _draw_city_ramparts(r, assets, cam_rect: Rect2) -> void:
 
 
 static func _draw_cloister_enclosure(r: Node2D, assets, wall_h: Texture2D, wall_v: Texture2D, cam_rect: Rect2) -> void:
-	var cloister_bounds := Rect2(1240, 438, 376, 334).grow(32.0)
+	var cloister_bounds := Rect2(1240, 252, 340, 520).grow(32.0)
 	if not cam_rect.intersects(cloister_bounds):
 		return
 	# Straight wall spans strictly between the four 36x36 mitered stone corners
 	for hr: Rect2 in [
-		Rect2(1276, 438, 304, 36),
+		Rect2(1276, 252, 268, 36),
 		Rect2(1276, 736, 20, 36),
-		Rect2(1380, 736, 200, 36),
+		Rect2(1380, 736, 164, 36),
 	]:
 		_draw_wall_tiled(r, hr, wall_h, wall_v)
 	for vr: Rect2 in [
-		Rect2(1240, 474, 36, 262),
-		Rect2(1580, 474, 36, 262),
+		Rect2(1240, 288, 36, 448),
+		Rect2(1544, 288, 36, 448),
 	]:
 		_draw_wall_tiled(r, vr, wall_h, wall_v)
 	# Continuous 90-degree bending ashlar & parapet corners
 	for c_spec: Dictionary in [
-		{"tex": "prop_wall_corner_nw.png", "pos": Vector2(1240, 438)},
-		{"tex": "prop_wall_corner_ne.png", "pos": Vector2(1580, 438)},
+		{"tex": "prop_wall_corner_nw.png", "pos": Vector2(1240, 252)},
+		{"tex": "prop_wall_corner_ne.png", "pos": Vector2(1544, 252)},
 		{"tex": "prop_wall_corner_sw.png", "pos": Vector2(1240, 736)},
-		{"tex": "prop_wall_corner_se.png", "pos": Vector2(1580, 736)},
+		{"tex": "prop_wall_corner_se.png", "pos": Vector2(1544, 736)},
 	]:
 		var ctex: Texture2D = assets.get_tex(String(c_spec["tex"]))
 		if ctex != null:
@@ -352,7 +350,6 @@ static func _collect_architecture_and_props(_r, _assets, _t_now: float, cam_rect
 		{"tex": "prop_winch_post.png", "rect": Rect2(MapData.FOUNDRY_WINCH_POS - Vector2(14, 24), Vector2(28, 34))},
 		{"tex": "prop_herb_cauldron.png", "rect": Rect2(MapData.HERBALIST_SLUICE_POS - Vector2(18, 18), Vector2(36, 36))},
 		{"tex": "prop_crate.png", "rect": Rect2(MapData.CONFISCATED_CHEST_POS - Vector2(16, 14), Vector2(32, 28))},
-		{"tex": "prop_archive_desk.png", "rect": Rect2(MapData.ARCHIVE_DESK_POS - Vector2(22, 16), Vector2(44, 32))},
 		{"tex": "prop_milestone.png", "rect": Rect2(MapData.SOUTH_SIGN_POS - Vector2(14, 20), Vector2(28, 30))},
 	]
 	for sp_d: Dictionary in special_props:
@@ -362,9 +359,6 @@ static func _collect_architecture_and_props(_r, _assets, _t_now: float, cam_rect
 
 	if cam_rect.has_point(MapData.FOUNTAIN_POS):
 		out.append({"kind": "fountain", "pos": MapData.FOUNTAIN_POS, "y": MapData.FOUNTAIN_POS.y + 34.0})
-	for bz: Vector2 in _r.ABBEY_BRAZIERS:
-		if cam_rect.has_point(bz):
-			out.append({"kind": "brazier", "pos": bz, "y": bz.y + 10.0})
 	for lp: Vector2 in MapData.get_lantern_positions():
 		if cam_rect.has_point(lp):
 			out.append({"kind": "lantern", "pos": lp, "y": lp.y + 6.0})
@@ -401,15 +395,6 @@ static func _draw_fountain(r, assets, t_now: float, fpos: Vector2) -> void:
 	for i in range(2):
 		var rp := fmod(t_now * 0.7 + float(i) * 0.5, 1.0)
 		r.draw_arc(fpos + Vector2(0, 6), 8.0 + rp * 18.0, 0.0, TAU, 20, Color(0.80, 0.92, 0.98, (1.0 - rp) * 0.45), 1.4)
-
-
-static func _draw_brazier(r, assets, t_now: float, bz: Vector2) -> void:
-	var bt: Texture2D = assets.get_tex("prop_wall_brazier.png")
-	if bt != null:
-		r.draw_texture_rect(bt, Rect2(bz - Vector2(11, 15), Vector2(22, 26)), false)
-	if GameState.louvain_brazier_lit:
-		r.draw_circle(bz + Vector2(0, -10), 18.0 + sin(t_now * 8.0) * 3.0, Color(1.0, 0.70, 0.24, 0.28))
-		r.draw_circle(bz + Vector2(0, -12), 5.5, Color(1.0, 0.90, 0.44, 0.88))
 
 
 static func _draw_lantern(r, assets, t_now: float, lp: Vector2) -> void:
@@ -536,11 +521,6 @@ static func _draw_integrated_prompts(r, fg: Node2D) -> void:
 	if not GameState.louvain_vent_opened and float(r.get("abbey_vent_crawl_t")) <= 0.0:
 		if ppos.distance_to(MapData.ABBEY_VENT_POS) <= 84.0:
 			r.assets.draw_interact_bubble(fg, MapData.ABBEY_VENT_POS + Vector2(0, -28), "[%s] Send Through Drain" % cmd_k, font)
-	elif GameState.louvain_vent_opened and not GameState.louvain_brazier_lit:
-		for bz: Vector2 in r.ABBEY_BRAZIERS:
-			if ppos.distance_to(bz) <= 105.0:
-				r.assets.draw_interact_bubble(fg, bz + Vector2(0, -32), "[%s] Kindle Abbey Sconces" % cmd_k, font)
-				break
 
 
 static func _scale_poly(poly: PackedVector2Array, origin: Vector2, k: float) -> PackedVector2Array:

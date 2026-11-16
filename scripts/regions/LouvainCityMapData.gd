@@ -12,9 +12,10 @@ const CENTER := Vector2(1050, 1050)
 
 const WEST_ENTRY_SPAWN := Vector2(226, 1040)
 const ABBEY_GATE_RECT := Rect2(1296, 736, 84, 36)
-const ABBEY_VENT_POS := Vector2(1476, 754)
+const ABBEY_VENT_POS := Vector2(1458, 754)
 const ABBEY_LEVER_POS := Vector2(1386, 718)
-const ARCHIVE_DESK_POS := Vector2(1424, 622)
+const CATHEDRAL_DOOR_PORTAL_RECT := Rect2(1382, 462, 56, 32)
+const CATHEDRAL_EXIT_RETURN_POS := Vector2(1410, 516)
 const SOUTH_GATE_BARRICADE_RECT := Rect2(996, 1938, 108, 36)
 
 const FOUNTAIN_POS := Vector2(1050, 945)
@@ -84,14 +85,14 @@ static func get_plazas() -> Array[Dictionary]:
 	return [
 		{"rect": Rect2(846, 756, 470, 310), "style": "sandstone"},    # Grote Markt
 		{"rect": Rect2(648, 1338, 276, 136), "style": "sandstone"},   # Lakenhalle & 1425 University Forecourt
-		{"rect": Rect2(1254, 472, 344, 268), "style": "sandstone"},   # Scriptorium Cloister Garden Yard
+		{"rect": Rect2(1264, 288, 292, 452), "style": "sandstone"},   # Enclosed Abbey Cathedral & Cloister Precinct
 	]
 
 
 static func get_garden_lawns() -> Array[Rect2]:
 	return [
-		Rect2(1268, 486, 108, 82),     # Cloister Herb Lawn NW
-		Rect2(1474, 486, 110, 82),     # Cloister Herb Lawn NE
+		Rect2(1284, 492, 92, 114),     # Cloister Herb Lawn NW
+		Rect2(1446, 492, 92, 114),     # Cloister Herb Lawn NE
 		Rect2(204, 1528, 224, 150),    # Katelijne Medicinal Garden
 		Rect2(838, 536, 56, 156),      # St. Peter's Lime Yard West
 	]
@@ -109,7 +110,7 @@ static func get_buildings() -> Array[Dictionary]:
 		{"tex": "city_bakery_5a.png",         "rect": Rect2(580, 540, 156, 134)},
 		{"tex": "city_house_4a.png",          "rect": Rect2(1524, 1556, 152, 128)},
 		{"tex": "city_house_4b.png",          "rect": Rect2(836, 224, 148, 126)},
-		{"tex": "city_manor_7a.png",          "rect": Rect2(1098, 218, 198, 150)},
+		{"tex": "city_manor_7a.png",          "rect": Rect2(582, 1732, 198, 150)},
 		{"tex": "city_cottage_4c.png",        "rect": Rect2(812, 1732, 148, 124)},
 
 		# West Entry Row (inside Brusselsepoort west of Dijle)
@@ -120,8 +121,8 @@ static func get_buildings() -> Array[Dictionary]:
 		{"tex": "city_tavern_6a.png",         "rect": Rect2(218, 1104, 184, 148)},
 		{"tex": "city_louvain_dyer_5b.png",   "rect": Rect2(228, 1384, 168, 138)},
 
-		# NE Chapter Cloister & Scriptorium Sanctuary
-		{"tex": "bldg_bruges_cathedral.png",  "rect": Rect2(1312, 244, 214, 178)},
+		# NE Abbey Cathedral Enclosed Inside Four-Walled Cloister Precinct
+		{"tex": "bldg_bruges_cathedral.png",  "rect": Rect2(1303, 294, 214, 178)},
 		{"tex": "bldg_beguinage_court.png",   "rect": Rect2(1618, 490, 188, 154)},
 
 		# East Tiensestraat University & Catchpole Garrison Quarter
@@ -181,8 +182,8 @@ static func get_prop_placements() -> Array[Dictionary]:
 		{"tex": "prop_lime_tree.png",         "rect": Rect2(204, 1600, 56, 72), "solid": true,  "cover": false},
 
 		# Chapter Cloister Herb Lawn, East Garrison & Approach Cover
-		{"tex": "prop_lime_tree.png",         "rect": Rect2(1274, 484, 54, 70), "solid": true,  "cover": false},
-		{"tex": "prop_lime_tree.png",         "rect": Rect2(1498, 484, 54, 70), "solid": true,  "cover": false},
+		{"tex": "prop_lime_tree.png",         "rect": Rect2(1292, 514, 54, 70), "solid": true,  "cover": false},
+		{"tex": "prop_lime_tree.png",         "rect": Rect2(1476, 514, 54, 70), "solid": true,  "cover": false},
 		{"tex": "prop_garrison_rack.png",     "rect": Rect2(1704, 950, 44, 34), "solid": true,  "cover": false},
 		{"tex": "prop_iron_chain_wagon.png",  "rect": Rect2(1690, 1084, 88, 56),"solid": true,  "cover": true},
 		{"tex": "prop_wine_cask_cart.png",    "rect": Rect2(1440, 1088, 60, 40),"solid": true,  "cover": true},
@@ -197,6 +198,7 @@ static func get_lantern_positions() -> Array[Vector2]:
 		Vector2(218, 988), Vector2(476, 988), Vector2(582, 790), Vector2(742, 748),
 		Vector2(920, 756), Vector2(1148, 756), Vector2(936, 1080), Vector2(1170, 1080),
 		Vector2(660, 1344), Vector2(906, 1344), Vector2(1278, 760), Vector2(1590, 760),
+		Vector2(1372, 480), Vector2(1448, 480),
 		Vector2(246, 1260), Vector2(1016, 1880), Vector2(1724, 990),
 	]
 
@@ -255,11 +257,11 @@ static func get_diagonal_wall_steps() -> Array[Rect2]:
 
 static func get_abbey_walls() -> Array[Rect2]:
 	return [
-		Rect2(1240, 438, 376, 36),     # Full continuous North Cloister Wall (seals top edge completely)
-		Rect2(1240, 474, 36, 298),     # Cloister West Wall + SW corner
-		Rect2(1580, 474, 36, 298),     # Cloister East Wall + SE corner
+		Rect2(1240, 252, 340, 36),     # Full continuous North Cloister Wall behind Cathedral (seals top edge completely)
+		Rect2(1240, 288, 36, 484),     # Cloister West Wall + SW corner
+		Rect2(1544, 288, 36, 484),     # Cloister East Wall + SE corner
 		Rect2(1276, 736, 20, 36),      # South Cloister Spur W (between SW corner & gate)
-		Rect2(1380, 736, 200, 36),     # South Cloister Mid/East Wall (embedded Drain Grate at x=1476)
+		Rect2(1380, 736, 164, 36),     # South Cloister Mid/East Wall (embedded Drain Grate at x=1458)
 	]
 
 

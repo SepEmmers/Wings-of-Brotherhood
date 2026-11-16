@@ -18,6 +18,7 @@ const BrugesCityScript := preload("res://scripts/regions/BrugesCityRegion.gd")
 const BrugesOutskirtsScript := preload("res://scripts/regions/BrugesOutskirtsRegion.gd")
 const BrabantFensScript := preload("res://scripts/regions/BrabantFensRegion.gd")
 const LouvainCityScript := preload("res://scripts/regions/LouvainCityRegion.gd")
+const LouvainCatacombsScript := preload("res://scripts/regions/LouvainCatacombsRegion.gd")
 const SmokeRunnerScript := preload("res://scripts/tools/HeadlessSmokeRunner.gd")
 const VisualAuditRunnerScript := preload("res://scripts/tools/VisualAuditRunner.gd")
 const HatchlingCompanionScript := preload("res://scripts/companions/HatchlingCompanion.gd")
@@ -107,6 +108,8 @@ func load_region(region_id: String, opts: Dictionary = {}) -> void:
 		player.set_cutscene_pose("")
 		player.cutscene_hidden = false
 		player.winch_dash_active = false
+		player.hurt_flash_timer = 0.0
+		player.dodge_timer = 0.0
 		player.collision_mask = 1
 		player.z_index = 10
 	ui.set_cinematic_mode(false)
@@ -133,6 +136,8 @@ func load_region(region_id: String, opts: Dictionary = {}) -> void:
 			active_region = BrabantFensScript.new()
 		"louvain":
 			active_region = LouvainCityScript.new()
+		"louvain_catacombs":
+			active_region = LouvainCatacombsScript.new()
 		_:
 			push_warning("Unknown region_id '%s', defaulting to Port of Bruges." % region_id)
 			active_region = PortOfBrugesScript.new()
@@ -411,6 +416,8 @@ func _get_current_region_label() -> String:
 			return "Brabant Reed-Fens"
 		"louvain":
 			return "Louvain (Dijle City)"
+		"louvain_catacombs":
+			return "Abbey Cathedral & Catacombs"
 	return "Flanders"
 
 

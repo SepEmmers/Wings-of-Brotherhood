@@ -130,7 +130,7 @@ const REALM_NODES := [
 		"name": "Louvain",
 		"subtitle": "Birthplace on the Dijle • Cloth-Halls",
 		"pos": Vector2(0.555, 0.455),
-		"region_ids": ["louvain"],
+		"region_ids": ["louvain", "louvain_catacombs"],
 		"book": 2,
 		"unlock_step": 16,
 		"kind": "city",

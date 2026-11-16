@@ -165,6 +165,7 @@ func _region_display_name(rid: String) -> String:
 		"flight": return "Aerial Sortie over Flanders"
 		"brabant_fens": return "Brabant Reed-Fens"
 		"louvain": return "Louvain — Dijle Cloth-Quarter"
+		"louvain_catacombs": return "Louvain — Cathedral & Catacombs"
 		"old_heverlee": return "Old Heverlee Woods & Shrine"
 		"hesbaye_uplands": return "Hesbaye Uplands"
 		"namur_citadel": return "Namur Cliff-Citadel"

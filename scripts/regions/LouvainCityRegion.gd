@@ -1,6 +1,6 @@
 extends "res://scripts/regions/RegionBase.gd"
 
-## Book II Act I Hub 1 — Louvain (City of Bells & Locked Archives, 2400x1800):
+## Book II Act I Hub 1 — Circular Louvain (City of Bells & Cathedral Catacombs, 2100x2100):
 ## Cloak-Sling concealment & Bounty Heat (CityHeatHelper), 3 city side stories,
 ## Abbey Scriptorium Vent Crawl + Ember Puff infiltration, and Forecourt Breakout
 ## featuring 3-hit Knife combo, Dodge-Counter, Whipping Shield-Yank & Golden Burst.
@@ -16,7 +16,6 @@ const NPC_SCHOLAR_POS := Vector2(862, 1372)
 const NPC_ALEIDIS_POS := Vector2(280, 1296)
 const NPC_MARTIJN_POS := Vector2(394, 1296)
 const NPC_KATELIJNE_POS := Vector2(360, 1554)
-const ABBEY_BRAZIERS: Array[Vector2] = [Vector2(1386, 608), Vector2(1462, 608)]
 const ABBEY_LEVER_POS := MapData.ABBEY_LEVER_POS
 const ABBEY_VENT_CRAWL_DUR := 3.40
 
@@ -25,7 +24,6 @@ var sight_blockers: Array[Rect2] = []
 var abbey_gate_body: StaticBody2D
 var south_gate_body: StaticBody2D
 var city_lights: Array[PointLight2D] = []
-var abbey_lights: Array[PointLight2D] = []
 
 var heat_helper = CityHeatHelperScript.new()
 var patrols: Array[Dictionary] = []
@@ -65,17 +63,12 @@ func _ready() -> void:
 		var pl: PointLight2D = assets.make_point_light(lp + Vector2(0, -14), 2.3, Color(1.0, 0.78, 0.44), 0.72)
 		add_child(pl)
 		city_lights.append(pl)
-	for bz: Vector2 in ABBEY_BRAZIERS:
-		var abl: PointLight2D = assets.make_point_light(bz + Vector2(0, -10), 2.8, Color(1.0, 0.80, 0.36), 0.85)
-		abl.visible = false
-		add_child(abl)
-		abbey_lights.append(abl)
-		city_lights.append(abl)
 
 	DrawHelper.setup_layers(self)
 	_build_interactables()
 	clear_walk_portals()
 	register_walk_portal("louvain_west_fens", Rect2(60, 976, 52, 128), Vector2.LEFT, _on_exit_west, "<- Brabant Fens", "BRABANT REED-FENS", "Mill Ruins & Dikes")
+	register_walk_portal("louvain_to_catacombs", MapData.CATHEDRAL_DOOR_PORTAL_RECT, Vector2.UP, _on_enter_catacombs, "^ Enter Abbey Cathedral", "ABBEY CATHEDRAL & CATACOMBS", "Nave, Crypt & Hidden Library")
 	register_walk_portal("louvain_south_heverlee", Rect2(986, 1986, 128, 70), Vector2.DOWN, _on_exit_south, "v Old Heverlee Woods", "OLD HEVERLEE TRAIL", "Hunters' Woods South")
 
 
@@ -91,7 +84,6 @@ func _build_interactables() -> void:
 		{"id": "lv_katelijne", "name": "Herbalist Sister Katelijne", "pos": NPC_KATELIJNE_POS, "radius": 72.0, "callback": _on_interact_katelijne},
 		{"id": "lv_sluice", "name": "Herbalist Dye-Sluice ([F] / [R])", "pos": MapData.HERBALIST_SLUICE_POS, "radius": 72.0, "callback": func(): _clear_herbalist_sluice()},
 		{"id": "lv_ring_chest", "name": "Confiscated Watch Chest", "pos": MapData.CONFISCATED_CHEST_POS, "radius": 68.0, "callback": _on_interact_ring_chest},
-		{"id": "lv_archive", "name": "Chained Scriptorium Decrees", "pos": MapData.ARCHIVE_DESK_POS, "radius": 76.0, "callback": _on_interact_archive},
 		{"id": "lv_south_sign", "name": "Read South Gate Milestone", "pos": MapData.SOUTH_SIGN_POS, "radius": 64.0, "callback": _on_read_south_sign},
 	]
 	for p: Dictionary in MapData.get_wanted_posters():
@@ -287,6 +279,9 @@ func _snapshot_checkpoint(spawn_pos: Vector2, dir_v: Vector2) -> void:
 		"facing": dir_v,
 		"louvain_vent_opened": GameState.louvain_vent_opened,
 		"louvain_brazier_lit": GameState.louvain_brazier_lit,
+		"louvain_crypt_ladder_open": GameState.louvain_crypt_ladder_open,
+		"louvain_found_1422": GameState.louvain_found_1422,
+		"louvain_found_1426": GameState.louvain_found_1426,
 		"louvain_archive_read": GameState.louvain_archive_read,
 		"louvain_breakout_won": GameState.louvain_breakout_won,
 		"louvain_bell_mould_fixed": GameState.louvain_bell_mould_fixed,
@@ -307,6 +302,9 @@ func _restore_checkpoint() -> void:
 	if not _checkpoint_state.is_empty():
 		GameState.louvain_vent_opened = bool(_checkpoint_state.get("louvain_vent_opened", false))
 		GameState.louvain_brazier_lit = bool(_checkpoint_state.get("louvain_brazier_lit", false))
+		GameState.louvain_crypt_ladder_open = bool(_checkpoint_state.get("louvain_crypt_ladder_open", false))
+		GameState.louvain_found_1422 = bool(_checkpoint_state.get("louvain_found_1422", false))
+		GameState.louvain_found_1426 = bool(_checkpoint_state.get("louvain_found_1426", false))
 		GameState.louvain_archive_read = bool(_checkpoint_state.get("louvain_archive_read", false))
 		GameState.louvain_breakout_won = bool(_checkpoint_state.get("louvain_breakout_won", false))
 		GameState.louvain_bell_mould_fixed = bool(_checkpoint_state.get("louvain_bell_mould_fixed", false))
@@ -494,10 +492,8 @@ func get_gold_sense_targets() -> Array:
 	var t: Array = []
 	if not GameState.louvain_vent_opened:
 		t.append(MapData.ABBEY_VENT_POS)
-	elif not GameState.louvain_brazier_lit:
-		t.append(ABBEY_BRAZIERS[0])
 	elif not GameState.louvain_archive_read:
-		t.append(MapData.ARCHIVE_DESK_POS)
+		t.append(MapData.CATHEDRAL_DOOR_PORTAL_RECT.get_center())
 	if not GameState.louvain_ring_found:
 		t.append(MapData.CONFISCATED_CHEST_POS)
 	return t
@@ -533,18 +529,6 @@ func on_dragon_command(origin: Vector2, target_pos: Vector2, _aim: Vector2, _sta
 		_last_command_kind = "ember_puff"
 		_clear_herbalist_sluice()
 		return true
-	if GameState.louvain_vent_opened and not GameState.louvain_brazier_lit:
-		for bz: Vector2 in ABBEY_BRAZIERS:
-			if origin.distance_to(bz) <= 130.0 or target_pos.distance_to(bz) <= 115.0:
-				_last_command_kind = "ember_puff"
-				GameState.louvain_brazier_lit = true
-				SoundManager.play_campfire_warm()
-				for bz2: Vector2 in ABBEY_BRAZIERS:
-					_spawn_sparks(bz2 + Vector2(0, -10), Color(1.0, 0.78, 0.28), 14)
-				if director != null and director.companion != null:
-					director.companion.notify_progress()
-				_sync_hint_context()
-				return true
 	return false
 
 
@@ -647,26 +631,9 @@ func _on_interact_ring_chest() -> void:
 	ui.pulse_hud_icon("bag")
 
 
-func _on_interact_archive() -> void:
-	if not GameState.louvain_brazier_lit:
-		ui.show_dialogue([{"speaker": GameState.gold_dragon_name, "telepathic": true, "text": "The stone vault swallows all light here—how can you read ink in the dark? Those two unlit brass sconces flanking the desk look dry enough for a spark."}])
-		return
-	if GameState.louvain_archive_read:
-		ui.show_dialogue([{"speaker": "Abbey Decree & Warrant", "portrait": "portrait_inquisitor.png", "text": "\"Old Heverlee Shrine Key missing; hunters silenced. Prisoner Clara of Bruges moved east to Namur Quarry Rig-Works pending Devildragon chain trials.\""}])
-		return
-	GameState.louvain_archive_read = true
-	GameState.add_item("Abbey Scriptorium Decree")
-	GameState.add_dragon_bond(10)
-	SoundManager.play_chime()
-	ui.pulse_hud_icon("journal")
-	ui.show_dialogue([
-		{"speaker": "Chained Abbey Decree", "portrait": "portrait_inquisitor.png", "text": "\"MEMORANDUM — NINE YEARS PAST: Hunters of Louvain Parish intercepted at Old Heverlee Woods over the unrecovered Bronze Shrine Key. Official parish tally recorded as dragon casualties.\""},
-		{"speaker": "Namur Requisition Warrant", "portrait": "portrait_inquisitor.png", "text": "\"FIVE YEARS PAST — HIGH PRIORITY: Abduct Ropewalk rig-master CLARA OF BRUGES for forced heavy harness fabrication at Namur Cliff-Citadel. Further inquiry connects her bloodline to the Old Heverlee pair.\""},
-		{"speaker": GameState.gold_dragon_name, "telepathic": true, "text": "Your hands are shaking... They stole her too, and she's still alive east along the river! Wait—boots clattering across the Abbey flagstones outside!"}
-	], func():
-		_sync_hint_context()
-		ui.refresh_hud()
-	)
+func _on_enter_catacombs() -> void:
+	SoundManager.play_door()
+	director.load_region("louvain_catacombs", {"from_cloister": true})
 
 
 func _on_read_south_sign() -> void:
@@ -720,11 +687,11 @@ func _sync_hint_context() -> void:
 			MapData.ABBEY_VENT_POS,
 			30.0
 		)
-	elif not GameState.louvain_brazier_lit:
+	elif not GameState.louvain_archive_read:
 		director.companion.set_hint_context(
-			"lv_brazier",
-			["Ink stays blind in vault dark—unlit brass sconces flank the chained Scriptorium desk waiting for a warm spark."],
-			ABBEY_BRAZIERS[0],
+			"lv_cathedral",
+			["Now we're inside the walled precinct! Those tall Cathedral oak doors ahead should lead down into their vaults."],
+			MapData.CATHEDRAL_DOOR_PORTAL_RECT.get_center(),
 			24.0
 		)
 	elif GameState.louvain_archive_read and not GameState.louvain_breakout_won:
@@ -772,15 +739,7 @@ func get_lighting_tint() -> Color:
 
 
 func update_region_lights(_time_val: float) -> void:
-	for al: PointLight2D in abbey_lights:
-		al.visible = GameState.louvain_brazier_lit
-	var active_lights: Array[PointLight2D] = []
-	for i in range(city_lights.size()):
-		var pl := city_lights[i]
-		if pl in abbey_lights and not GameState.louvain_brazier_lit:
-			continue
-		active_lights.append(pl)
-	sync_light_frustum(active_lights, true)
+	sync_light_frustum(city_lights, true)
 
 
 func _draw() -> void:

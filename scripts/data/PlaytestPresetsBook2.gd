@@ -44,12 +44,24 @@ const PRESETS: Array = [
 		"chapter": "book2",
 		"kind": "scene",
 		"tag": "II-2B",
-		"title": "Abbey Scriptorium & Courtyard Breakout",
-		"label": "Act I: Abbey Vault & Resonance Breakout",
+		"title": "Abbey Cloister & Drain Gate",
+		"label": "Act I: Enclosed Cloister & Cathedral Approach",
 		"region": "louvain",
 		"location": "Louvain Abbey Cloister",
-		"summary": "Slip through the cloister drain [R], light dark vault sconces to read the Old Heverlee Decrees, and shatter the Catchpole ambush.",
-		"kit": "3-Hit Knife • Whipping Shield-Yank",
+		"summary": "Send your hatchling through the Cloister drain [R] to unbar the iron gate and step inside the Cathedral.",
+		"kit": "Drain Vent Crawl • Cloister Gate",
+	},
+	{
+		"id": "book2_louvain_catacombs",
+		"chapter": "book2",
+		"kind": "scene",
+		"tag": "II-2C",
+		"title": "Cathedral, Catacombs & Hidden Library",
+		"label": "Act I: 3-Floor Cathedral Dungeon",
+		"region": "louvain_catacombs",
+		"location": "Abbey Cathedral Nave",
+		"summary": "Light the Nave altar candles [R], decode Tapestry clues to push the right Catacombs tomb, and sort 1422/1426 ledgers in the Hidden Library.",
+		"kit": "Altar Candles • Pushable Graves & Traps • Date Archive",
 	},
 ]
 
@@ -114,5 +126,25 @@ static func apply_preset(scene_id: String, unlock_post_sanctuary: Callable) -> D
 			GameState.current_step = GameState.QuestStep.BOOK2_LOUVAIN_HATCH
 			GameState.add_item("Bronze Resonance Chime")
 			GameState.add_item("Smoke-Pellet")
-			return {"region": "louvain", "params": {"spawn": Vector2(1476, 794), "facing": Vector2.UP}}
+			return {"region": "louvain", "params": {"spawn": Vector2(1458, 794), "facing": Vector2.UP}}
+		"book2_louvain_catacombs":
+			unlock_post_sanctuary.call(true, true)
+			GameState.reset_book2_state(true)
+			GameState.brabant_hatched = true
+			GameState.brabant_feed_intro_done = true
+			GameState.brabant_sling_practiced = true
+			GameState.hatchling_fed_count = 1
+			GameState.brabant_vent_unlocked = true
+			GameState.louvain_bell_mould_fixed = true
+			GameState.louvain_herbalist_done = true
+			GameState.louvain_vent_opened = true
+			GameState.resonance_chimes = 2
+			GameState.smoke_pellets = 2
+			GameState.active_companion_stage = 1
+			GameState.gold_dragon_name = "Aurelius"
+			GameState.dragon_bond = 32
+			GameState.current_step = GameState.QuestStep.BOOK2_LOUVAIN_HATCH
+			GameState.add_item("Bronze Resonance Chime")
+			GameState.add_item("Smoke-Pellet")
+			return {"region": "louvain_catacombs", "params": {"floor": 0, "spawn": Vector2(480, 732), "facing": Vector2.UP}}
 	return {}

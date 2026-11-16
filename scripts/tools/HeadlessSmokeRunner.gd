@@ -24,6 +24,7 @@ const EXPECTED_BOOK1_REGIONS := [
 const EXPECTED_BOOK2_M2_REGIONS := [
 	"brabant_fens",
 	"louvain",
+	"louvain_catacombs",
 ]
 
 var main = null
@@ -318,16 +319,46 @@ func _verify_book2_systems() -> bool:
 	if main.camera.position.distance_to(main.player.position) > 2.0:
 		_fail("LouvainCity camera remained stuck instead of following player.")
 		return false
-	for top_x: float in [1258.0, 1340.0, 1424.0, 1510.0, 1596.0]:
-		if main.active_region.has_clear_line(Vector2(top_x, 410), Vector2(top_x, 510), main.active_region.static_colliders, 6.0):
+	for top_x: float in [1256.0, 1340.0, 1410.0, 1480.0, 1560.0]:
+		if main.active_region.has_clear_line(Vector2(top_x, 220), Vector2(top_x, 320), main.active_region.static_colliders, 6.0):
 			_fail("Louvain Abbey Cloister north perimeter has an open bypass gap at x=%s." % str(top_x))
 			return false
-	if not main.active_region.on_dragon_command(Vector2(1476, 770), Vector2(1476, 754), Vector2.UP, 1) or not GameState.louvain_vent_opened or main.active_region.get_last_dragon_command_kind() != "vent_crawl":
+	if not main.active_region.on_dragon_command(Vector2(1458, 770), Vector2(1458, 754), Vector2.UP, 1) or not GameState.louvain_vent_opened or main.active_region.get_last_dragon_command_kind() != "vent_crawl":
 		_fail("Louvain Abbey Vent Crawl did not trigger cleanly without fireball.")
 		return false
-	if not main.active_region.on_dragon_command(Vector2(1386, 622), Vector2(1386, 608), Vector2.UP, 1) or not GameState.louvain_brazier_lit or main.active_region.get_last_dragon_command_kind() != "ember_puff":
-		_fail("Louvain Scriptorium Ember Puff did not light abbey braziers.")
+	# Verify 3-Floor Abbey Cathedral -> Catacombs -> Hidden Library Dungeon
+	main._playtest_jump_to("book2_louvain_catacombs")
+	var cat_map = load("res://scripts/regions/LouvainCatacombsMapData.gd")
+	for cpos: Vector2 in cat_map.get_nave_candles():
+		main.active_region.on_dragon_command(cpos + Vector2(0, 18), cpos, Vector2.UP, 1)
+	if not GameState.louvain_brazier_lit:
+		_fail("Cathedral Nave 4-candle Ember Puff failed to slide the High Altar.")
 		return false
+	main.active_region._switch_floor(1, cat_map.CRYPT_ENTRY_SPAWN, Vector2.UP, true)
+	var hp_before: int = GameState.boy_hp
+	var graves: Array = cat_map.get_graves_data()
+	main.player.position = Vector2(graves[0]["pos"]) + Vector2(0, 26)
+	main.active_region._attempt_push_grave(graves[0])
+	if GameState.boy_hp >= hp_before or main.active_region.active_spike_traps.is_empty():
+		_fail("Catacombs wrong-grave push failed to trigger spike/dart trap.")
+		return false
+	var sol_grave: Dictionary = {}
+	for gd: Dictionary in graves:
+		if bool(gd.get("solution", false)):
+			sol_grave = gd
+	main.active_region._attempt_push_grave(sol_grave)
+	if not GameState.louvain_crypt_ladder_open:
+		_fail("Catacombs eastern Stag sarcophagus did not reveal the Hidden Library ladder.")
+		return false
+	main.active_region._switch_floor(2, cat_map.LIBRARY_ENTRY_SPAWN, Vector2.UP, true)
+	for lc: Dictionary in cat_map.get_library_lecterns():
+		if String(lc["year"]) == "1422" or String(lc["year"]) == "1426":
+			main.active_region._on_inspect_lectern(lc)
+	if not GameState.louvain_archive_read or not GameState.inventory.has("Abbey Scriptorium Decree"):
+		_fail("Hidden Library dated ledgers (1422 + 1426) did not complete Abbey Decree discovery.")
+		return false
+	main._playtest_jump_to("book2_louvain_abbey")
+	GameState.louvain_vent_opened = true
 	# Verify segment-based rope ensnaring & checkpoint Retry restoring gate/state
 	main.active_region._spawn_abbey_breakout()
 	main.player.position = Vector2(1276, 860)

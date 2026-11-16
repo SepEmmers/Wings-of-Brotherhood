@@ -161,6 +161,9 @@ var louvain_survivor_done: bool = false
 var louvain_ring_found: bool = false
 var louvain_vent_opened: bool = false
 var louvain_brazier_lit: bool = false
+var louvain_crypt_ladder_open: bool = false
+var louvain_found_1422: bool = false
+var louvain_found_1426: bool = false
 var louvain_archive_read: bool = false
 var louvain_breakout_won: bool = false
 
@@ -310,6 +313,9 @@ func reset_book2_state(from_book1_finale: bool = false) -> void:
 	louvain_ring_found = false
 	louvain_vent_opened = false
 	louvain_brazier_lit = false
+	louvain_crypt_ladder_open = false
+	louvain_found_1422 = false
+	louvain_found_1426 = false
 	louvain_archive_read = false
 	louvain_breakout_won = false
 	if from_book1_finale:

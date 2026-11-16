@@ -44,6 +44,9 @@ func start(main_node) -> void:
 		{"id": "louvain_stpeters", "preset": "book2_louvain_city", "setup": Callable(self, "_setup_louvain_stpeters")},
 		{"id": "louvain_lakenhalle", "preset": "book2_louvain_city", "setup": Callable(self, "_setup_louvain_lakenhalle")},
 		{"id": "louvain_cloister", "preset": "book2_louvain_abbey", "setup": Callable(self, "_setup_louvain_cloister")},
+		{"id": "louvain_dungeon_nave", "preset": "book2_louvain_catacombs", "setup": Callable(self, "_setup_louvain_dungeon_nave")},
+		{"id": "louvain_dungeon_catacombs", "preset": "book2_louvain_catacombs", "setup": Callable(self, "_setup_louvain_dungeon_catacombs")},
+		{"id": "louvain_dungeon_library", "preset": "book2_louvain_catacombs", "setup": Callable(self, "_setup_louvain_dungeon_library")},
 	]
 	var flt := _get_filter()
 	_shots.clear()
@@ -171,5 +174,22 @@ func _setup_louvain_lakenhalle() -> void:
 
 
 func _setup_louvain_cloister() -> void:
-	main.player.position = Vector2(1424, 616)
-	main.companion.global_position = Vector2(1396, 628)
+	main.player.position = Vector2(1410, 480)
+	main.companion.global_position = Vector2(1382, 496)
+
+
+func _setup_louvain_dungeon_nave() -> void:
+	GameState.louvain_brazier_lit = true
+	main.active_region.nave_candles.assign([true, true, true, true])
+	main.active_region.altar_slide_k = 1.0
+	main.active_region._rebuild_colliders()
+	main.active_region._switch_floor(0, Vector2(480, 340), Vector2.UP, true)
+
+
+func _setup_louvain_dungeon_catacombs() -> void:
+	main.active_region.crypt_torches.assign([true, true, true, true])
+	main.active_region._switch_floor(1, Vector2(1410, 396), Vector2.UP, true)
+
+
+func _setup_louvain_dungeon_library() -> void:
+	main.active_region._switch_floor(2, Vector2(2360, 470), Vector2.UP, true)
