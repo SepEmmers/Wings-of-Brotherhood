@@ -135,14 +135,12 @@ static func draw_region_entities(r, t_now: float) -> void:
 			r.draw_circle(dp, 7.0, Color(0.10, 0.10, 0.12, 0.86))
 			r.draw_circle(dp + Vector2(0, -2), 1.8, Color(0.98, 0.84, 0.34, 0.92))
 		else:
-			var htex: Texture2D = assets.get_tex("dragon_gold_s1_%s_%d.png" % [dkey, step_i])
+			var fname := "dragon_gold_s1_%s_%d.png" % [dkey, step_i]
+			var htex: Texture2D = assets.get_tex_flipped(fname) if flip_d else assets.get_tex(fname)
 			if htex != null:
 				var sz := Vector2(26, 24)
 				var ppos := dp - Vector2(sz.x * 0.5, sz.y * 0.7)
-				if flip_d:
-					r.draw_texture_rect(htex, Rect2(Vector2(ppos.x + sz.x, ppos.y), Vector2(-sz.x, sz.y)), false)
-				else:
-					r.draw_texture_rect(htex, Rect2(ppos, sz), false)
+				r.draw_texture_rect(htex, Rect2(ppos, sz), false)
 
 	# South Old Heverlee Gate Barricade
 	var sb: Rect2 = MapData.SOUTH_GATE_BARRICADE_RECT
@@ -220,10 +218,15 @@ static func draw_region_entities(r, t_now: float) -> void:
 			if not cam_rect.intersects(Rect2(gp - Vector2(220, 220), Vector2(440, 440))):
 				continue
 			var gdir: Vector2 = Vector2(pat["dir"])
+			var snared_p := float(pat.get("stun", 0.0)) > 0.0
 			var alert_col := Color(0.95, 0.36, 0.24, 0.16) if float(pat.get("lure_timer", 0.0)) <= 0.0 else Color(0.96, 0.80, 0.32, 0.14)
-			r.draw_raycast_vision_cone(r, gp, gdir, 185.0, 0.48, r.sight_blockers, alert_col, Color(0.96, 0.72, 0.36, 0.35), 18)
+			if not snared_p:
+				r.draw_raycast_vision_cone(r, gp, gdir, 185.0, 0.48, r.sight_blockers, alert_col, Color(0.96, 0.72, 0.36, 0.35), 18)
 			var gtex: String = "npc_church_hunter_%d.png" % walk_f
 			assets.draw_npc_sprite(r, gp, gtex, "", font, Color.WHITE, gdir.x < -0.1)
+			if snared_p:
+				r.draw_arc(gp + Vector2(0, -10), 11.0, 0.0, TAU, 16, Color(0.76, 0.62, 0.34), 2.4)
+				r.draw_arc(gp + Vector2(0, -4), 9.0, 0.0, TAU, 14, Color(0.45, 0.86, 0.64), 1.8)
 
 	# Breakout Ambush Catchpoles
 	for e: Dictionary in r.breakout_enemies:
@@ -238,6 +241,9 @@ static func draw_region_entities(r, t_now: float) -> void:
 			var sh_p := ep + Vector2(e["dir"]).normalized() * 11.0 + Vector2(0, -6)
 			r.draw_rect(Rect2(sh_p - Vector2(5, 7), Vector2(10, 14)), Color(0.56, 0.48, 0.34))
 			r.draw_rect(Rect2(sh_p - Vector2(5, 7), Vector2(10, 14)), Color(0.86, 0.74, 0.42), false, 1.4)
+		if float(e.get("snared_t", 0.0)) > 0.0:
+			r.draw_arc(ep + Vector2(0, -10), 12.0, 0.0, TAU, 16, Color(0.82, 0.68, 0.36), 2.8)
+			r.draw_arc(ep + Vector2(0, -4), 10.0, 0.0, TAU, 14, Color(0.45, 0.88, 0.66), 2.0)
 		if float(e.get("stun", 0.0)) > 0.0:
 			r.draw_arc(ep + Vector2(0, -24), 7.0, 0.0, TAU, 10, Color(0.98, 0.88, 0.36), 1.6)
 

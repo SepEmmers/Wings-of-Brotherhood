@@ -253,7 +253,12 @@ func _on_camp_closed() -> void:
 			{
 				"speaker": GameState.player_name,
 				"portrait": "portrait_boy17.png",
-				"text": "Wait—did you just throw your voice straight inside my head? Quietly then, little one... My mother and father walked Louvain's Hunters' Guild before Old Heverlee killed them. If Church vaults or old guild-ledgers still record what they died hiding—and where Clara was dragged—we'll find the trail behind that city gate."
+				"text": "Wait—did you just throw your voice straight inside my head? Hush then, little one."
+			},
+			{
+				"speaker": GameState.player_name,
+				"portrait": "portrait_boy17.png",
+				"text": "My parents walked Louvain's Hunters' Guild before Old Heverlee killed them. Guild ledgers or Church vaults beyond that wall should still name where they took Clara."
 			},
 			{
 				"speaker": GameState.gold_dragon_name,
@@ -579,13 +584,13 @@ func _trigger_louvain_sling_threshold() -> void:
 		{
 			"speaker": GameState.player_name,
 			"portrait": "portrait_boy17.png",
-			"text": "Hold up—see those crimson Church lanterns and halberd silhouettes beyond the gate arch? Twenty golden florins on a black-and-gold wyrmling means Watchmen will slam the portcullis before we reach the first bridge."
+			"text": "Hold up—crimson Church lanterns beyond that gate arch! Twenty gold florins on a black-and-gold wyrmling."
 		},
 		{
 			"speaker": GameState.gold_dragon_name,
 			"portrait": GameState.get_hatchling_portrait(),
 			"telepathic": true,
-			"text": "Then pull up your oiled hood and tuck me tight inside your cloak-sling across your ribs. Claws curled quiet until we clear their watch-torches!"
+			"text": "Tuck me tight inside your wool cloak-sling across your ribs—claws hidden till we clear their watch!"
 		}
 	], func():
 		_sync_hint_context()

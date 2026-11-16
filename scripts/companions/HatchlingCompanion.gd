@@ -393,14 +393,13 @@ func _draw() -> void:
 	elif facing.y < 0.0:
 		dir_key = "up"
 	var tex_key := "dragon_gold_s1_%s_%d.png" % [dir_key, step_idx]
-	var tex: Texture2D = assets.get_tex(tex_key) if assets != null else null
+	var tex: Texture2D = null
+	if assets != null:
+		tex = assets.get_tex_flipped(tex_key) if flip_x else assets.get_tex(tex_key)
 	if tex != null:
 		var sz := Vector2(26.0 + float(GameState.active_companion_stage) * 5.0, 24.0 + float(GameState.active_companion_stage) * 4.5)
 		var pos := Vector2(-sz.x * 0.5, -sz.y + 4.0 + bob)
-		if flip_x:
-			draw_texture_rect(tex, Rect2(Vector2(pos.x + sz.x, pos.y), Vector2(-sz.x, sz.y)), false)
-		else:
-			draw_texture_rect(tex, Rect2(pos, sz), false)
+		draw_texture_rect(tex, Rect2(pos, sz), false)
 	else:
 		draw_circle(Vector2(0, -8), 8.0, Color(0.24, 0.22, 0.24))
 		draw_circle(Vector2(0, -10), 4.0, Color(0.94, 0.76, 0.26))

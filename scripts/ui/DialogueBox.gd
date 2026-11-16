@@ -113,7 +113,8 @@ func setup(assets_ref) -> void:
 	dialogue_label = Label.new()
 	dialogue_label.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	dialogue_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	dialogue_label.custom_minimum_size = Vector2(0, 68)
+	dialogue_label.custom_minimum_size = Vector2(0, 54)
+	dialogue_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	dialogue_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	dialogue_label.add_theme_font_size_override("font_size", 15)
 	dialogue_label.add_theme_color_override("font_color", Color(0.94, 0.92, 0.88))
@@ -149,10 +150,18 @@ func _make_chrome_style(tex_name: String, m: float, ph: float, pv: float, fb_bg:
 	return sb
 
 
-func _apply_box_bounds(telepathic: bool) -> void:
+func _apply_box_bounds(telepathic: bool, text_str: String = "") -> void:
 	var half_w := 335.0 if telepathic else 350.0
-	var bot_pad := -24.0 if telepathic else -20.0
-	var box_h := 146.0 if telepathic else 140.0
+	var bot_pad := -28.0 if telepathic else -26.0
+	var min_h := 146.0 if telepathic else 140.0
+	var needed_text_h := 58.0
+	if not text_str.is_empty() and dialogue_label != null:
+		var ui_font: Font = dialogue_label.get_theme_font("font")
+		if ui_font != null:
+			var avail_w := (half_w * 2.0) - 166.0
+			var sz := ui_font.get_multiline_string_size(text_str, HORIZONTAL_ALIGNMENT_LEFT, avail_w, 15)
+			needed_text_h = maxf(58.0, ceilf(sz.y) + 8.0)
+	var box_h := clampf(88.0 + needed_text_h, min_h, 240.0)
 	offset_left = -half_w
 	offset_right = half_w
 	offset_top = bot_pad - box_h
@@ -349,6 +358,7 @@ func _load_current_line() -> void:
 	if _line_telepathic:
 		SoundManager.play_chime()
 	dialogue_full_text = entry.get("text", "")
+	_apply_box_bounds(_line_telepathic, dialogue_full_text)
 	dialogue_visible_chars = 0.0
 	dialogue_label.text = ""
 	continue_hint.visible = false

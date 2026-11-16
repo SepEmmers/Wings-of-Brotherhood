@@ -38,6 +38,7 @@ var _abbey_lever_tripped: bool = false
 var _last_command_kind: String = ""
 var _ambush_triggered: bool = false
 var _torn_posters: Dictionary = {}
+var _checkpoint_state: Dictionary = {}
 
 
 func _ready() -> void:
@@ -123,6 +124,8 @@ func enter_region(opts: Dictionary = {}) -> void:
 	var spawn: Vector2 = opts.get("spawn", Vector2(150, 880))
 	player.position = spawn
 	player.facing = opts.get("facing", Vector2.RIGHT)
+	if not bool(opts.get("_retry_restore", false)):
+		_snapshot_checkpoint(spawn, player.facing)
 	player.visible = true
 	player.cutscene_hidden = false
 	player.can_move = true
@@ -217,6 +220,9 @@ func _step_patrols(delta: float) -> bool:
 	var smoke_hidden := heat_helper.is_point_concealed_by_smoke(player.position)
 	var sling_hidden := not heat_helper.is_dragon_exposed_in_town()
 	for pat: Dictionary in patrols:
+		if float(pat.get("stun", 0.0)) > 0.0:
+			pat["stun"] = maxf(0.0, float(pat.get("stun", 0.0)) - delta)
+			continue
 		var gp: Vector2 = Vector2(pat["pos"])
 		var lure: Vector2 = heat_helper.get_active_lure_near(gp, 240.0)
 		if lure != Vector2.ZERO:
@@ -271,16 +277,60 @@ func _spawn_abbey_breakout() -> void:
 	])
 
 
+func _snapshot_checkpoint(spawn_pos: Vector2, dir_v: Vector2) -> void:
+	_checkpoint_state = {
+		"spawn": spawn_pos,
+		"facing": dir_v,
+		"louvain_vent_opened": GameState.louvain_vent_opened,
+		"louvain_brazier_lit": GameState.louvain_brazier_lit,
+		"louvain_archive_read": GameState.louvain_archive_read,
+		"louvain_breakout_won": GameState.louvain_breakout_won,
+		"louvain_bell_mould_fixed": GameState.louvain_bell_mould_fixed,
+		"louvain_clay_collected": GameState.louvain_clay_collected,
+		"louvain_herbalist_done": GameState.louvain_herbalist_done,
+		"louvain_guild_visited": GameState.louvain_guild_visited,
+		"louvain_ring_found": GameState.louvain_ring_found,
+		"louvain_survivor_done": GameState.louvain_survivor_done,
+		"resonance_chimes": GameState.resonance_chimes,
+		"smoke_pellets": GameState.smoke_pellets,
+	}
+
+
+func _restore_checkpoint() -> void:
+	GameState.boy_hp = GameState.boy_max_hp
+	GameState.city_heat = 0.0
+	_ambush_triggered = false
+	if not _checkpoint_state.is_empty():
+		GameState.louvain_vent_opened = bool(_checkpoint_state.get("louvain_vent_opened", false))
+		GameState.louvain_brazier_lit = bool(_checkpoint_state.get("louvain_brazier_lit", false))
+		GameState.louvain_archive_read = bool(_checkpoint_state.get("louvain_archive_read", false))
+		GameState.louvain_breakout_won = bool(_checkpoint_state.get("louvain_breakout_won", false))
+		GameState.louvain_bell_mould_fixed = bool(_checkpoint_state.get("louvain_bell_mould_fixed", false))
+		GameState.louvain_clay_collected = bool(_checkpoint_state.get("louvain_clay_collected", false))
+		GameState.louvain_herbalist_done = bool(_checkpoint_state.get("louvain_herbalist_done", false))
+		GameState.louvain_guild_visited = bool(_checkpoint_state.get("louvain_guild_visited", false))
+		GameState.louvain_ring_found = bool(_checkpoint_state.get("louvain_ring_found", false))
+		GameState.louvain_survivor_done = bool(_checkpoint_state.get("louvain_survivor_done", false))
+		GameState.resonance_chimes = int(_checkpoint_state.get("resonance_chimes", 0))
+		GameState.smoke_pellets = int(_checkpoint_state.get("smoke_pellets", 0))
+	var cp_spawn: Vector2 = _checkpoint_state.get("spawn", Vector2(150, 880))
+	var cp_dir: Vector2 = _checkpoint_state.get("facing", Vector2.RIGHT)
+	enter_region({"spawn": cp_spawn, "facing": cp_dir, "_retry_restore": true})
+
+
 func _make_foe(kind: String, pos: Vector2, dir: Vector2) -> Dictionary:
-	return {"kind": kind, "pos": pos, "dir": dir, "hp": 3 if kind == "shield" else 2, "has_shield": kind == "shield", "alive": true, "stun": 0.0, "timer": 0.6, "state": "chase" if kind == "shield" else "reload"}
+	return {"kind": kind, "pos": pos, "dir": dir, "hp": 3 if kind == "shield" else 2, "has_shield": kind == "shield", "shield_yanked": false, "alive": true, "stun": 0.0, "stunned_t": 0.0, "snared_t": 0.0, "timer": 0.6, "state": "chase" if kind == "shield" else "reload"}
 
 
 func _step_breakout_enemies(delta: float) -> void:
 	for e: Dictionary in breakout_enemies:
 		if int(e["hp"]) <= 0:
 			continue
+		if float(e.get("snared_t", 0.0)) > 0.0:
+			e["snared_t"] = maxf(0.0, float(e.get("snared_t", 0.0)) - delta)
 		if float(e["stun"]) > 0.0:
 			e["stun"] = maxf(0.0, float(e["stun"]) - delta)
+		if float(e["stun"]) > 0.0 or float(e.get("snared_t", 0.0)) > 0.0:
 			continue
 		var ep: Vector2 = Vector2(e["pos"])
 		var to_p := player.position - ep
@@ -331,12 +381,7 @@ func _damage_player(dmg: int) -> void:
 	if GameState.boy_hp <= 0:
 		breakout_enemies.clear()
 		enemy_bolts.clear()
-		ui.show_death_screen("Cornered by Church Catchpoles on the Louvain cobbles.", func():
-			GameState.boy_hp = GameState.boy_max_hp
-			GameState.city_heat = 0.0
-			_ambush_triggered = false
-			enter_region({"spawn": Vector2(150, 880), "facing": Vector2.RIGHT})
-		)
+		ui.show_death_screen("Cornered by Church Catchpoles on the Louvain cobbles.", Callable(self, "_restore_checkpoint"))
 
 
 func on_knife_slash(tip_pos: Vector2, _dir: Vector2) -> void:
@@ -353,11 +398,13 @@ func on_knife_slash(tip_pos: Vector2, _dir: Vector2) -> void:
 		var ep := Vector2(e["pos"])
 		if ep.distance_to(tip_pos) > 48.0:
 			continue
-		if bool(e.get("has_shield", false)) and not bool(meta.get("is_counter", false)):
+		var is_snared := float(e.get("snared_t", 0.0)) > 0.0
+		var is_stunned := float(e.get("stun", 0.0)) > 0.0
+		if bool(e.get("has_shield", false)) and not bool(meta.get("is_counter", false)) and not is_snared and not is_stunned:
 			_spawn_sparks(ep + Vector2(0, -8), Color(0.86, 0.88, 0.94), 8)
 			SoundManager.play_knot_snag()
 			continue
-		e["hp"] = int(e["hp"]) - dmg
+		e["hp"] = int(e["hp"]) - (dmg + (1 if is_snared else 0))
 		e["stun"] = maxf(float(e.get("stun", 0.0)), 0.35)
 		_spawn_sparks(ep + Vector2(0, -10), Color(0.98, 0.38, 0.28), 10)
 		SoundManager.play_hit()
@@ -377,19 +424,40 @@ func on_rope_cast_hit(target_pos: Vector2, knot_id: String) -> void:
 		return
 	var res := PlayerCombatHelperScript.resolve_knot_targets(knot_id, player.position, target_pos, breakout_enemies)
 	if bool(res.get("hit", false)):
+		for e: Dictionary in breakout_enemies:
+			e["stun"] = maxf(float(e.get("stun", 0.0)), maxf(float(e.get("stunned_t", 0.0)), float(e.get("snared_t", 0.0))))
+			e["stunned_t"] = 0.0
 		for yanked in res.get("yanked", []):
-			_spawn_sparks(Vector2(yanked["pos"]), Color(0.98, 0.84, 0.38), 14)
+			_spawn_sparks(Vector2(yanked["pos"]), Color(0.98, 0.84, 0.38), 16)
+			SoundManager.play_cage_break()
 		for snared in res.get("snared", []):
-			snared["stun"] = 2.6
-			_spawn_sparks(Vector2(snared["pos"]), Color(0.45, 0.90, 0.72), 10)
+			snared["snared_t"] = maxf(float(snared.get("snared_t", 0.0)), 2.8)
+			snared["stun"] = maxf(float(snared.get("stun", 0.0)), 2.8)
+			_spawn_sparks(Vector2(snared["pos"]), Color(0.45, 0.90, 0.72), 14)
 		var zipped = res.get("zipped_target", null)
 		if zipped != null:
 			player.position = Vector2(zipped["pos"]) + (player.position - Vector2(zipped["pos"])).normalized() * 24.0
-			zipped["hp"] = int(zipped["hp"]) - 2
+			var z_dmg := 3 if float(zipped.get("snared_t", 0.0)) > 0.0 else 2
+			zipped["hp"] = int(zipped["hp"]) - z_dmg
 			zipped["alive"] = int(zipped["hp"]) > 0
 			_spawn_sparks(Vector2(zipped["pos"]), Color(1.0, 0.84, 0.32), 18)
 		SoundManager.play_rope()
 		_check_breakout_clear()
+		return
+
+	# Allow rope casts to ensnare / startle patrolling city guards along the cast line!
+	if breakout_enemies.is_empty():
+		var hit_r := 76.0 if knot_id == "bowline" else 48.0
+		var snared_any := false
+		for pat: Dictionary in patrols:
+			var gp: Vector2 = Vector2(pat["pos"])
+			var cp := Geometry2D.get_closest_point_to_segment(gp, player.position, target_pos)
+			if gp.distance_to(cp) <= hit_r:
+				pat["stun"] = 3.2
+				snared_any = true
+				_spawn_sparks(gp + Vector2(0, -10), Color(0.45, 0.90, 0.72), 12)
+		if snared_any:
+			SoundManager.play_rope()
 
 
 func _check_breakout_clear() -> void:

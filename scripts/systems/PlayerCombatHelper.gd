@@ -101,7 +101,8 @@ static func resolve_knot_targets(knot_id: String, caster_pos: Vector2, tip_pos: 
 		if not (en is Dictionary) or not bool(en.get("alive", true)):
 			continue
 		var epos: Vector2 = en.get("pos", Vector2.ZERO)
-		if epos.distance_to(tip_pos) > radius:
+		var closest_pt := Geometry2D.get_closest_point_to_segment(epos, caster_pos, tip_pos)
+		if epos.distance_to(closest_pt) > radius:
 			continue
 		out["hit"] = true
 		match knot_id:

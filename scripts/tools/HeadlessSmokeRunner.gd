@@ -324,6 +324,21 @@ func _verify_book2_systems() -> bool:
 	if not main.active_region.on_dragon_command(Vector2(1788, 512), Vector2(1788, 496), Vector2.UP, 1) or not GameState.louvain_brazier_lit or main.active_region.get_last_dragon_command_kind() != "ember_puff":
 		_fail("Louvain Scriptorium Ember Puff did not light abbey braziers.")
 		return false
+	# Verify segment-based rope ensnaring & checkpoint Retry restoring gate/state
+	main.active_region._spawn_abbey_breakout()
+	main.player.position = Vector2(1748, 860)
+	main.active_region.on_rope_cast_hit(Vector2(1748, 680), "bowline")
+	if float(main.active_region.breakout_enemies[0].get("snared_t", 0.0)) <= 0.0:
+		_fail("Louvain Bowline rope cast did not snare enemy along cast segment.")
+		return false
+	main.active_region._restore_checkpoint()
+	if GameState.louvain_vent_opened or float(main.active_region.get("abbey_gate_open_anim")) > 0.01:
+		_fail("Louvain checkpoint restore did not reset Abbey gate/flags cleanly.")
+		return false
+	main.ui.show_dialogue([{"speaker": "Test", "text": "Line one wraps onto line two and wraps onto line three and continues onto a long fourth line so the portrait box must expand vertically without clipping."}])
+	if (main.ui.dialogue_panel.offset_bottom - main.ui.dialogue_panel.offset_top) <= 155.0:
+		_fail("DialogueBox failed to auto-expand height for long wrapped lines.")
+		return false
 	main.ui.hide_all_overlays()
 
 	# Verify TitleScreenPanel, PauseMenuPanel, SettingsPanel, AudioServer buses & hints/controls wiring

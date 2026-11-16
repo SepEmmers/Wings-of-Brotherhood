@@ -131,13 +131,13 @@ static func draw_region_entities(r, t_now: float) -> void:
 			var pulse := 0.5 + 0.5 * sin(t_now * 3.6)
 			r.draw_arc(fpos, 26.0 + pulse * 4.0, 0.0, TAU, 24, Color(0.96, 0.80, 0.34, 0.55), 1.8)
 		elif GameState.hatchling_fed_count == 0 and r.director != null and r.director.companion != null:
-			var cp_pos: Vector2 = Vector2(r.director.companion.global_position) + Vector2(0, -28)
-			var h_bob := sin(t_now * 4.5) * 2.5
-			r.draw_circle(cp_pos + Vector2(0, h_bob), 10.0, Color(0.14, 0.10, 0.08, 0.85))
-			r.draw_arc(cp_pos + Vector2(0, h_bob), 10.5, 0.0, TAU, 16, Color(0.98, 0.78, 0.32, 0.85), 1.4)
-			var rtex: Texture2D = assets.get_tex("prop_ration.png", "prop_crate.png")
+			var cp_pos: Vector2 = Vector2(r.director.companion.global_position) + Vector2(0, -34)
+			var h_bob := sin(t_now * 4.5) * 2.2
+			r.draw_circle(cp_pos + Vector2(0, h_bob), 9.0, Color(0.14, 0.10, 0.08, 0.82))
+			r.draw_arc(cp_pos + Vector2(0, h_bob), 9.5, 0.0, TAU, 16, Color(0.98, 0.78, 0.32, 0.85), 1.3)
+			var rtex: Texture2D = assets.get_tex("prop_mutton_joint.png", "icon_mutton.png")
 			if rtex != null:
-				r.draw_texture_rect(rtex, Rect2(cp_pos + Vector2(-7, -7 + h_bob), Vector2(14, 14)), false)
+				r.draw_texture_rect(rtex, Rect2(cp_pos + Vector2(-6.5, -6.5 + h_bob), Vector2(13, 13)), false)
 
 	# Distant Louvain West Dike Gate flank stonework & crimson Inquisition lanterns
 	if cam_rect.intersects(Rect2(2040, 560, 130, 300)):
@@ -344,14 +344,12 @@ static func _draw_sluice_gate_and_vent(r, assets, cam_rect: Rect2, t_now: float)
 			r.draw_circle(dpos, 7.0, Color(0.10, 0.10, 0.12, 0.86))
 			r.draw_circle(dpos + Vector2(2, -2), 1.8, Color(0.98, 0.84, 0.34, 0.92))
 		else:
-			var htex: Texture2D = assets.get_tex("dragon_gold_s1_%s_%d.png" % [dkey, step_i])
+			var fname := "dragon_gold_s1_%s_%d.png" % [dkey, step_i]
+			var htex: Texture2D = assets.get_tex_flipped(fname) if flip_d else assets.get_tex(fname)
 			if htex != null:
 				var sz := Vector2(26, 24)
 				var dp := dpos - Vector2(sz.x * 0.5, sz.y * 0.7)
-				if flip_d:
-					r.draw_texture_rect(htex, Rect2(Vector2(dp.x + sz.x, dp.y), Vector2(-sz.x, sz.y)), false)
-				else:
-					r.draw_texture_rect(htex, Rect2(dp, sz), false)
+				r.draw_texture_rect(htex, Rect2(dp, sz), false)
 
 
 static func _draw_integrated_prompts(r, fg: Node2D) -> void:
