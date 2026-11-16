@@ -21,6 +21,7 @@ import random
 from pixel_art_lib import PAL, PixelCanvas
 from sprite_world_buildings import _draw_brick_wall, _draw_shingles
 from sprite_bruges_landmarks import _draw_lancet_window, _draw_slate_spire
+from sprite_bruges_forts_water import _draw_stone_masonry_rect
 
 
 def _draw_sandstone_wall(c: PixelCanvas, x: int, y: int, w: int, h: int, seed: int = 13):
@@ -307,53 +308,63 @@ def make_bldg_louvain_lakenhalle(sprites_dir: str) -> None:
 
 def make_louvain_gates_and_props(sprites_dir: str) -> None:
     # 1. Horizontal Twin-Tower Brabant Poort (Naamsepoort / Mechelsepoort: 84x62)
+    #    Wide transparent central archway (x=22..61, y=38..61 -> ~80px world opening matching 96px street!)
     ph = PixelCanvas(84, 62)
-    ph.ellipse(15, 57, 13, 3.5, (14, 12, 18, 120))
-    ph.ellipse(69, 57, 13, 3.5, (14, 12, 18, 120))
-    # Flanking cylindrical Brabant banded towers
-    for cx in (15, 69):
-        _draw_sandstone_wall(ph, cx - 10, 22, 20, 35, seed=cx)
-        ph.rect(cx - 10, 34, 20, 4, "R1")
+    ph.ellipse(12, 57, 11, 3.5, (14, 12, 18, 120))
+    ph.ellipse(72, 57, 11, 3.5, (14, 12, 18, 120))
+    # Flanking cylindrical Brabant banded towers straddling left/right street curbs
+    for cx in (12, 72):
+        _draw_sandstone_wall(ph, cx - 9, 22, 18, 35, seed=cx)
+        ph.rect(cx - 9, 34, 18, 4, "R1")
         ph.rect(cx - 1, 28, 2, 6, "N")
-        _draw_slate_spire(ph, cx, 4, 11, 18)
+        _draw_slate_spire(ph, cx, 4, 10, 18)
         ph.line(cx, 1, cx, 4, "Y2")
-    # Gatehouse bridge span & raised portcullis teeth
-    _draw_sandstone_wall(ph, 24, 22, 36, 18, seed=99)
-    ph.rect(24, 20, 36, 4, "L1")
-    for px in range(26, 58, 6):
+    # Overhead gatehouse bridge spanning the street (x=21..62, y=18..37) + Brabant shield
+    _draw_sandstone_wall(ph, 21, 22, 42, 15, seed=99)
+    ph.rect(21, 20, 42, 4, "L1")
+    for px in range(22, 62, 6):
         ph.rect(px, 17, 4, 4, "L0")
     ph.rect(40, 25, 5, 7, "I1")
     ph.rect(40, 28, 5, 2, "L0")
-    # Open roadway shadow arch + iron portcullis tips
-    ph.rect(26, 38, 32, 19, "C1")
-    ph.rect(29, 40, 26, 17, "N")
-    for gx in range(31, 54, 5):
-        ph.line(gx, 40, gx, 45, "C3")
+    # Soft arched vault shadow + raised portcullis iron spikes framing open cobbles beneath
+    ph.rect(21, 37, 42, 3, "C0")
+    ph.rect(22, 40, 40, 4, (14, 12, 18, 105))
+    for gx in range(24, 61, 5):
+        ph.line(gx, 38, gx, 42, "C3")
     ph.add_outline("K", selective_hue=True)
     ph.save_png(os.path.join(sprites_dir, "prop_louvain_poort_h.png"))
 
-    # 2. Vertical 3/4 City Gatehouse (Brusselsepoort / Tiensepoort: 58x78)
-    pv = PixelCanvas(58, 78)
-    pv.ellipse(29, 73, 24, 4.0, (14, 12, 18, 115))
-    # North drum tower (top) & bridgehouse with clear pass-through arch (y=50..56) & south flank pier
-    _draw_sandstone_wall(pv, 10, 14, 38, 22, seed=11)
-    pv.rect(10, 22, 38, 3, "R1")
-    pv.rect(14, 18, 3, 5, "N")
-    pv.rect(41, 18, 3, 5, "N")
-    _draw_slate_spire(pv, 29, 2, 14, 12)
-    pv.line(29, 0, 29, 2, "Y2")
-    # Overhead gatehouse stone bridge spanning roadway cleanly (leaving passable shadow tunnel beneath)
-    _draw_sandstone_wall(pv, 14, 35, 30, 15, seed=77)
-    pv.rect(26, 38, 6, 7, "I1")
-    pv.rect(26, 41, 6, 2, "L0")
-    pv.rect(14, 50, 30, 6, "N")
-    for gx in range(18, 42, 5):
-        pv.line(gx, 50, gx, 53, "C3")
-    # South gate turret flank (lower side without spire clipping into arch)
-    _draw_sandstone_wall(pv, 10, 56, 38, 17, seed=55)
-    pv.rect(10, 63, 38, 3, "R1")
-    pv.rect(14, 59, 3, 4, "N")
-    pv.rect(41, 59, 3, 4, "N")
+    # 2. Vertical 3/4 Open-Road City Gatehouse (Brusselsepoort / Tiensepoort: 58x96)
+    #    Wide transparent roadway passage (y=36..70 -> 70px clear cobble channel between flanking north/south towers!)
+    pv = PixelCanvas(58, 96)
+    # North flanking bastion tower + steep slate roof (sits strictly north of road curb)
+    pv.ellipse(29, 31, 21, 3.0, (14, 12, 18, 95))
+    _draw_sandstone_wall(pv, 10, 12, 38, 19, seed=11)
+    pv.rect(10, 19, 38, 3, "R1")
+    pv.rect(14, 14, 3, 4, "N")
+    pv.rect(41, 14, 3, 4, "N")
+    _draw_slate_spire(pv, 29, 1, 14, 11)
+    pv.line(29, 0, 29, 1, "Y2")
+    # Overhead gatehouse stone arch spanning across north curb & upper arch lip (y=29..39)
+    _draw_sandstone_wall(pv, 16, 29, 26, 8, seed=77)
+    pv.rect(16, 27, 26, 3, "L1")
+    pv.rect(26, 30, 6, 6, "I1")
+    pv.rect(26, 33, 6, 2, "L0")
+    # Corbelled stone arch springers + raised portcullis teeth (full cobblestone road below y=40..70 is OPEN!)
+    pv.rect(12, 37, 6, 4, "C2")
+    pv.rect(40, 37, 6, 4, "C2")
+    pv.rect(18, 37, 22, 3, "C0")
+    pv.rect(16, 39, 26, 3, (14, 12, 18, 90))
+    for gx in range(20, 39, 4):
+        pv.line(gx, 37, gx, 40, "C3")
+    # South flanking bastion tower (y=71..94 -> sits cleanly at south curb, clear of street!)
+    pv.ellipse(29, 92, 22, 3.5, (14, 12, 18, 115))
+    _draw_sandstone_wall(pv, 10, 73, 38, 19, seed=55)
+    pv.rect(10, 80, 38, 3, "R1")
+    pv.rect(14, 76, 3, 4, "N")
+    pv.rect(41, 76, 3, 4, "N")
+    for mx in (12, 21, 32, 41):
+        pv.rect(mx, 70, 5, 4, "L1")
     pv.add_outline("K", selective_hue=True)
     pv.save_png(os.path.join(sprites_dir, "prop_louvain_poort_v.png"))
 
@@ -441,9 +452,112 @@ def make_louvain_gates_and_props(sprites_dir: str) -> None:
     my.save_png(os.path.join(sprites_dir, "prop_mason_yard.png"))
 
 
+def _mirror_canvas_h(src: PixelCanvas) -> PixelCanvas:
+    out = PixelCanvas(src.w, src.h)
+    for y in range(src.h):
+        for x in range(src.w):
+            out.px[y * out.w + (src.w - 1 - x)] = list(src.px[y * src.w + x])
+    return out
+
+
+def make_louvain_wall_corners(sprites_dir: str) -> None:
+    """Generate 36x36 seamless L-bend stone wall corner tiles matching prop_wall_h & prop_wall_v."""
+    # NW Corner (horizontal from right x=35 bending down to y=35)
+    nw = PixelCanvas(36, 36)
+    nw.rect(0, 2, 2, 34, (14, 15, 22, 110))
+    nw.rect(25, 33, 11, 3, (14, 15, 22, 110))
+    # Left outer vertical ashlar column wrapping up into horizontal top corner
+    _draw_stone_masonry_rect(nw, 2, 10, 8, 26, seed=211, row_h=4, blk_w=6, moss=True)
+    nw.line(2, 10, 2, 35, "S")
+    # Inner bottom-right masonry corner turning from H face (y=15..32) into V right face (x=26..33)
+    _draw_stone_masonry_rect(nw, 25, 15, 11, 17, seed=212, row_h=4, blk_w=6, moss=False)
+    _draw_stone_masonry_rect(nw, 26, 20, 8, 16, seed=213, row_h=4, blk_w=6, moss=True)
+    nw.rect(25, 31, 11, 3, "CS")
+    nw.line(25, 31, 35, 31, "C1")
+    nw.line(25, 33, 35, 33, "S")
+    nw.line(33, 15, 33, 35, "S")
+    nw.line(25, 15, 25, 35, "C0")
+    for qy in (16, 22, 28):
+        nw.rect(25, qy, 3, 4, "C2")
+    # Bending chemin-de-ronde walkway: H band (x=11..35, y=9..14) + V band (x=11..24, y=9..35)
+    nw.rect(11, 9, 25, 6, "C1")
+    nw.rect(11, 9, 14, 27, "C1")
+    nw.rect(12, 10, 24, 4, "CS2")
+    nw.rect(12, 10, 12, 26, "CS2")
+    for sx in (16, 24, 32):
+        nw.line(sx, 10, sx, 13, "C0")
+    for sy in (16, 24, 32):
+        nw.line(12, sy, 23, sy, "C0")
+    nw.line(12, 10, 35, 10, "C2")
+    nw.line(12, 10, 12, 35, "C2")
+    nw.line(10, 9, 35, 9, "C0")
+    nw.line(10, 9, 10, 35, "C0")
+    nw.line(24, 14, 35, 14, "S")
+    nw.line(24, 14, 24, 35, "C0")
+    # Continuous corner battlement merlons wrapping outer NW bend + inner post
+    nw.rect(4, 1, 14, 8, "S")
+    _draw_stone_masonry_rect(nw, 5, 2, 12, 6, seed=215, row_h=3, blk_w=5, moss=False)
+    nw.line(5, 1, 16, 1, "C3")
+    nw.rect(22, 1, 12, 8, "S")
+    _draw_stone_masonry_rect(nw, 23, 2, 10, 6, seed=216, row_h=3, blk_w=5, moss=False)
+    nw.line(23, 1, 32, 1, "C3")
+    nw.rect(18, 5, 4, 5, "C0")
+    nw.rect(18, 6, 4, 3, "CS2")
+    nw.rect(7, 11, 5, 11, "S")
+    nw.rect(8, 12, 3, 9, "C2")
+    nw.line(8, 12, 10, 12, "C3")
+    nw.rect(7, 26, 5, 9, "S")
+    nw.rect(8, 27, 3, 7, "C2")
+    nw.rect(24, 20, 5, 11, "S")
+    nw.rect(25, 21, 3, 9, "C2")
+    nw.save_png(os.path.join(sprites_dir, "prop_wall_corner_nw.png"))
+    _mirror_canvas_h(nw).save_png(os.path.join(sprites_dir, "prop_wall_corner_ne.png"))
+
+    # SW Corner (vertical from top y=0 bending right to x=35)
+    sw = PixelCanvas(36, 36)
+    sw.rect(0, 0, 2, 35, (14, 15, 22, 110))
+    sw.rect(1, 33, 35, 3, (14, 15, 22, 110))
+    # Continuous wrapping exterior stone wall face (left vertical x=2..9 curving cleanly along front y=15..32)
+    _draw_stone_masonry_rect(sw, 2, 0, 8, 32, seed=221, row_h=4, blk_w=6, moss=True)
+    _draw_stone_masonry_rect(sw, 9, 15, 27, 17, seed=222, row_h=4, blk_w=8, moss=True)
+    # Quoin stone corner emphasis + base plinth wrap
+    for qy in (16, 22, 28):
+        sw.rect(3, qy, 5, 3, "C2")
+    sw.rect(2, 31, 34, 3, "CS")
+    sw.line(2, 31, 35, 31, "C1")
+    sw.line(2, 33, 35, 33, "S")
+    sw.line(2, 0, 2, 33, "S")
+    # Bending chemin-de-ronde walkway: V band (x=11..24, y=0..14) turning 90 deg right into H band (x=11..35, y=9..14)
+    sw.rect(11, 0, 14, 15, "C1")
+    sw.rect(11, 9, 25, 6, "C1")
+    sw.rect(12, 0, 12, 14, "CS2")
+    sw.rect(12, 10, 24, 4, "CS2")
+    for sy in (0, 8):
+        sw.line(12, sy, 23, sy, "C0")
+    for sx in (18, 26, 34):
+        sw.line(sx, 10, sx, 13, "C0")
+    sw.line(12, 0, 12, 13, "C2")
+    sw.line(12, 13, 35, 13, "C2")
+    sw.line(10, 0, 10, 14, "C0")
+    sw.line(10, 14, 35, 14, "S")
+    # Outer left vertical merlons + inner corner merlons turning continuously
+    sw.rect(7, 2, 5, 11, "S")
+    sw.rect(8, 3, 3, 9, "C2")
+    sw.line(8, 3, 10, 3, "C3")
+    sw.rect(24, 1, 11, 8, "S")
+    _draw_stone_masonry_rect(sw, 25, 2, 9, 6, seed=225, row_h=3, blk_w=5, moss=False)
+    sw.line(25, 1, 34, 1, "C3")
+    sw.rect(24, 0, 5, 9, "S")
+    sw.rect(25, 1, 3, 7, "C2")
+    sw.line(25, 0, 25, 9, "C0")
+    sw.save_png(os.path.join(sprites_dir, "prop_wall_corner_sw.png"))
+    _mirror_canvas_h(sw).save_png(os.path.join(sprites_dir, "prop_wall_corner_se.png"))
+
+
 def make_louvain_assets(sprites_dir: str) -> None:
     make_louvain_tiles(sprites_dir)
     make_bldg_louvain_stadhuis(sprites_dir)
     make_bldg_louvain_st_peters(sprites_dir)
     make_bldg_louvain_lakenhalle(sprites_dir)
     make_louvain_gates_and_props(sprites_dir)
+    make_louvain_wall_corners(sprites_dir)

@@ -14,7 +14,7 @@ const CAMPFIRE_POS := Vector2(960, 680)
 const VENT_POS := Vector2(1378, 554)
 const GATE_RECT := Rect2(1352, 646, 52, 128)
 const LEVER_POS := Vector2(1414, 622)
-const VENT_CRAWL_DUR := 1.35
+const VENT_CRAWL_DUR := 3.10
 const BRIAR_POS := Vector2(1078, 860)
 const CACHE_POS := Vector2(1078, 924)
 const GOLD_RELIC_POS := Vector2(590, 392)
@@ -295,7 +295,7 @@ func step_region(delta: float) -> void:
 			SoundManager.play_door()
 			_spawn_fx(LEVER_POS, Color(0.98, 0.84, 0.36), 14)
 			_spawn_fx(GATE_RECT.get_center(), Color(0.76, 0.92, 0.64), 14)
-	gate_open_anim = move_toward(gate_open_anim, 1.0 if _vent_lever_tripped else 0.0, delta * 2.6)
+	gate_open_anim = move_toward(gate_open_anim, 1.0 if _vent_lever_tripped else 0.0, delta * 1.5)
 	if GameState.brabant_hatched and GameState.companion_posture == "sling" and not GameState.brabant_sling_practiced:
 		GameState.brabant_sling_practiced = true
 		_sync_hint_context()

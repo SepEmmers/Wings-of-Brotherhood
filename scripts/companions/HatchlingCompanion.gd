@@ -279,11 +279,11 @@ func _update_follow_movement(delta: float) -> void:
 		is_moving = false
 		_idle_t += delta * 2.0
 	elif dist > 10.0:
-		var spd := clampf(dist * 5.2, 95.0, 265.0)
+		var spd := clampf(dist * 4.6, 86.0, 195.0)
 		global_position += diff.normalized() * minf(dist, spd * delta)
 		facing = diff.normalized()
 		is_moving = true
-		walk_phase += delta * 11.5
+		walk_phase += delta * 8.5
 	else:
 		is_moving = false
 		_idle_t += delta * 2.0

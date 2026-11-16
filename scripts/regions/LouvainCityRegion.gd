@@ -18,7 +18,7 @@ const NPC_MARTIJN_POS := Vector2(394, 1296)
 const NPC_KATELIJNE_POS := Vector2(360, 1554)
 const ABBEY_BRAZIERS: Array[Vector2] = [Vector2(1386, 608), Vector2(1462, 608)]
 const ABBEY_LEVER_POS := MapData.ABBEY_LEVER_POS
-const ABBEY_VENT_CRAWL_DUR := 1.25
+const ABBEY_VENT_CRAWL_DUR := 3.40
 
 var static_colliders: Array[Rect2] = []
 var sight_blockers: Array[Rect2] = []
@@ -189,7 +189,7 @@ func step_region(delta: float) -> void:
 			SoundManager.play_door()
 			_spawn_sparks(ABBEY_LEVER_POS, Color(0.98, 0.84, 0.36), 14)
 			_spawn_sparks(MapData.ABBEY_GATE_RECT.get_center(), Color(0.76, 0.92, 0.64), 14)
-	abbey_gate_open_anim = move_toward(abbey_gate_open_anim, 1.0 if _abbey_lever_tripped else 0.0, delta * 2.6)
+	abbey_gate_open_anim = move_toward(abbey_gate_open_anim, 1.0 if _abbey_lever_tripped else 0.0, delta * 1.5)
 
 	if not GameState.louvain_breakout_won and breakout_enemies.is_empty():
 		var spotted := _step_patrols(delta)

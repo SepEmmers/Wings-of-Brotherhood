@@ -11,7 +11,7 @@ const WORLD_SIZE := Vector2(2100, 2100)
 const CENTER := Vector2(1050, 1050)
 
 const WEST_ENTRY_SPAWN := Vector2(226, 1040)
-const ABBEY_GATE_RECT := Rect2(1296, 738, 84, 34)
+const ABBEY_GATE_RECT := Rect2(1296, 736, 84, 36)
 const ABBEY_VENT_POS := Vector2(1476, 754)
 const ABBEY_LEVER_POS := Vector2(1386, 718)
 const ARCHIVE_DESK_POS := Vector2(1424, 622)
@@ -109,8 +109,8 @@ static func get_buildings() -> Array[Dictionary]:
 		{"tex": "city_bakery_5a.png",         "rect": Rect2(580, 540, 156, 134)},
 		{"tex": "city_house_4a.png",          "rect": Rect2(1524, 1556, 152, 128)},
 		{"tex": "city_house_4b.png",          "rect": Rect2(836, 224, 148, 126)},
-		{"tex": "city_manor_7a.png",          "rect": Rect2(1118, 218, 200, 150)},
-		{"tex": "city_cottage_4c.png",        "rect": Rect2(1338, 240, 142, 122)},
+		{"tex": "city_manor_7a.png",          "rect": Rect2(1098, 218, 198, 150)},
+		{"tex": "city_cottage_4c.png",        "rect": Rect2(812, 1732, 148, 124)},
 
 		# West Entry Row (inside Brusselsepoort west of Dijle)
 		{"tex": "city_house_4b.png",          "rect": Rect2(262, 540, 150, 126)},
@@ -121,7 +121,7 @@ static func get_buildings() -> Array[Dictionary]:
 		{"tex": "city_louvain_dyer_5b.png",   "rect": Rect2(228, 1384, 168, 138)},
 
 		# NE Chapter Cloister & Scriptorium Sanctuary
-		{"tex": "bldg_bruges_cathedral.png",  "rect": Rect2(1306, 290, 214, 178)},
+		{"tex": "bldg_bruges_cathedral.png",  "rect": Rect2(1312, 244, 214, 178)},
 		{"tex": "bldg_beguinage_court.png",   "rect": Rect2(1618, 490, 188, 154)},
 
 		# East Tiensestraat University & Catchpole Garrison Quarter
@@ -220,10 +220,10 @@ static func get_wall_towers() -> Array[Vector2]:
 
 static func get_poorts() -> Array[Dictionary]:
 	return [
-		{"tex": "prop_louvain_poort_v.png", "rect": Rect2(104, 962, 82, 156)},   # Brusselsepoort (West)
+		{"tex": "prop_louvain_poort_v.png", "rect": Rect2(96, 944, 116, 192)},   # Brusselsepoort (West open road span)
 		{"tex": "prop_louvain_poort_h.png", "rect": Rect2(966, 1910, 168, 92)},  # Naamsepoort (South)
 		{"tex": "prop_louvain_poort_h.png", "rect": Rect2(966, 98, 168, 92)},    # Mechelsepoort (North)
-		{"tex": "prop_louvain_poort_v.png", "rect": Rect2(1914, 962, 82, 156)},  # Tiensepoort (East)
+		{"tex": "prop_louvain_poort_v.png", "rect": Rect2(1888, 944, 116, 192)}, # Tiensepoort (East open road span)
 	]
 
 
@@ -255,12 +255,11 @@ static func get_diagonal_wall_steps() -> Array[Rect2]:
 
 static func get_abbey_walls() -> Array[Rect2]:
 	return [
-		Rect2(1240, 472, 32, 300),     # Cloister West Wall
-		Rect2(1582, 472, 32, 300),     # Cloister East Wall
-		Rect2(1240, 738, 56, 34),      # South Cloister Spur W
-		Rect2(1380, 738, 68, 34),      # Mid Cloister Wall (gate -> drain gap)
-		Rect2(1448, 738, 56, 34),      # Iron Drain Grate Masonry (blocks humans, open to hatchling)
-		Rect2(1504, 738, 110, 34),     # South Cloister Spur E
+		Rect2(1240, 438, 376, 36),     # Full continuous North Cloister Wall (seals top edge completely)
+		Rect2(1240, 474, 36, 298),     # Cloister West Wall + SW corner
+		Rect2(1580, 474, 36, 298),     # Cloister East Wall + SE corner
+		Rect2(1276, 736, 20, 36),      # South Cloister Spur W (between SW corner & gate)
+		Rect2(1380, 736, 200, 36),     # South Cloister Mid/East Wall (embedded Drain Grate at x=1476)
 	]
 
 
@@ -270,6 +269,11 @@ static func get_static_colliders() -> Array[Rect2]:
 		Rect2(WORLD_SIZE.x, 0, 24, WORLD_SIZE.y),
 		Rect2(0, -24, WORLD_SIZE.x, 24),
 		Rect2(0, WORLD_SIZE.y, WORLD_SIZE.x, 24),
+		# Brusselsepoort & Naamsepoort flanking bastion piers (keeping roadway open)
+		Rect2(112, 954, 76, 42),
+		Rect2(112, 1084, 76, 44),
+		Rect2(966, 1924, 36, 60),
+		Rect2(1098, 1924, 36, 60),
 		# Sealed North Mechelsepoort & East Tiensepoort thresholds
 		Rect2(980, 128, 140, 36),
 		Rect2(1936, 980, 36, 120),

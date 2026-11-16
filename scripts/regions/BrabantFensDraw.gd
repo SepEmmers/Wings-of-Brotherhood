@@ -323,25 +323,29 @@ static func _draw_sluice_gate_and_vent(r, assets, cam_rect: Rect2, t_now: float)
 	# Animated soot-black Hatchling sneaking through culvert -> flipping inside lever -> darting back
 	if float(r.get("vent_crawl_t")) > 0.0:
 		var prog := 1.0 - clampf(float(r.get("vent_crawl_t")) / float(r.VENT_CRAWL_DUR), 0.0, 1.0)
-		var step_i := int(t_now * 14.0) % 2
+		var step_i := int(t_now * 7.5) % 2
 		var dpos := vent_pos
 		var dkey := "side"
 		var flip_d := false
 		var in_tunnel := false
-		if prog < 0.22:
-			dpos = Vector2(1322, 558).lerp(Vector2(1354, 554), prog / 0.22)
-		elif prog < 0.46:
+		if prog < 0.16:
+			dpos = Vector2(1322, 558).lerp(Vector2(1354, 554), prog / 0.16)
+		elif prog < 0.42:
 			in_tunnel = true
-			dpos = Vector2(1354, 554).lerp(Vector2(1414, 554), (prog - 0.22) / 0.24)
-		elif prog < 0.72:
+			dpos = Vector2(1354, 554).lerp(Vector2(1414, 554), (prog - 0.16) / 0.26)
+		elif prog < 0.66:
 			dkey = "down"
-			dpos = Vector2(1416, 554).lerp(lever_pos + Vector2(2, 0), (prog - 0.46) / 0.26)
-		elif prog < 0.84:
+			dpos = Vector2(1416, 554).lerp(lever_pos + Vector2(2, 0), (prog - 0.42) / 0.24)
+		elif prog < 0.74:
 			dkey = "down"
-			dpos = (lever_pos + Vector2(2, 0)).lerp(Vector2(1414, 702), (prog - 0.72) / 0.12)
+			step_i = 0
+			dpos = lever_pos + Vector2(2, 0)
+		elif prog < 0.88:
+			dkey = "down"
+			dpos = (lever_pos + Vector2(2, 0)).lerp(Vector2(1414, 702), (prog - 0.74) / 0.14)
 		else:
 			flip_d = true
-			dpos = Vector2(1414, 702).lerp(Vector2(1332, 704), (prog - 0.84) / 0.16)
+			dpos = Vector2(1414, 702).lerp(Vector2(1332, 704), (prog - 0.88) / 0.12)
 		if in_tunnel:
 			r.draw_circle(dpos, 7.0, Color(0.10, 0.10, 0.12, 0.86))
 			r.draw_circle(dpos + Vector2(2, -2), 1.8, Color(0.98, 0.84, 0.34, 0.92))

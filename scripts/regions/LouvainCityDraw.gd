@@ -7,7 +7,7 @@ extends RefCounted
 const MapData := preload("res://scripts/regions/LouvainCityMapData.gd")
 
 const CITIZEN_STILL_RADIUS := 42.0
-const ABBEY_VENT_CRAWL_DUR := 1.25
+const ABBEY_VENT_CRAWL_DUR := 3.40
 
 
 static func setup_layers(r) -> void:
@@ -223,9 +223,35 @@ static func _draw_city_ramparts(r, assets, cam_rect: Rect2) -> void:
 			])
 			r.draw_colored_polygon(mrect, Color(0.32, 0.29, 0.28))
 
-	for aw: Rect2 in MapData.get_abbey_walls():
-		if cam_rect.intersects(aw.grow(24.0)):
-			_draw_wall_tiled(r, aw, wall_h, wall_v)
+	_draw_cloister_enclosure(r, assets, wall_h, wall_v, cam_rect)
+
+
+static func _draw_cloister_enclosure(r: Node2D, assets, wall_h: Texture2D, wall_v: Texture2D, cam_rect: Rect2) -> void:
+	var cloister_bounds := Rect2(1240, 438, 376, 334).grow(32.0)
+	if not cam_rect.intersects(cloister_bounds):
+		return
+	# Straight wall spans strictly between the four 36x36 mitered stone corners
+	for hr: Rect2 in [
+		Rect2(1276, 438, 304, 36),
+		Rect2(1276, 736, 20, 36),
+		Rect2(1380, 736, 200, 36),
+	]:
+		_draw_wall_tiled(r, hr, wall_h, wall_v)
+	for vr: Rect2 in [
+		Rect2(1240, 474, 36, 262),
+		Rect2(1580, 474, 36, 262),
+	]:
+		_draw_wall_tiled(r, vr, wall_h, wall_v)
+	# Continuous 90-degree bending ashlar & parapet corners
+	for c_spec: Dictionary in [
+		{"tex": "prop_wall_corner_nw.png", "pos": Vector2(1240, 438)},
+		{"tex": "prop_wall_corner_ne.png", "pos": Vector2(1580, 438)},
+		{"tex": "prop_wall_corner_sw.png", "pos": Vector2(1240, 736)},
+		{"tex": "prop_wall_corner_se.png", "pos": Vector2(1580, 736)},
+	]:
+		var ctex: Texture2D = assets.get_tex(String(c_spec["tex"]))
+		if ctex != null:
+			r.draw_texture_rect(ctex, Rect2(Vector2(c_spec["pos"]), Vector2(36, 36)), false)
 
 
 static func _draw_abbey_gate_and_vent(r, assets, t_now: float, cam_rect: Rect2) -> void:
@@ -263,24 +289,29 @@ static func _draw_abbey_gate_and_vent(r, assets, t_now: float, cam_rect: Rect2) 
 
 	if float(r.get("abbey_vent_crawl_t")) > 0.0:
 		var prog := 1.0 - clampf(float(r.get("abbey_vent_crawl_t")) / ABBEY_VENT_CRAWL_DUR, 0.0, 1.0)
-		var step_i := int(t_now * 14.0) % 2
+		var step_i := int(t_now * 7.5) % 2
 		var vp: Vector2 = MapData.ABBEY_VENT_POS
+		var lever_walk := MapData.ABBEY_LEVER_POS + Vector2(6, 4)
 		var dp := vp
 		var dkey := "up"
 		var flip_d := false
 		var in_t := false
-		if prog < 0.22:
-			dp = (vp + Vector2(0, 32)).lerp(vp + Vector2(0, 8), prog / 0.22)
-		elif prog < 0.44:
+		if prog < 0.16:
+			dp = (vp + Vector2(0, 28)).lerp(vp + Vector2(0, 8), prog / 0.16)
+		elif prog < 0.42:
 			in_t = true
-			dp = (vp + Vector2(0, 8)).lerp(vp + Vector2(0, -28), (prog - 0.22) / 0.22)
-		elif prog < 0.72:
+			dp = (vp + Vector2(0, 8)).lerp(vp + Vector2(0, -28), (prog - 0.16) / 0.26)
+		elif prog < 0.70:
 			dkey = "side"
 			flip_d = true
-			dp = (vp + Vector2(0, -28)).lerp(MapData.ABBEY_LEVER_POS, (prog - 0.44) / 0.28)
+			dp = (vp + Vector2(0, -28)).lerp(lever_walk, (prog - 0.42) / 0.28)
+		elif prog < 0.78:
+			dkey = "down"
+			step_i = 0
+			dp = lever_walk
 		else:
 			dkey = "down"
-			dp = MapData.ABBEY_LEVER_POS.lerp(Vector2(1338, 792), (prog - 0.72) / 0.28)
+			dp = lever_walk.lerp(Vector2(1338, 792), (prog - 0.78) / 0.22)
 		if in_t:
 			r.draw_circle(dp, 7.0, Color(0.10, 0.10, 0.12, 0.86))
 			r.draw_circle(dp + Vector2(0, -2), 1.8, Color(0.98, 0.84, 0.34, 0.92))
@@ -300,7 +331,7 @@ static func _collect_architecture_and_props(_r, _assets, _t_now: float, cam_rect
 	for po: Dictionary in MapData.get_poorts():
 		var pr: Rect2 = po["rect"]
 		var tex_s := String(po["tex"])
-		var dr := Rect2(pr.position.x, pr.end.y - 124.0, 168.0, 124.0) if tex_s == "prop_louvain_poort_h.png" else Rect2(pr.position.x - 17.0, pr.position.y, 116.0, 156.0)
+		var dr := Rect2(pr.position.x, pr.end.y - 124.0, 168.0, 124.0) if tex_s == "prop_louvain_poort_h.png" else pr
 		if cam_rect.intersects(dr.grow(20.0)):
 			out.append({"kind": "tex", "tex": tex_s, "rect": dr, "y": dr.end.y})
 
@@ -472,11 +503,20 @@ static func _draw_foreground(r, fg: Node2D) -> void:
 	for po: Dictionary in MapData.get_poorts():
 		var pr: Rect2 = po["rect"]
 		var tex_s := String(po["tex"])
-		var dr := Rect2(pr.position.x, pr.end.y - 124.0, 168.0, 124.0) if tex_s == "prop_louvain_poort_h.png" else Rect2(pr.position.x - 17.0, pr.position.y, 116.0, 156.0)
-		if cam_rect.intersects(dr.grow(20.0)):
-			var ptex: Texture2D = assets.get_tex(tex_s)
-			if ptex != null:
-				r.draw_building_roof_overhang(fg, dr, ptex, 0.48)
+		var ptex: Texture2D = assets.get_tex(tex_s)
+		if ptex == null:
+			continue
+		if tex_s == "prop_louvain_poort_h.png":
+			var dr := Rect2(pr.position.x, pr.end.y - 124.0, 168.0, 124.0)
+			if cam_rect.intersects(dr.grow(20.0)):
+				r.draw_building_roof_overhang(fg, dr, ptex, 0.56)
+		elif cam_rect.intersects(pr.grow(20.0)):
+			r.draw_building_roof_overhang(fg, pr, ptex, 0.42)
+			# South flanking bastion crest when player walks just behind south turret
+			if r.player != null and r.player.visible and r.player.position.x >= pr.position.x - 16.0 and r.player.position.x <= pr.end.x + 16.0 and r.player.position.y >= pr.position.y + pr.size.y * 0.56 and r.player.position.y <= pr.end.y - 6.0:
+				var tw := float(ptex.get_width())
+				var th := float(ptex.get_height())
+				fg.draw_texture_rect_region(ptex, Rect2(pr.position.x, pr.position.y + pr.size.y * 0.72, pr.size.x, pr.size.y * 0.28), Rect2(0.0, th * 0.72, tw, th * 0.28))
 	for tp: Vector2 in MapData.get_wall_towers():
 		var trect := Rect2(tp.x - 44.0, tp.y - 68.0, 88.0, 104.0)
 		if cam_rect.intersects(trect.grow(16.0)):

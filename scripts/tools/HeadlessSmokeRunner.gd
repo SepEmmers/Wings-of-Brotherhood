@@ -298,7 +298,7 @@ func _verify_book2_systems() -> bool:
 	if not main.active_region.on_dragon_command(Vector2(1378, 565), Vector2(1378, 554), Vector2.UP, 1) or not GameState.brabant_vent_unlocked or main.active_region.get_last_dragon_command_kind() != "vent_crawl":
 		_fail("BrabantFens Hatchling Vent Crawl did not trigger cleanly without fireball.")
 		return false
-	for _v in range(7):
+	for _v in range(14):
 		main.active_region.step_region(0.25)
 	if float(main.active_region.get("gate_open_anim")) <= 0.1:
 		_fail("BrabantFens sluice portcullis gate did not animate open after inside lever pull.")
@@ -318,6 +318,10 @@ func _verify_book2_systems() -> bool:
 	if main.camera.position.distance_to(main.player.position) > 2.0:
 		_fail("LouvainCity camera remained stuck instead of following player.")
 		return false
+	for top_x: float in [1258.0, 1340.0, 1424.0, 1510.0, 1596.0]:
+		if main.active_region.has_clear_line(Vector2(top_x, 410), Vector2(top_x, 510), main.active_region.static_colliders, 6.0):
+			_fail("Louvain Abbey Cloister north perimeter has an open bypass gap at x=%s." % str(top_x))
+			return false
 	if not main.active_region.on_dragon_command(Vector2(1476, 770), Vector2(1476, 754), Vector2.UP, 1) or not GameState.louvain_vent_opened or main.active_region.get_last_dragon_command_kind() != "vent_crawl":
 		_fail("Louvain Abbey Vent Crawl did not trigger cleanly without fireball.")
 		return false

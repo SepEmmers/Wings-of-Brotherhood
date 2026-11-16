@@ -171,5 +171,5 @@ func _setup_louvain_lakenhalle() -> void:
 
 
 func _setup_louvain_cloister() -> void:
-	main.player.position = Vector2(1424, 684)
-	main.companion.global_position = Vector2(1396, 694)
+	main.player.position = Vector2(1424, 616)
+	main.companion.global_position = Vector2(1396, 628)
