@@ -313,21 +313,21 @@ func _verify_book2_systems() -> bool:
 		_fail("BrabantFens Hatchling Ember Puff did not burn fen briars after feeding.")
 		return false
 	main._playtest_jump_to("book2_louvain_abbey")
-	main.player.position = Vector2(1820, 820)
+	main.player.position = Vector2(1050, 960)
 	main.active_region.step_region(0.1)
 	if main.camera.position.distance_to(main.player.position) > 2.0:
 		_fail("LouvainCity camera remained stuck instead of following player.")
 		return false
-	if not main.active_region.on_dragon_command(Vector2(2044, 730), Vector2(2044, 714), Vector2.UP, 1) or not GameState.louvain_vent_opened or main.active_region.get_last_dragon_command_kind() != "vent_crawl":
+	if not main.active_region.on_dragon_command(Vector2(1476, 770), Vector2(1476, 754), Vector2.UP, 1) or not GameState.louvain_vent_opened or main.active_region.get_last_dragon_command_kind() != "vent_crawl":
 		_fail("Louvain Abbey Vent Crawl did not trigger cleanly without fireball.")
 		return false
-	if not main.active_region.on_dragon_command(Vector2(1788, 512), Vector2(1788, 496), Vector2.UP, 1) or not GameState.louvain_brazier_lit or main.active_region.get_last_dragon_command_kind() != "ember_puff":
+	if not main.active_region.on_dragon_command(Vector2(1386, 622), Vector2(1386, 608), Vector2.UP, 1) or not GameState.louvain_brazier_lit or main.active_region.get_last_dragon_command_kind() != "ember_puff":
 		_fail("Louvain Scriptorium Ember Puff did not light abbey braziers.")
 		return false
 	# Verify segment-based rope ensnaring & checkpoint Retry restoring gate/state
 	main.active_region._spawn_abbey_breakout()
-	main.player.position = Vector2(1748, 860)
-	main.active_region.on_rope_cast_hit(Vector2(1748, 680), "bowline")
+	main.player.position = Vector2(1276, 860)
+	main.active_region.on_rope_cast_hit(Vector2(1276, 700), "bowline")
 	if float(main.active_region.breakout_enemies[0].get("snared_t", 0.0)) <= 0.0:
 		_fail("Louvain Bowline rope cast did not snare enemy along cast segment.")
 		return false

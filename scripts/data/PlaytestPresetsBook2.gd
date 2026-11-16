@@ -95,7 +95,7 @@ static func apply_preset(scene_id: String, unlock_post_sanctuary: Callable) -> D
 			GameState.current_step = GameState.QuestStep.BOOK2_LOUVAIN_HATCH
 			GameState.add_item("Bronze Resonance Chime")
 			GameState.add_item("Smoke-Pellet")
-			return {"region": "louvain", "params": {"spawn": Vector2(160, 880), "facing": Vector2.RIGHT}}
+			return {"region": "louvain", "params": {"spawn": Vector2(226, 1040), "facing": Vector2.RIGHT}}
 		"book2_louvain_abbey":
 			unlock_post_sanctuary.call(true, true)
 			GameState.reset_book2_state(true)
@@ -114,5 +114,5 @@ static func apply_preset(scene_id: String, unlock_post_sanctuary: Callable) -> D
 			GameState.current_step = GameState.QuestStep.BOOK2_LOUVAIN_HATCH
 			GameState.add_item("Bronze Resonance Chime")
 			GameState.add_item("Smoke-Pellet")
-			return {"region": "louvain", "params": {"spawn": Vector2(2044, 764), "facing": Vector2.UP}}
+			return {"region": "louvain", "params": {"spawn": Vector2(1476, 794), "facing": Vector2.UP}}
 	return {}

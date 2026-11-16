@@ -38,8 +38,12 @@ func start(main_node) -> void:
 		{"id": "brabant_left", "preset": "book2_brabant_hatchling", "setup": Callable(self, "_setup_brabant_left")},
 		{"id": "brabant_dialogue", "preset": "book2_brabant_hatchling", "setup": Callable(self, "_setup_brabant_dialogue")},
 		{"id": "brabant_sluice", "preset": "book2_brabant_hatchling", "setup": Callable(self, "_setup_brabant_sluice")},
-		{"id": "louvain_center", "preset": "book2_louvain_city", "setup": Callable(self, "_setup_louvain_center")},
-		{"id": "louvain_abbey", "preset": "book2_louvain_abbey", "setup": Callable(self, "_setup_louvain_abbey")},
+		{"id": "louvain_west_gate", "preset": "book2_louvain_city", "setup": Callable(self, "_setup_louvain_west_gate")},
+		{"id": "louvain_vismarkt", "preset": "book2_louvain_city", "setup": Callable(self, "_setup_louvain_vismarkt")},
+		{"id": "louvain_grote_markt", "preset": "book2_louvain_city", "setup": Callable(self, "_setup_louvain_grote_markt")},
+		{"id": "louvain_stpeters", "preset": "book2_louvain_city", "setup": Callable(self, "_setup_louvain_stpeters")},
+		{"id": "louvain_lakenhalle", "preset": "book2_louvain_city", "setup": Callable(self, "_setup_louvain_lakenhalle")},
+		{"id": "louvain_cloister", "preset": "book2_louvain_abbey", "setup": Callable(self, "_setup_louvain_cloister")},
 	]
 	var flt := _get_filter()
 	_shots.clear()
@@ -141,11 +145,31 @@ func _setup_brabant_sluice() -> void:
 	main.companion.global_position = Vector2(1284, 616)
 
 
-func _setup_louvain_center() -> void:
-	main.player.position = Vector2(980, 780)
-	main.companion.global_position = Vector2(950, 790)
+func _setup_louvain_west_gate() -> void:
+	main.player.position = Vector2(226, 1040)
+	main.companion.global_position = Vector2(246, 1054)
 
 
-func _setup_louvain_abbey() -> void:
-	main.player.position = Vector2(1890, 670)
-	main.companion.global_position = Vector2(1860, 678)
+func _setup_louvain_vismarkt() -> void:
+	main.player.position = Vector2(624, 886)
+	main.companion.global_position = Vector2(598, 898)
+
+
+func _setup_louvain_grote_markt() -> void:
+	main.player.position = Vector2(1048, 998)
+	main.companion.global_position = Vector2(1018, 1006)
+
+
+func _setup_louvain_stpeters() -> void:
+	main.player.position = Vector2(1040, 742)
+	main.companion.global_position = Vector2(1012, 750)
+
+
+func _setup_louvain_lakenhalle() -> void:
+	main.player.position = Vector2(780, 1388)
+	main.companion.global_position = Vector2(752, 1396)
+
+
+func _setup_louvain_cloister() -> void:
+	main.player.position = Vector2(1424, 684)
+	main.companion.global_position = Vector2(1396, 694)

@@ -602,7 +602,7 @@ func _on_enter_louvain() -> void:
 		if GameState.brabant_vent_unlocked and not _sling_gate_warned:
 			_trigger_louvain_sling_threshold()
 		return
-	director.load_region("louvain", {"spawn": Vector2(118, 880), "facing": Vector2.RIGHT})
+	director.load_region("louvain", {"spawn": Vector2(226, 1040), "facing": Vector2.RIGHT})
 
 
 func is_portal_unlocked(id: String) -> bool:

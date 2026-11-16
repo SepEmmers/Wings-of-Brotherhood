@@ -10,12 +10,14 @@ const DrawHelper := preload("res://scripts/regions/LouvainCityDraw.gd")
 const CityHeatHelperScript := preload("res://scripts/systems/CityHeatHelper.gd")
 const PlayerCombatHelperScript := preload("res://scripts/systems/PlayerCombatHelper.gd")
 
-const NPC_PIETER_POS := Vector2(380, 412)
-const NPC_ALEIDIS_POS := Vector2(332, 1296)
-const NPC_MARTIJN_POS := Vector2(536, 1296)
-const NPC_KATELIJNE_POS := Vector2(1788, 1184)
-const ABBEY_BRAZIERS: Array[Vector2] = [Vector2(1788, 496), Vector2(1980, 496)]
-const ABBEY_LEVER_POS := Vector2(1896, 682)
+const NPC_PIETER_POS := Vector2(676, 492)
+const NPC_MASON_POS := Vector2(1196, 748)
+const NPC_SCHOLAR_POS := Vector2(862, 1372)
+const NPC_ALEIDIS_POS := Vector2(280, 1296)
+const NPC_MARTIJN_POS := Vector2(394, 1296)
+const NPC_KATELIJNE_POS := Vector2(360, 1554)
+const ABBEY_BRAZIERS: Array[Vector2] = [Vector2(1386, 608), Vector2(1462, 608)]
+const ABBEY_LEVER_POS := MapData.ABBEY_LEVER_POS
 const ABBEY_VENT_CRAWL_DUR := 1.25
 
 var static_colliders: Array[Rect2] = []
@@ -27,6 +29,7 @@ var abbey_lights: Array[PointLight2D] = []
 
 var heat_helper = CityHeatHelperScript.new()
 var patrols: Array[Dictionary] = []
+var ambient_citizens: Array[Dictionary] = []
 var breakout_enemies: Array[Dictionary] = []
 var enemy_bolts: Array[Dictionary] = []
 var fx_sparks: Array[Dictionary] = []
@@ -58,11 +61,8 @@ func _ready() -> void:
 	add_child(south_gate_body)
 	add_box_collider(south_gate_body, MapData.SOUTH_GATE_BARRICADE_RECT)
 
-	for lp: Vector2 in [
-		Vector2(380, 380), Vector2(980, 860), Vector2(1340, 560),
-		Vector2(360, 1240), Vector2(1780, 1140), Vector2(1844, 660),
-	]:
-		var pl: PointLight2D = assets.make_point_light(lp, 2.5, Color(1.0, 0.78, 0.44), 0.72)
+	for lp: Vector2 in MapData.get_lantern_positions():
+		var pl: PointLight2D = assets.make_point_light(lp + Vector2(0, -14), 2.3, Color(1.0, 0.78, 0.44), 0.72)
 		add_child(pl)
 		city_lights.append(pl)
 	for bz: Vector2 in ABBEY_BRAZIERS:
@@ -75,13 +75,15 @@ func _ready() -> void:
 	DrawHelper.setup_layers(self)
 	_build_interactables()
 	clear_walk_portals()
-	register_walk_portal("louvain_west_fens", Rect2(64, 816, 48, 128), Vector2.LEFT, _on_exit_west, "<- Brabant Fens", "BRABANT REED-FENS", "Mill Ruins & Dikes")
-	register_walk_portal("louvain_south_heverlee", Rect2(1136, 1734, 128, 66), Vector2.DOWN, _on_exit_south, "v Old Heverlee Woods", "OLD HEVERLEE TRAIL", "Hunters' Woods South")
+	register_walk_portal("louvain_west_fens", Rect2(60, 976, 52, 128), Vector2.LEFT, _on_exit_west, "<- Brabant Fens", "BRABANT REED-FENS", "Mill Ruins & Dikes")
+	register_walk_portal("louvain_south_heverlee", Rect2(986, 1986, 128, 70), Vector2.DOWN, _on_exit_south, "v Old Heverlee Woods", "OLD HEVERLEE TRAIL", "Hunters' Woods South")
 
 
 func _build_interactables() -> void:
 	interactables = [
 		{"id": "lv_pieter", "name": "Deaf Bell-Founder Pieter", "pos": NPC_PIETER_POS, "radius": 72.0, "callback": _on_interact_pieter},
+		{"id": "lv_mason", "name": "Master Mason Matthijs", "pos": NPC_MASON_POS, "radius": 68.0, "callback": _on_interact_mason},
+		{"id": "lv_scholar", "name": "University Beadle Hendrik", "pos": NPC_SCHOLAR_POS, "radius": 68.0, "callback": _on_interact_scholar},
 		{"id": "lv_winch", "name": "Foundry Bell Hoist ([F])", "pos": MapData.FOUNDRY_WINCH_POS, "radius": 70.0, "callback": func(): _repair_foundry_hoist()},
 		{"id": "lv_clay", "name": "Dijle River Clay Bank", "pos": MapData.CLAY_BANK_POS, "radius": 68.0, "callback": _on_interact_clay},
 		{"id": "lv_aleidis", "name": "Guildmistress Aleidis", "pos": NPC_ALEIDIS_POS, "radius": 72.0, "callback": _on_interact_aleidis},
@@ -120,8 +122,9 @@ func enter_region(opts: Dictionary = {}) -> void:
 
 	heat_helper.reset(MapData.get_wanted_posters())
 	patrols.assign(MapData.get_catchpole_patrols())
+	ambient_citizens.assign(MapData.get_ambient_citizens())
 
-	var spawn: Vector2 = opts.get("spawn", Vector2(150, 880))
+	var spawn: Vector2 = opts.get("spawn", MapData.WEST_ENTRY_SPAWN)
 	player.position = spawn
 	player.facing = opts.get("facing", Vector2.RIGHT)
 	if not bool(opts.get("_retry_restore", false)):
@@ -175,6 +178,7 @@ func handle_region_input(event: InputEvent) -> bool:
 func step_region(delta: float) -> void:
 	step_water_layer()
 	step_walk_portals(delta)
+	DrawHelper.step_citizens(ambient_citizens, player.position if player != null else Vector2.ZERO, delta)
 	_step_fx(delta)
 	if abbey_vent_crawl_t > 0.0:
 		abbey_vent_crawl_t = maxf(0.0, abbey_vent_crawl_t - delta)
@@ -198,7 +202,7 @@ func step_region(delta: float) -> void:
 		_step_breakout_enemies(delta)
 		_step_bolts(delta)
 
-	if GameState.louvain_archive_read and not GameState.louvain_breakout_won and breakout_enemies.is_empty() and player.position.y > 708.0 and player.position.x > 1640.0:
+	if GameState.louvain_archive_read and not GameState.louvain_breakout_won and breakout_enemies.is_empty() and player.position.y > 748.0 and player.position.x > 1248.0 and player.position.x < 1560.0:
 		_spawn_abbey_breakout()
 
 	if director != null and director.camera != null and player != null:
@@ -266,10 +270,10 @@ func _spawn_abbey_breakout() -> void:
 		return
 	_ambush_triggered = true
 	breakout_enemies.assign([
-		_make_foe("shield", Vector2(1748, 764), Vector2.RIGHT),
-		_make_foe("shield", Vector2(1930, 764), Vector2.LEFT),
-		_make_foe("arbalester", Vector2(1788, 860), Vector2.UP),
-		_make_foe("arbalester", Vector2(1912, 860), Vector2.UP),
+		_make_foe("shield", Vector2(1276, 782), Vector2.RIGHT),
+		_make_foe("shield", Vector2(1414, 782), Vector2.LEFT),
+		_make_foe("arbalester", Vector2(1306, 846), Vector2.UP),
+		_make_foe("arbalester", Vector2(1394, 846), Vector2.UP),
 	])
 	SoundManager.play_alert_horn()
 	ui.show_dialogue([
@@ -313,7 +317,7 @@ func _restore_checkpoint() -> void:
 		GameState.louvain_survivor_done = bool(_checkpoint_state.get("louvain_survivor_done", false))
 		GameState.resonance_chimes = int(_checkpoint_state.get("resonance_chimes", 0))
 		GameState.smoke_pellets = int(_checkpoint_state.get("smoke_pellets", 0))
-	var cp_spawn: Vector2 = _checkpoint_state.get("spawn", Vector2(150, 880))
+	var cp_spawn: Vector2 = _checkpoint_state.get("spawn", MapData.WEST_ENTRY_SPAWN)
 	var cp_dir: Vector2 = _checkpoint_state.get("facing", Vector2.RIGHT)
 	enter_region({"spawn": cp_spawn, "facing": cp_dir, "_retry_restore": true})
 
@@ -508,7 +512,7 @@ func get_vent_crawl_duration() -> float:
 
 
 func get_vent_return_pos() -> Vector2:
-	return Vector2(1844, 756)
+	return Vector2(1338, 792)
 
 
 func on_dragon_command(origin: Vector2, target_pos: Vector2, _aim: Vector2, _stage: int) -> bool:
@@ -669,6 +673,14 @@ func _on_read_south_sign() -> void:
 	ui.show_dialogue([{"speaker": "South Post Sign", "portrait": "portrait_baker.png", "text": "\"OLD HEVERLEE WOODS & ABBEY FOREST TRAIL — 3 LEAGUES SOUTH.\""}])
 
 
+func _on_interact_mason() -> void:
+	ui.show_dialogue([{"speaker": "Master Mason Matthijs", "portrait": "portrait_uncle.png", "text": "Brussels brags their belfry spire will scrape the clouds, while St. Peter's timber crane creaks for lack of white Brabant ashlar stone! Wait until Louvain raises three spires higher—and our new Town Hall joins the square."}])
+
+
+func _on_interact_scholar() -> void:
+	ui.show_dialogue([{"speaker": "Beadle Hendrik", "portrait": "portrait_watchman.png", "text": "Mind the cobbles beneath De Lakenhalle's arches, lad—the Duke's new 1425 University masters lodge upstairs above the Cloth Hall looms, and Catchpoles have been questioning every clerk carrying Latin ink."}])
+
+
 func _on_exit_west() -> void:
 	director.load_region("brabant_fens", {"spawn": Vector2(2040, 710), "facing": Vector2.LEFT, "hatched_state": true})
 
@@ -719,7 +731,7 @@ func _sync_hint_context() -> void:
 		director.companion.set_hint_context(
 			"lv_shields",
 			["Tower shields shrug off short dock knives straight on—heavy tarred hemp snatches oak shields right off their wrists!"],
-			Vector2(1830, 780),
+			Vector2(1344, 800),
 			24.0
 		)
 	else:
