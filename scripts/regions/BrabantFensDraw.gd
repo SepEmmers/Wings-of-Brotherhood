@@ -267,9 +267,9 @@ static func _draw_foreground(r, fg: Node2D) -> void:
 	var ctex: Texture2D = assets.get_tex("bldg_covert_cottage.png")
 	if ctex != null and cam_rect.intersects(r.MILL_COTTAGE_RECT.grow(24.0)):
 		r.draw_building_roof_overhang(fg, r.MILL_COTTAGE_RECT, ctex, 0.44)
-	var arch_v: Texture2D = assets.get_tex("prop_gatehouse_arch_v.png")
-	if arch_v != null and cam_rect.intersects(r.GATE_RECT.grow(40.0)):
-		fg.draw_texture_rect(arch_v, Rect2(r.GATE_RECT.position.x - 6.0, r.GATE_RECT.position.y + 8.0, r.GATE_RECT.size.x + 12.0, r.GATE_RECT.size.y - 16.0), false)
+	if cam_rect.intersects(r.GATE_RECT.grow(40.0)):
+		fg.draw_rect(Rect2(r.GATE_RECT.position.x - 4.0, r.GATE_RECT.position.y - 4.0, r.GATE_RECT.size.x + 8.0, 12.0), Color(0.32, 0.31, 0.34))
+		fg.draw_rect(Rect2(r.GATE_RECT.position.x - 4.0, r.GATE_RECT.position.y - 4.0, r.GATE_RECT.size.x + 8.0, 12.0), Color(0.16, 0.15, 0.18), false, 1.5)
 	r._draw_portal_hints(fg)
 	_draw_integrated_prompts(r, fg)
 
@@ -289,11 +289,13 @@ static func _draw_sluice_gate_and_vent(r, assets, cam_rect: Rect2, t_now: float)
 		var open_k := clampf(float(r.gate_open_anim), 0.0, 1.0)
 		var bar_h := lerpf(gate_r.size.y, 18.0, open_k)
 		var curr_gate := Rect2(gate_r.position.x, gate_r.position.y, gate_r.size.x, bar_h)
-		r.draw_rect(curr_gate, Color(0.11, 0.12, 0.15, 0.82 * (1.0 - open_k * 0.5)))
-		for bx in range(int(gate_r.position.x + 8), int(gate_r.end.x - 4), 12):
-			r.draw_line(Vector2(bx, curr_gate.position.y), Vector2(bx, curr_gate.end.y), Color(0.46, 0.48, 0.54), 3.0)
-			r.draw_line(Vector2(bx + 1, curr_gate.end.y - 3.0), Vector2(bx + 1, curr_gate.end.y + 3.0), Color(0.26, 0.28, 0.32), 2.0)
-		r.draw_line(Vector2(curr_gate.position.x + 2, curr_gate.end.y - 4.0), Vector2(curr_gate.end.x - 2, curr_gate.end.y - 4.0), Color(0.32, 0.30, 0.28), 4.0)
+		r.draw_rect(curr_gate, Color(0.08, 0.09, 0.11, 0.45 * (1.0 - open_k)))
+		for bx in range(int(gate_r.position.x + 8), int(gate_r.end.x - 4), 11):
+			r.draw_line(Vector2(bx, curr_gate.position.y), Vector2(bx, curr_gate.end.y), Color(0.54, 0.56, 0.62), 3.0)
+			r.draw_line(Vector2(bx + 1, curr_gate.end.y - 3.0), Vector2(bx + 1, curr_gate.end.y + 3.0), Color(0.24, 0.26, 0.30), 2.0)
+		for row_y in [curr_gate.position.y + bar_h * 0.35, curr_gate.end.y - 6.0]:
+			if row_y > curr_gate.position.y + 4.0:
+				r.draw_line(Vector2(curr_gate.position.x + 2, row_y), Vector2(curr_gate.end.x - 2, row_y), Color(0.38, 0.36, 0.32), 4.0)
 
 		# Visible inside gate latch lever bolted on the EAST (far) masonry face
 		var tripped: bool = open_k > 0.25 or bool(r.get("_vent_lever_tripped"))

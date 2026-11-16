@@ -1,6 +1,7 @@
 # Godot 4 cache & local engine binary
 .godot/
 tools/godot/
+tools/audit_shots/
 tools/*.log
 books/
 __pycache__/

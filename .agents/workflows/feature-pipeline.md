@@ -12,6 +12,6 @@ Follow this 4-stage pipeline for every new quest, scene, dragon, or visual upgra
 3. **Stage 3 — Godot 4 Implementation:**
    - Wire quest/state flags in `scripts/GameState.gd`.
    - Implement scene logic, collisions, Y-sorting, carry-prop overlays (`PlayerBoy.set_carry_prop`), and UI in `scripts/` and `scenes/`.
-   - For new or expanded regions, reuse `RegionBase` performance helpers from the start: bake static terrain/roads via `setup_static_ground_chunks`, batch repeating water via `setup_water_layer` + `step_water_layer`, cull entities/props via `get_camera_rect`, flip sprites with negative-width `Rect2`s (avoiding per-sprite `draw_set_transform`), and cull off-screen `PointLight2D`s with `sync_light_frustum`.
-4. **Stage 4 — Headless Verification (`game-verifier`):**
-   - Run Godot 4.3 headless smoke check with `--log-file` and confirm zero errors before reporting completion.
+   - For new or expanded regions, reuse `RegionBase` performance helpers from the start: bake static terrain/roads via `setup_static_ground_chunks`, batch repeating water via `setup_water_layer` + `step_water_layer`, cull entities/props via `get_camera_rect`, flip sprites via `PixelAssets.get_tex_flipped(...)` (avoiding per-sprite `draw_set_transform` and broken negative-width `Rect2`s), and cull off-screen `PointLight2D`s with `sync_light_frustum`.
+4. **Stage 4 — Headless & Visual Screenshot Verification (`game-verifier`):**
+   - Run Godot 4.3 headless smoke check (`tools\smoke_test.ps1`), render real screenshots via `tools\capture_audit.ps1`, and inspect every PNG via `read_file` before reporting completion.

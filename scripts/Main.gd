@@ -19,6 +19,7 @@ const BrugesOutskirtsScript := preload("res://scripts/regions/BrugesOutskirtsReg
 const BrabantFensScript := preload("res://scripts/regions/BrabantFensRegion.gd")
 const LouvainCityScript := preload("res://scripts/regions/LouvainCityRegion.gd")
 const SmokeRunnerScript := preload("res://scripts/tools/HeadlessSmokeRunner.gd")
+const VisualAuditRunnerScript := preload("res://scripts/tools/VisualAuditRunner.gd")
 const HatchlingCompanionScript := preload("res://scripts/companions/HatchlingCompanion.gd")
 
 var assets
@@ -35,6 +36,7 @@ var _current_ambience_key: String = ""
 var _shake_timer: float = 0.0
 var _shake_strength: float = 0.0
 var _smoke_runner = null
+var _visual_audit = null
 
 
 func _ready() -> void:
@@ -89,6 +91,9 @@ func _ready() -> void:
 	if SmokeRunnerScript.should_run():
 		_smoke_runner = SmokeRunnerScript.new()
 		_smoke_runner.start(self)
+	elif VisualAuditRunnerScript.should_run():
+		_visual_audit = VisualAuditRunnerScript.new()
+		_visual_audit.start(self)
 
 
 func load_region(region_id: String, opts: Dictionary = {}) -> void:
@@ -163,6 +168,8 @@ func _process(delta: float) -> void:
 
 	if _smoke_runner != null and _smoke_runner.active:
 		_smoke_runner.step(delta)
+	elif _visual_audit != null and _visual_audit.active:
+		_visual_audit.step(delta)
 
 	if not GameState.screen_shake_enabled and _shake_timer > 0.0:
 		_shake_timer = 0.0
@@ -374,6 +381,9 @@ func _on_replay_requested() -> void:
 	if SmokeRunnerScript.should_run():
 		_smoke_runner = SmokeRunnerScript.new()
 		_smoke_runner.start(self)
+	elif VisualAuditRunnerScript.should_run():
+		_visual_audit = VisualAuditRunnerScript.new()
+		_visual_audit.start(self)
 
 
 func _on_quit_requested() -> void:
