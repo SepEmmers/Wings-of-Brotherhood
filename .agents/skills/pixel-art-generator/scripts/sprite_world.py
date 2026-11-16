@@ -16,6 +16,7 @@ from sprite_wilds_env import make_wilds_env
 from sprite_sanctuary import make_sanctuary_assets
 from sprite_bruges_landmarks import make_bruges_landmarks
 from sprite_bruges_forts_water import make_bruges_forts_water
+from sprite_louvain_landmarks import make_louvain_assets
 from sprite_ui_art import make_extra_ui_and_title_art
 
 
@@ -26,6 +27,7 @@ def make_props_and_icons(sprites_dir: str):
     make_sanctuary_assets(sprites_dir)
     make_bruges_landmarks(sprites_dir)
     make_bruges_forts_water(sprites_dir)
+    make_louvain_assets(sprites_dir)
 
 
 # ============================================================================

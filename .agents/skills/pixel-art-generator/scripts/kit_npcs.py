@@ -593,6 +593,27 @@ MODULAR_NPC_RECIPES = {
         "hair_color": "dark", "hat": "kettle_helm", "hat_color": "iron",
         "prop": "arbalest_buckler",
     },
+    # Historic Louvain Cast & Citizens (Master Mason, 1425 University Scholars, Cloth Inspector)
+    "npc_louvain_mason": {
+        "body": "apron_craft", "outfit": "ochre", "trim": "slate",
+        "skin": "warm_tan", "face": "beard_short", "hair": "parted_neat",
+        "hair_color": "sandy_grizzled", "hat": "sailor_cap", "hat_color": "dark_felt", "prop": "hammer",
+    },
+    "npc_louvain_scholar": {
+        "body": "cleric_robe", "outfit": "crimson", "trim": "slate",
+        "skin": "pale", "face": "mustache", "hair": "parted_neat",
+        "hair_color": "grey", "hat": "burgher_hat", "hat_color": "crimson", "prop": "scroll",
+    },
+    "npc_louvain_student": {
+        "body": "cloak_traveller", "outfit": "navy", "trim": "ochre",
+        "skin": "fair", "face": "youth", "hair": "curly_mop",
+        "hair_color": "chestnut", "hat": "none", "prop": "satchel",
+    },
+    "npc_louvain_weaver": {
+        "body": "merchant_coat", "outfit": "emerald", "trim": "brass",
+        "skin": "ruddy", "face": "kind", "hair": "parted_neat",
+        "hair_color": "auburn", "hat": "burgher_hat", "hat_color": "emerald", "prop": "scroll",
+    },
 }
 
 

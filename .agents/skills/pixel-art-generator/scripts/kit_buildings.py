@@ -537,6 +537,27 @@ CITY_BUILDING_RECIPES = {
         "upper": ["u_timber", "u_double", "u_win", "u_double", "u_win", "u_double", "u_timber"],
         "chimneys": [1, 5], "lanterns": [2, 4], "sign": (1, "shield"),
     },
+    # Historic Louvain Districts (1425 University, Dyers' Island, Mason Workyard)
+    "city_louvain_scholar_5a.png": {
+        "blocks": 5, "stories": 2, "wall": "brick_rose", "roof": "slate",
+        "roof_style": "dormer", "shutter": "U1", "flower": "Y2", "awning": "navy",
+        "ground": ["win_lancet", "door_gothic", "win_tall", "win_flower", "ivy"],
+        "upper": ["u_double", "u_win", "u_flower", "u_double", "u_timber"],
+        "chimneys": [1], "lanterns": [1, 3], "sign": (3, "scroll"),
+    },
+    "city_louvain_dyer_5b.png": {
+        "blocks": 5, "stories": 2, "wall": "ochre_timber", "roof": "terracotta",
+        "roof_style": "stepped_left", "shutter": "E1", "flower": "R3", "awning": "crimson",
+        "ground": ["stall_cloth", "door_oak", "stall_cloth", "win_flower", "woodstack"],
+        "upper": ["u_win", "u_hoist", "u_flower", "u_win", "u_timber"],
+        "chimneys": [4], "lanterns": [1], "sign": (2, "cloth"),
+    },
+    "city_louvain_mason_4a.png": {
+        "blocks": 4, "stories": 1, "wall": "ashlar_stone", "roof": "slate",
+        "roof_style": "stepped_center", "shutter": "T2", "flower": "Y2",
+        "ground": ["win_shutter", "door_oak", "woodstack", "ivy"],
+        "chimneys": [0], "lanterns": [1],
+    },
 }
 
 
