@@ -295,11 +295,22 @@ func _verify_book2_systems() -> bool:
 
 	# Verify Milestone 2 Brabant Fens & Louvain Dragon Assist puzzle triggers & camera follow end-to-end
 	main._playtest_jump_to("book2_brabant_hatchling")
-	if not main.active_region.on_dragon_command(Vector2(1378, 565), Vector2(1378, 554), Vector2.UP, 1) or not GameState.brabant_vent_unlocked:
-		_fail("BrabantFens Hatchling Vent Crawl did not unlock sluice gate.")
+	if not main.active_region.on_dragon_command(Vector2(1378, 565), Vector2(1378, 554), Vector2.UP, 1) or not GameState.brabant_vent_unlocked or main.active_region.get_last_dragon_command_kind() != "vent_crawl":
+		_fail("BrabantFens Hatchling Vent Crawl did not trigger cleanly without fireball.")
 		return false
-	if not main.active_region.on_dragon_command(Vector2(1078, 840), Vector2(1078, 860), Vector2.DOWN, 1) or not GameState.brabant_briar_burned:
-		_fail("BrabantFens Hatchling Ember Puff did not burn fen briars.")
+	for _v in range(7):
+		main.active_region.step_region(0.25)
+	if float(main.active_region.get("gate_open_anim")) <= 0.1:
+		_fail("BrabantFens sluice portcullis gate did not animate open after inside lever pull.")
+		return false
+	if main.active_region.on_dragon_command(Vector2(1078, 840), Vector2(1078, 860), Vector2.DOWN, 1) or main.active_region.get_last_dragon_command_kind() != "dry_cough":
+		_fail("Unfed hatchling should only cough dry soot before eating warm ration at camp.")
+		return false
+	main.ui.hide_all_overlays()
+	GameState.hatchling_fed_count = 1
+	GameState.dragon_bond = 22
+	if not main.active_region.on_dragon_command(Vector2(1078, 840), Vector2(1078, 860), Vector2.DOWN, 1) or not GameState.brabant_briar_burned or main.active_region.get_last_dragon_command_kind() != "ember_puff":
+		_fail("BrabantFens Hatchling Ember Puff did not burn fen briars after feeding.")
 		return false
 	main._playtest_jump_to("book2_louvain_abbey")
 	main.player.position = Vector2(1820, 820)
@@ -307,10 +318,10 @@ func _verify_book2_systems() -> bool:
 	if main.camera.position.distance_to(main.player.position) > 2.0:
 		_fail("LouvainCity camera remained stuck instead of following player.")
 		return false
-	if not main.active_region.on_dragon_command(Vector2(2044, 730), Vector2(2044, 714), Vector2.UP, 1) or not GameState.louvain_vent_opened:
-		_fail("Louvain Abbey Vent Crawl did not open cloister gate.")
+	if not main.active_region.on_dragon_command(Vector2(2044, 730), Vector2(2044, 714), Vector2.UP, 1) or not GameState.louvain_vent_opened or main.active_region.get_last_dragon_command_kind() != "vent_crawl":
+		_fail("Louvain Abbey Vent Crawl did not trigger cleanly without fireball.")
 		return false
-	if not main.active_region.on_dragon_command(Vector2(1788, 512), Vector2(1788, 496), Vector2.UP, 1) or not GameState.louvain_brazier_lit:
+	if not main.active_region.on_dragon_command(Vector2(1788, 512), Vector2(1788, 496), Vector2.UP, 1) or not GameState.louvain_brazier_lit or main.active_region.get_last_dragon_command_kind() != "ember_puff":
 		_fail("Louvain Scriptorium Ember Puff did not light abbey braziers.")
 		return false
 	main.ui.hide_all_overlays()

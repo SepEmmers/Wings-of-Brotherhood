@@ -15,6 +15,8 @@ const NPC_ALEIDIS_POS := Vector2(332, 1296)
 const NPC_MARTIJN_POS := Vector2(536, 1296)
 const NPC_KATELIJNE_POS := Vector2(1788, 1184)
 const ABBEY_BRAZIERS: Array[Vector2] = [Vector2(1788, 496), Vector2(1980, 496)]
+const ABBEY_LEVER_POS := Vector2(1896, 682)
+const ABBEY_VENT_CRAWL_DUR := 1.25
 
 var static_colliders: Array[Rect2] = []
 var sight_blockers: Array[Rect2] = []
@@ -30,6 +32,10 @@ var enemy_bolts: Array[Dictionary] = []
 var fx_sparks: Array[Dictionary] = []
 var resonance_wave_t: float = 0.0
 var resonance_wave_origin: Vector2 = Vector2.ZERO
+var abbey_vent_crawl_t: float = 0.0
+var abbey_gate_open_anim: float = 0.0
+var _abbey_lever_tripped: bool = false
+var _last_command_kind: String = ""
 var _ambush_triggered: bool = false
 var _torn_posters: Dictionary = {}
 
@@ -98,6 +104,10 @@ func enter_region(opts: Dictionary = {}) -> void:
 	_ambush_triggered = false
 	_torn_posters.clear()
 	resonance_wave_t = 0.0
+	abbey_vent_crawl_t = 0.0
+	_abbey_lever_tripped = GameState.louvain_vent_opened
+	abbey_gate_open_anim = 1.0 if GameState.louvain_vent_opened else 0.0
+	_last_command_kind = ""
 	GameState.active_perspective = "boy"
 	GameState.book2_started = true
 	if GameState.active_companion_stage < 1:
@@ -163,6 +173,16 @@ func step_region(delta: float) -> void:
 	step_water_layer()
 	step_walk_portals(delta)
 	_step_fx(delta)
+	if abbey_vent_crawl_t > 0.0:
+		abbey_vent_crawl_t = maxf(0.0, abbey_vent_crawl_t - delta)
+		var vprog := 1.0 - (abbey_vent_crawl_t / ABBEY_VENT_CRAWL_DUR)
+		if vprog >= 0.72 and not _abbey_lever_tripped:
+			_abbey_lever_tripped = true
+			SoundManager.play_cage_break()
+			SoundManager.play_door()
+			_spawn_sparks(ABBEY_LEVER_POS, Color(0.98, 0.84, 0.36), 14)
+			_spawn_sparks(MapData.ABBEY_GATE_RECT.get_center(), Color(0.76, 0.92, 0.64), 14)
+	abbey_gate_open_anim = move_toward(abbey_gate_open_anim, 1.0 if _abbey_lever_tripped else 0.0, delta * 2.6)
 
 	if not GameState.louvain_breakout_won and breakout_enemies.is_empty():
 		var spotted := _step_patrols(delta)
@@ -179,7 +199,10 @@ func step_region(delta: float) -> void:
 		_spawn_abbey_breakout()
 
 	if director != null and director.camera != null and player != null:
-		director.camera.position = player.position
+		if abbey_vent_crawl_t > 0.0:
+			director.camera.position = player.position.lerp((MapData.ABBEY_VENT_POS + MapData.ABBEY_GATE_RECT.get_center()) * 0.5, 0.5)
+		else:
+			director.camera.position = player.position
 
 	if player != null and player.visible:
 		update_nearest_interactable(player.position)
@@ -408,24 +431,44 @@ func get_gold_sense_targets() -> Array:
 	return t
 
 
+func get_last_dragon_command_kind() -> String:
+	return _last_command_kind
+
+
+func get_vent_crawl_duration() -> float:
+	return ABBEY_VENT_CRAWL_DUR
+
+
+func get_vent_return_pos() -> Vector2:
+	return Vector2(1844, 756)
+
+
 func on_dragon_command(origin: Vector2, target_pos: Vector2, _aim: Vector2, _stage: int) -> bool:
-	if not GameState.louvain_vent_opened and (origin.distance_to(MapData.ABBEY_VENT_POS) <= 95.0 or target_pos.distance_to(MapData.ABBEY_VENT_POS) <= 90.0):
+	_last_command_kind = ""
+	if not GameState.louvain_vent_opened and (origin.distance_to(MapData.ABBEY_VENT_POS) <= 78.0 or target_pos.distance_to(MapData.ABBEY_VENT_POS) <= 68.0):
+		_last_command_kind = "vent_crawl"
 		GameState.louvain_vent_opened = true
+		abbey_vent_crawl_t = ABBEY_VENT_CRAWL_DUR
+		_abbey_lever_tripped = false
+		abbey_gate_open_anim = 0.0
 		set_body_collision_enabled(abbey_gate_body, false)
-		SoundManager.play_cage_break()
-		SoundManager.play_door()
-		_spawn_sparks(MapData.ABBEY_VENT_POS, Color(1.0, 0.86, 0.36), 18)
+		_spawn_sparks(MapData.ABBEY_VENT_POS + Vector2(0, 12), Color(0.56, 0.58, 0.62), 8)
 		if director != null and director.companion != null:
 			director.companion.notify_progress()
 		_sync_hint_context()
 		return true
+	if not GameState.louvain_herbalist_done and (origin.distance_to(MapData.HERBALIST_SLUICE_POS) <= 86.0 or target_pos.distance_to(MapData.HERBALIST_SLUICE_POS) <= 82.0):
+		_last_command_kind = "ember_puff"
+		_clear_herbalist_sluice()
+		return true
 	if GameState.louvain_vent_opened and not GameState.louvain_brazier_lit:
 		for bz: Vector2 in ABBEY_BRAZIERS:
 			if origin.distance_to(bz) <= 130.0 or target_pos.distance_to(bz) <= 115.0:
+				_last_command_kind = "ember_puff"
 				GameState.louvain_brazier_lit = true
 				SoundManager.play_campfire_warm()
 				for bz2: Vector2 in ABBEY_BRAZIERS:
-					_spawn_sparks(bz2 + Vector2(0, -10), Color(1.0, 0.78, 0.28), 16)
+					_spawn_sparks(bz2 + Vector2(0, -10), Color(1.0, 0.78, 0.28), 14)
 				if director != null and director.companion != null:
 					director.companion.notify_progress()
 				_sync_hint_context()

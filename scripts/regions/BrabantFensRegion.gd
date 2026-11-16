@@ -13,14 +13,16 @@ const MILL_COTTAGE_RECT := Rect2(812, 430, 152, 128)
 const CAMPFIRE_POS := Vector2(960, 680)
 const VENT_POS := Vector2(1378, 554)
 const GATE_RECT := Rect2(1352, 646, 52, 128)
+const LEVER_POS := Vector2(1414, 622)
+const VENT_CRAWL_DUR := 1.35
 const BRIAR_POS := Vector2(1078, 860)
 const CACHE_POS := Vector2(1078, 924)
 const GOLD_RELIC_POS := Vector2(590, 392)
 const EAST_SIGN_POS := Vector2(2016, 616)
 
 const SLUICE_WALL_SEGMENTS: Array[Rect2] = [
-	Rect2(1352, 430, 52, 216),
-	Rect2(1352, 774, 52, 150),
+	Rect2(1352, 240, 52, 406),
+	Rect2(1352, 774, 52, 316),
 ]
 
 const REED_CLUMPS: Array[Vector2] = [
@@ -61,7 +63,11 @@ var hatch_anim_active: bool = false
 var hatch_anim_stage: int = 0
 var hatch_anim_t: float = 0.0
 
-var vent_dash_t: float = 0.0
+var vent_crawl_t: float = 0.0
+var gate_open_anim: float = 0.0
+var _vent_lever_tripped: bool = false
+var _last_command_kind: String = ""
+var _unfed_briar_warned: bool = false
 var _frost_emit_t: float = 0.0
 var _sling_gate_warned: bool = false
 var cairn_relic_claimed: bool = false
@@ -177,7 +183,11 @@ func enter_region(opts: Dictionary = {}) -> void:
 	kestrel_visible = false
 	intro_active = false
 	hatch_anim_active = false
-	vent_dash_t = 0.0
+	vent_crawl_t = 0.0
+	gate_open_anim = 1.0 if GameState.brabant_vent_unlocked else 0.0
+	_vent_lever_tripped = GameState.brabant_vent_unlocked
+	_last_command_kind = ""
+	_unfed_briar_warned = false
 	_frost_emit_t = 0.0
 	_sling_gate_warned = false
 
@@ -271,8 +281,16 @@ func step_region(delta: float) -> void:
 	step_water_layer()
 	step_walk_portals(delta)
 	_step_particles(delta)
-	if vent_dash_t > 0.0:
-		vent_dash_t = maxf(0.0, vent_dash_t - delta)
+	if vent_crawl_t > 0.0:
+		vent_crawl_t = maxf(0.0, vent_crawl_t - delta)
+		var vprog := 1.0 - (vent_crawl_t / VENT_CRAWL_DUR)
+		if vprog >= 0.72 and not _vent_lever_tripped:
+			_vent_lever_tripped = true
+			SoundManager.play_cage_break()
+			SoundManager.play_door()
+			_spawn_fx(LEVER_POS, Color(0.98, 0.84, 0.36), 14)
+			_spawn_fx(GATE_RECT.get_center(), Color(0.76, 0.92, 0.64), 14)
+	gate_open_anim = move_toward(gate_open_anim, 1.0 if _vent_lever_tripped else 0.0, delta * 2.6)
 	if GameState.brabant_hatched and GameState.companion_posture == "sling" and not GameState.brabant_sling_practiced:
 		GameState.brabant_sling_practiced = true
 		_sync_hint_context()
@@ -285,7 +303,7 @@ func step_region(delta: float) -> void:
 			director.camera.position = CAMPFIRE_POS + Vector2(14, 4)
 	elif player != null and player.visible:
 		if director != null and director.camera != null:
-			director.camera.position = player.position
+			director.camera.position = player.position.lerp(GATE_RECT.get_center(), 0.38) if vent_crawl_t > 0.0 else player.position
 		if not GameState.brabant_hatched:
 			GameState.egg_warmth = maxf(16.0, GameState.egg_warmth - delta * 0.42)
 			_frost_emit_t -= delta
@@ -607,43 +625,77 @@ func get_gold_sense_targets() -> Array:
 	return targets
 
 
+func get_last_dragon_command_kind() -> String:
+	return _last_command_kind
+
+
+func get_vent_crawl_duration() -> float:
+	return VENT_CRAWL_DUR
+
+
+func get_vent_return_pos() -> Vector2:
+	return Vector2(1332, 704)
+
+
+func _near_unlit_brazier(origin: Vector2, target_pos: Vector2) -> bool:
+	for b: Dictionary in brazier_states:
+		if not bool(b.get("lit", false)):
+			var bp := Vector2(b["pos"])
+			if origin.distance_to(bp) <= 96.0 or target_pos.distance_to(bp) <= 84.0:
+				return true
+	return false
+
+
 func on_dragon_command(origin: Vector2, target_pos: Vector2, _aim: Vector2, _stage: int) -> bool:
-	# 1. Mill Sluice Vent Crawl (unlocks East Louvain gate from inside)
-	if not GameState.brabant_vent_unlocked and (origin.distance_to(VENT_POS) <= 95.0 or target_pos.distance_to(VENT_POS) <= 90.0):
+	_last_command_kind = ""
+	# 1. Mill Sluice Drain Crawl -> pulls east inside lever to raise gate
+	if not GameState.brabant_vent_unlocked and (origin.distance_to(VENT_POS) <= 78.0 or target_pos.distance_to(VENT_POS) <= 64.0):
+		_last_command_kind = "vent_crawl"
 		GameState.brabant_vent_unlocked = true
-		vent_dash_t = 0.65
+		vent_crawl_t = VENT_CRAWL_DUR
+		_vent_lever_tripped = false
+		gate_open_anim = 0.0
 		GameState.add_dragon_bond(5)
 		set_body_collision_enabled(gate_body, false)
-		SoundManager.play_cage_break()
-		SoundManager.play_door()
-		_spawn_fx(VENT_POS, Color(0.98, 0.84, 0.36), 14)
-		_spawn_fx(GATE_RECT.get_center(), Color(0.55, 0.96, 0.65), 18)
+		_spawn_fx(VENT_POS + Vector2(-14, 0), Color(0.56, 0.58, 0.62), 8)
 		if director != null and director.companion != null:
 			director.companion.notify_progress()
 		_sync_hint_context()
 		ui.refresh_hud()
 		return true
 
-	# 2. Ember Puff on Dry Fen Briars
+	# Hungry newborn coughs ash wisps before tasting warm ration at camp
+	if GameState.hatchling_fed_count <= 0:
+		if origin.distance_to(BRIAR_POS) <= 105.0 or target_pos.distance_to(BRIAR_POS) <= 95.0 or _near_unlit_brazier(origin, target_pos):
+			_last_command_kind = "dry_cough"
+			if not _unfed_briar_warned:
+				_unfed_briar_warned = true
+				ui.show_dialogue([{"speaker": GameState.player_name, "portrait": "portrait_boy17.png", "text": "Only cold soot-dust... your belly's still empty after that freezing flight. Let's carve warm ration by the fire first."}])
+		return false
+
+	# 2. Small Cinder Embers on Dry Fen Briars
 	if not GameState.brabant_briar_burned and (origin.distance_to(BRIAR_POS) <= 105.0 or target_pos.distance_to(BRIAR_POS) <= 95.0):
+		_last_command_kind = "ember_puff"
 		GameState.brabant_briar_burned = true
 		set_body_collision_enabled(briar_body, false)
 		SoundManager.play_campfire_warm()
-		_spawn_fx(BRIAR_POS, Color(1.0, 0.56, 0.16), 22)
+		_spawn_fx(BRIAR_POS, Color(0.98, 0.58, 0.18), 16)
 		if director != null and director.companion != null:
 			director.companion.notify_progress()
+		_sync_hint_context()
 		return true
 
-	# 3. Ember Puff on Stone Way-Braziers
+	# 3. Small Cinder Embers on Stone Way-Braziers
 	for bi in range(brazier_states.size()):
 		var b: Dictionary = brazier_states[bi]
 		if bool(b.get("lit", false)):
 			continue
 		var bp := Vector2(b["pos"])
 		if origin.distance_to(bp) <= 96.0 or target_pos.distance_to(bp) <= 84.0:
+			_last_command_kind = "ember_puff"
 			b["lit"] = true
 			SoundManager.play_campfire_warm()
-			_spawn_fx(bp + Vector2(0, -10), Color(1.0, 0.72, 0.24), 14)
+			_spawn_fx(bp + Vector2(0, -10), Color(1.0, 0.72, 0.24), 12)
 			return true
 	return false
 

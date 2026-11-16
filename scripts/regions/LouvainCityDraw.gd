@@ -80,19 +80,69 @@ static func draw_region_entities(r, t_now: float) -> void:
 		if cam_rect.intersects(aw.grow(24.0)):
 			_draw_wall_tiled(r, aw, wall_h, wall_v)
 
-	# Abbey Iron Gatehouse Bars & Low Hatchling Vent Grate
+	# Abbey Iron Gatehouse Piers, Raising Bars, Inside Lever & Culvert Drain Grate
 	var ag: Rect2 = MapData.ABBEY_GATE_RECT
-	if cam_rect.intersects(ag.grow(28.0)) and not GameState.louvain_vent_opened:
-		r.draw_rect(ag, Color(0.14, 0.14, 0.18, 0.92))
-		for gx in range(int(ag.position.x + 12), int(ag.end.x - 8), 14):
-			r.draw_line(Vector2(gx, ag.position.y), Vector2(gx, ag.end.y), Color(0.48, 0.50, 0.56), 3.0)
-	if cam_rect.has_point(MapData.ABBEY_VENT_POS):
+	if cam_rect.intersects(ag.grow(72.0)):
+		var pier_h: Texture2D = assets.get_tex("prop_gatehouse_pier_h.png")
+		if pier_h != null:
+			r.draw_texture_rect(pier_h, Rect2(ag.position.x - 36.0, ag.position.y - 6.0, 44.0, 48.0), false)
+			r.draw_texture_rect(pier_h, Rect2(ag.end.x - 8.0, ag.position.y - 6.0, 44.0, 48.0), false)
+		var open_k := clampf(float(r.abbey_gate_open_anim), 0.0, 1.0)
+		var curr_w := lerpf(ag.size.x, 12.0, open_k)
+		if open_k < 0.98:
+			r.draw_rect(Rect2(ag.position.x, ag.position.y, curr_w, ag.size.y), Color(0.14, 0.14, 0.18, 0.88))
+			for gx in range(int(ag.position.x + 10), int(ag.position.x + curr_w - 4), 14):
+				r.draw_line(Vector2(gx, ag.position.y), Vector2(gx, ag.end.y), Color(0.48, 0.50, 0.56), 3.0)
+		var lever_p: Vector2 = r.ABBEY_LEVER_POS
+		var tripped: bool = open_k > 0.25 or bool(r.get("_abbey_lever_tripped"))
+		r.draw_line(Vector2(ag.end.x - 4, ag.position.y + 8), lever_p, Color(0.38, 0.36, 0.34), 2.2)
+		r.draw_rect(Rect2(lever_p - Vector2(6, 6), Vector2(12, 12)), Color(0.24, 0.23, 0.26))
+		var tip := lever_p + (Vector2(12, -13) if tripped else Vector2(-12, -13))
+		r.draw_line(lever_p, tip, Color(0.56, 0.54, 0.52), 3.0)
+		r.draw_circle(tip, 4.0, Color(0.42, 0.78, 0.48) if tripped else Color(0.92, 0.36, 0.24))
+
+	if cam_rect.intersects(Rect2(MapData.ABBEY_VENT_POS - Vector2(44, 44), Vector2(88, 88))):
+		r.draw_rect(Rect2(MapData.ABBEY_VENT_POS.x - 20, 694, 40, 42), Color(0.26, 0.25, 0.28))
+		r.draw_rect(Rect2(MapData.ABBEY_VENT_POS.x - 12, 696, 24, 38), Color(0.06, 0.08, 0.09, 0.94))
 		var vtex: Texture2D = assets.get_tex("prop_dragon_vent_grate.png")
 		if vtex != null:
-			r.draw_texture_rect(vtex, Rect2(MapData.ABBEY_VENT_POS - Vector2(18, 14), Vector2(36, 28)), false)
+			r.draw_texture_rect(vtex, Rect2(MapData.ABBEY_VENT_POS + Vector2(-12, 6), Vector2(24, 18)), false)
+			r.draw_texture_rect(vtex, Rect2(MapData.ABBEY_VENT_POS + Vector2(-12, -22), Vector2(24, 16)), false, Color(0.76, 0.78, 0.80, 0.85))
 		if not GameState.louvain_vent_opened:
 			var sh := 0.5 + 0.5 * sin(t_now * 4.2)
-			r.draw_arc(MapData.ABBEY_VENT_POS, 18.0 + sh * 3.0, 0.0, TAU, 18, Color(0.96, 0.80, 0.34, 0.50), 1.6)
+			r.draw_arc(MapData.ABBEY_VENT_POS + Vector2(0, 14), 14.0 + sh * 3.0, 0.0, TAU, 18, Color(0.96, 0.80, 0.34, 0.50), 1.6)
+
+	if float(r.get("abbey_vent_crawl_t")) > 0.0:
+		var prog := 1.0 - clampf(float(r.get("abbey_vent_crawl_t")) / float(r.ABBEY_VENT_CRAWL_DUR), 0.0, 1.0)
+		var step_i := int(t_now * 14.0) % 2
+		var dp := MapData.ABBEY_VENT_POS
+		var dkey := "up"
+		var flip_d := false
+		var in_t := false
+		if prog < 0.22:
+			dp = (MapData.ABBEY_VENT_POS + Vector2(0, 34)).lerp(MapData.ABBEY_VENT_POS + Vector2(0, 8), prog / 0.22)
+		elif prog < 0.44:
+			in_t = true
+			dp = (MapData.ABBEY_VENT_POS + Vector2(0, 8)).lerp(MapData.ABBEY_VENT_POS + Vector2(0, -28), (prog - 0.22) / 0.22)
+		elif prog < 0.72:
+			dkey = "side"
+			flip_d = true
+			dp = (MapData.ABBEY_VENT_POS + Vector2(0, -28)).lerp(r.ABBEY_LEVER_POS, (prog - 0.44) / 0.28)
+		else:
+			dkey = "down"
+			dp = r.ABBEY_LEVER_POS.lerp(Vector2(1844, 756), (prog - 0.72) / 0.28)
+		if in_t:
+			r.draw_circle(dp, 7.0, Color(0.10, 0.10, 0.12, 0.86))
+			r.draw_circle(dp + Vector2(0, -2), 1.8, Color(0.98, 0.84, 0.34, 0.92))
+		else:
+			var htex: Texture2D = assets.get_tex("dragon_gold_s1_%s_%d.png" % [dkey, step_i])
+			if htex != null:
+				var sz := Vector2(26, 24)
+				var ppos := dp - Vector2(sz.x * 0.5, sz.y * 0.7)
+				if flip_d:
+					r.draw_texture_rect(htex, Rect2(Vector2(ppos.x + sz.x, ppos.y), Vector2(-sz.x, sz.y)), false)
+				else:
+					r.draw_texture_rect(htex, Rect2(ppos, sz), false)
 
 	# South Old Heverlee Gate Barricade
 	var sb: Rect2 = MapData.SOUTH_GATE_BARRICADE_RECT
@@ -241,3 +291,20 @@ static func _draw_foreground(r, fg: Node2D) -> void:
 			if btex != null:
 				r.draw_building_roof_overhang(fg, br_b, btex, 0.44)
 	r._draw_portal_hints(fg)
+	_draw_integrated_prompts(r, fg)
+
+
+static func _draw_integrated_prompts(r, fg: Node2D) -> void:
+	if r.player == null or not r.player.visible or (r.ui != null and r.ui.is_blocking_gameplay()):
+		return
+	var ppos: Vector2 = r.player.position
+	var font: Font = r.assets.get_ui_font()
+	var cmd_k := GameState.get_action_key_label("dragon_command")
+	if not GameState.louvain_vent_opened and float(r.get("abbey_vent_crawl_t")) <= 0.0:
+		if ppos.distance_to(MapData.ABBEY_VENT_POS) <= 84.0:
+			r.assets.draw_interact_bubble(fg, MapData.ABBEY_VENT_POS + Vector2(0, -28), "[%s] Send Through Drain" % cmd_k, font)
+	elif GameState.louvain_vent_opened and not GameState.louvain_brazier_lit:
+		for bz: Vector2 in r.ABBEY_BRAZIERS:
+			if ppos.distance_to(bz) <= 105.0:
+				r.assets.draw_interact_bubble(fg, bz + Vector2(0, -32), "[%s] Kindle Abbey Sconces" % cmd_k, font)
+				break

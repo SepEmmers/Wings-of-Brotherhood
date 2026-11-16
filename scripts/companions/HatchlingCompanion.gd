@@ -23,6 +23,10 @@ var _active_pulse_t: float = 0.0
 var _active_pulse_kind: String = ""
 var _pulse_origin: Vector2 = Vector2.ZERO
 var _pulse_target: Vector2 = Vector2.ZERO
+var _pulse_aim: Vector2 = Vector2.DOWN
+var _ember_motes: Array[Dictionary] = []
+var _vent_crawl_t: float = 0.0
+var _vent_return_pos: Vector2 = Vector2.ZERO
 var _command_cooldown: float = 0.0
 var _gold_sense_cd: float = 0.0
 var _gold_sense_glow: float = 0.0
@@ -80,6 +84,9 @@ func clear_hint_context() -> void:
 	_hint_lines = []
 	_hint_stall_t = 0.0
 	_hint_tier_shown = 0
+	_vent_crawl_t = 0.0
+	_vent_return_pos = Vector2.ZERO
+	_ember_motes.clear()
 
 
 func notify_progress() -> void:
@@ -115,7 +122,7 @@ func handle_input(event: InputEvent) -> bool:
 
 
 func trigger_command() -> void:
-	if player == null:
+	if player == null or _vent_crawl_t > 0.0:
 		return
 	if GameState.companion_posture == "sling":
 		GameState.set_companion_posture("assist")
@@ -125,21 +132,45 @@ func trigger_command() -> void:
 	var aim: Vector2 = pf.normalized() if pf.length_squared() > 0.01 else Vector2.DOWN
 	facing = aim
 	var origin: Vector2 = global_position
-	var reach: float = 88.0 + float(stage) * 18.0
+	var reach: float = 72.0 + float(stage) * 16.0
 	var target_pos: Vector2 = origin + aim * reach
 	var kind := _command_kind_for_stage(stage)
 
 	if region != null and region.has_method("on_dragon_command"):
 		var handled: bool = bool(region.on_dragon_command(origin, target_pos, aim, stage))
+		if region.has_method("get_last_dragon_command_kind"):
+			var rkind := str(region.get_last_dragon_command_kind())
+			if not rkind.is_empty():
+				kind = rkind
 		if handled:
 			notify_progress()
 
-	_command_cooldown = 0.72 if stage == 1 else 0.60
-	_active_pulse_t = 0.42
-	_active_pulse_kind = kind
 	_pulse_origin = origin
 	_pulse_target = target_pos
-	SoundManager.play_chime()
+	_pulse_aim = aim
+	_active_pulse_kind = kind
+
+	if kind == "vent_crawl":
+		_vent_crawl_t = float(region.get_vent_crawl_duration()) if (region != null and region.has_method("get_vent_crawl_duration")) else 1.25
+		_vent_return_pos = Vector2(region.get_vent_return_pos()) if (region != null and region.has_method("get_vent_return_pos")) else Vector2.ZERO
+		_active_pulse_t = 0.0
+		_ember_motes.clear()
+		_command_cooldown = _vent_crawl_t + 0.12
+		SoundManager.play_hatch_chirp()
+		emit_signal("command_triggered", kind, origin, target_pos, stage)
+		queue_redraw()
+		return
+
+	_command_cooldown = 0.72 if stage == 1 else 0.60
+	_active_pulse_t = 0.44
+	_spawn_breath_motes(kind, aim)
+	if kind == "dry_cough":
+		SoundManager.play_blip(1.38)
+	elif kind == "ember_puff":
+		SoundManager.play_oven_crackle()
+		SoundManager.play_hatch_chirp()
+	else:
+		SoundManager.play_chime()
 	emit_signal("command_triggered", kind, origin, target_pos, stage)
 	queue_redraw()
 
@@ -149,7 +180,34 @@ func _command_kind_for_stage(stage: int) -> String:
 		return "golden_flame"
 	if stage == 2:
 		return "resonance_lunge"
+	if GameState.brabant_hatched and GameState.hatchling_fed_count == 0 and GameState.current_step == GameState.QuestStep.BOOK2_BRABANT_FENS:
+		return "dry_cough"
 	return "ember_puff"
+
+
+func _spawn_breath_motes(kind: String, aim: Vector2) -> void:
+	_ember_motes.clear()
+	if kind != "ember_puff" and kind != "dry_cough":
+		return
+	var snout := aim * 11.0 + Vector2(0.0, -10.0)
+	var base_ang := aim.angle()
+	if kind == "dry_cough":
+		for i in range(4):
+			var a := base_ang + randf_range(-0.48, 0.48)
+			var spd := randf_range(18.0, 34.0)
+			var ml := randf_range(0.28, 0.40)
+			_ember_motes.append({"pos": snout, "vel": Vector2(cos(a), sin(a)) * spd, "life": ml, "max_life": ml, "sz": randf_range(2.2, 3.6), "col": Color(0.58, 0.60, 0.64, 0.52), "smoke": true})
+		return
+	for i in range(9):
+		var a := base_ang + randf_range(-0.42, 0.42)
+		var spd := randf_range(34.0, 78.0)
+		var ml := randf_range(0.26, 0.44)
+		var col := Color(0.98, 0.84, 0.34, 0.95) if (i % 2 == 0) else Color(0.92, 0.46, 0.16, 0.95)
+		_ember_motes.append({"pos": snout, "vel": Vector2(cos(a), sin(a)) * spd, "life": ml, "max_life": ml, "sz": randf_range(1.6, 2.8), "col": col, "smoke": false})
+	for i in range(3):
+		var sa := base_ang + randf_range(-0.32, 0.32)
+		var sspd := randf_range(22.0, 42.0)
+		_ember_motes.append({"pos": snout, "vel": Vector2(cos(sa), sin(sa)) * sspd, "life": 0.42, "max_life": 0.42, "sz": randf_range(2.8, 4.2), "col": Color(0.46, 0.42, 0.40, 0.42), "smoke": true})
 
 
 func step(delta: float) -> void:
@@ -164,6 +222,23 @@ func step(delta: float) -> void:
 	_gold_sense_glow = maxf(0.0, _gold_sense_glow - delta)
 	_nudge_marker_t = maxf(0.0, _nudge_marker_t - delta)
 	_hint_cooldown = maxf(0.0, _hint_cooldown - delta)
+
+	for i in range(_ember_motes.size() - 1, -1, -1):
+		var m: Dictionary = _ember_motes[i]
+		m["life"] = float(m["life"]) - delta
+		m["vel"] = Vector2(m["vel"]) * maxf(0.0, 1.0 - delta * 2.8) + Vector2(0.0, -22.0 * delta)
+		m["pos"] = Vector2(m["pos"]) + Vector2(m["vel"]) * delta
+		if float(m["life"]) <= 0.0:
+			_ember_motes.remove_at(i)
+
+	if _vent_crawl_t > 0.0:
+		_vent_crawl_t = maxf(0.0, _vent_crawl_t - delta)
+		if _vent_crawl_t <= 0.0:
+			global_position = _vent_return_pos if _vent_return_pos != Vector2.ZERO else (player.global_position - player.facing * 26.0)
+			_vent_return_pos = Vector2.ZERO
+			_gold_sense_glow = 0.65
+		queue_redraw()
+		return
 
 	_update_follow_movement(delta)
 	_step_gold_sense()
@@ -269,7 +344,7 @@ func _step_automatic_hint(delta: float) -> void:
 
 
 func _draw() -> void:
-	if not is_companion_enabled():
+	if not is_companion_enabled() or _vent_crawl_t > 0.0:
 		return
 
 	if GameState.companion_posture == "sling":
@@ -330,9 +405,27 @@ func _draw() -> void:
 		draw_circle(Vector2(0, -8), 8.0, Color(0.24, 0.22, 0.24))
 		draw_circle(Vector2(0, -10), 4.0, Color(0.94, 0.76, 0.26))
 
+	for m: Dictionary in _ember_motes:
+		var a := clampf(float(m["life"]) / float(m["max_life"]), 0.0, 1.0)
+		var col: Color = Color(m["col"])
+		col.a *= a
+		var mp: Vector2 = Vector2(m["pos"])
+		var sz: float = float(m["sz"]) * (1.2 - 0.3 * a if bool(m.get("smoke", false)) else 0.5 + 0.5 * a)
+		if bool(m.get("smoke", false)):
+			draw_circle(mp, sz, col)
+		else:
+			draw_rect(Rect2(mp - Vector2(sz * 0.5, sz * 0.5), Vector2(sz, sz)), col)
+
 	if _active_pulse_t > 0.0:
-		var p := 1.0 - (_active_pulse_t / 0.42)
-		var world_loc := to_local(_pulse_origin).lerp(to_local(_pulse_target), minf(1.0, p * 1.4)) + Vector2(0, -8)
-		var col := Color(0.98, 0.62, 0.22, 1.0 - p) if _active_pulse_kind == "ember_puff" else Color(0.98, 0.86, 0.36, 1.0 - p)
-		draw_circle(world_loc, 8.0 + p * 12.0, col)
-		draw_arc(world_loc, 10.0 + p * 16.0, 0.0, TAU, 16, Color(1.0, 0.94, 0.62, 0.9 * (1.0 - p)), 2.0)
+		var p := 1.0 - (_active_pulse_t / 0.44)
+		if _active_pulse_kind == "ember_puff":
+			if p < 0.35:
+				var mpos := _pulse_aim * 11.0 + Vector2(0.0, -10.0)
+				draw_circle(mpos, 3.2 * (1.0 - p / 0.35), Color(1.0, 0.80, 0.32, 0.85))
+		elif _active_pulse_kind == "resonance_lunge":
+			var world_loc := to_local(_pulse_origin).lerp(to_local(_pulse_target), minf(1.0, p * 1.4)) + Vector2(0, -8)
+			draw_arc(world_loc, 8.0 + p * 18.0, 0.0, TAU, 18, Color(0.98, 0.86, 0.36, 0.85 * (1.0 - p)), 2.2)
+		elif _active_pulse_kind == "golden_flame":
+			var world_loc := to_local(_pulse_origin).lerp(to_local(_pulse_target), minf(1.0, p * 1.4)) + Vector2(0, -8)
+			draw_circle(world_loc, 6.0 + p * 8.0, Color(1.0, 0.84, 0.34, 0.88 * (1.0 - p)))
+			draw_arc(world_loc, 9.0 + p * 14.0, 0.0, TAU, 16, Color(1.0, 0.94, 0.62, 0.85 * (1.0 - p)), 2.0)
