@@ -6,7 +6,7 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-$RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
+$RepoRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot "..")).Path
 $GodotVersion = "4.3-stable"
 $ExpectedVersionPrefix = "4.3.stable"
 $ExeName = "Godot_v4.3-stable_win64.exe"
@@ -20,8 +20,53 @@ $DownloadUrls = @(
 
 $GodotDir = Join-Path $RepoRoot "tools\godot"
 $GodotExe = Join-Path $GodotDir $ExeName
+$SetupLogPath = Join-Path $RepoRoot "tools\setup.log"
 $VerifyLogRel = "tools\setup_verify.log"
 $VerifyLogPath = Join-Path $RepoRoot $VerifyLogRel
+
+
+function Write-Log {
+    param(
+        [string]$Message,
+        [string]$Color = "Gray",
+        [switch]$LogOnly
+    )
+    $ts = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
+    try {
+        Add-Content -LiteralPath $SetupLogPath -Value ("[$ts] $Message") -Encoding UTF8 -ErrorAction SilentlyContinue
+    }
+    catch {}
+    if (-not $LogOnly) {
+        if ($Color -eq "Gray") {
+            Write-Host $Message
+        }
+        else {
+            Write-Host $Message -ForegroundColor $Color
+        }
+    }
+}
+
+
+function Invoke-WithRetry {
+    param(
+        [scriptblock]$Action,
+        [int]$MaxAttempts = 3,
+        [int]$DelayMs = 1500,
+        [string]$Label = "operation"
+    )
+    for ($attempt = 1; $attempt -le $MaxAttempts; $attempt++) {
+        try {
+            return (& $Action)
+        }
+        catch {
+            if ($attempt -ge $MaxAttempts) {
+                throw
+            }
+            Write-Log "[WARN] $Label failed (attempt $attempt/$MaxAttempts): $($_.Exception.Message) -- retrying..." -Color Yellow
+            Start-Sleep -Milliseconds $DelayMs
+        }
+    }
+}
 
 
 function Test-GodotExecutable {
@@ -43,9 +88,11 @@ function Test-GodotExecutable {
             if ($null -eq $outText) { $outText = "" }
             $outText = $outText.Trim()
         }
+        Write-Log "Godot version probe exit=$($proc.ExitCode) out='$outText'" -LogOnly
         return ($proc.ExitCode -eq 0 -and $outText -match ("^" + [regex]::Escape($ExpectedVersionPrefix)))
     }
     catch {
+        Write-Log "Godot version probe exception: $($_.Exception.Message)" -LogOnly
         return $false
     }
     finally {
@@ -95,17 +142,27 @@ function Invoke-FileDownload {
         Remove-Item -LiteralPath $DestPath -Force -ErrorAction SilentlyContinue
     }
 
+    # Method 1: Built-in Windows curl.exe via Start-Process (avoids PS 5.1 stderr NativeCommandError)
+    # Note: PS 5.1 Start-Process does not auto-quote array args with spaces, so pass a quoted string.
     $curlCmd = Get-Command "curl.exe" -ErrorAction SilentlyContinue
     if ($null -ne $curlCmd) {
-        & $curlCmd.Source -L --fail --retry 2 --connect-timeout 20 --progress-bar -o $DestPath $Url
-        if ($LASTEXITCODE -eq 0 -and (Test-Path -LiteralPath $DestPath -PathType Leaf)) {
-            return $true
+        try {
+            $curlArgStr = "-L --fail --retry 2 --connect-timeout 20 --progress-bar -o `"$DestPath`" `"$Url`""
+            $p = Start-Process -FilePath $curlCmd.Source -ArgumentList $curlArgStr -Wait -PassThru -NoNewWindow
+            if ($p.ExitCode -eq 0 -and (Test-Path -LiteralPath $DestPath -PathType Leaf) -and ((Get-Item -LiteralPath $DestPath).Length -gt 1000000)) {
+                return $true
+            }
+            Write-Log "curl.exe failed with exit code $($p.ExitCode) for $Url" -LogOnly
+        }
+        catch {
+            Write-Log "curl.exe exception for ${Url}: $($_.Exception.Message)" -LogOnly
         }
         if (Test-Path -LiteralPath $DestPath) {
             Remove-Item -LiteralPath $DestPath -Force -ErrorAction SilentlyContinue
         }
     }
 
+    # Enable TLS 1.2 / 1.3 for .NET HTTP clients on Windows PowerShell 5.1
     try {
         [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 -bor [Net.SecurityProtocolType]::Tls13
     }
@@ -113,18 +170,42 @@ function Invoke-FileDownload {
         [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
     }
 
+    # Method 2: .NET WebClient (fast, respects system proxy, no PS 5.1 progress-bar slowdown)
+    try {
+        Write-Log "Falling back to .NET WebClient download..." -Color Yellow
+        $wc = New-Object System.Net.WebClient
+        $wc.Headers.Add("User-Agent", "WingsOfTheBrotherhood-Setup/1.0")
+        try {
+            $wc.DownloadFile($Url, $DestPath)
+        }
+        finally {
+            $wc.Dispose()
+        }
+        if ((Test-Path -LiteralPath $DestPath -PathType Leaf) -and ((Get-Item -LiteralPath $DestPath).Length -gt 1000000)) {
+            return $true
+        }
+    }
+    catch {
+        Write-Log "WebClient exception for ${Url}: $($_.Exception.Message)" -LogOnly
+        if (Test-Path -LiteralPath $DestPath) {
+            Remove-Item -LiteralPath $DestPath -Force -ErrorAction SilentlyContinue
+        }
+    }
+
+    # Method 3: Invoke-WebRequest fallback
     $prevProgress = $ProgressPreference
     try {
         $ProgressPreference = "SilentlyContinue"
         if ($PSVersionTable.PSVersion.Major -lt 6) {
-            Invoke-WebRequest -Uri $Url -OutFile $DestPath -UseBasicParsing -TimeoutSec 120
+            Invoke-WebRequest -Uri $Url -OutFile $DestPath -UseBasicParsing -TimeoutSec 180
         }
         else {
-            Invoke-WebRequest -Uri $Url -OutFile $DestPath -TimeoutSec 120
+            Invoke-WebRequest -Uri $Url -OutFile $DestPath -TimeoutSec 180
         }
-        return (Test-Path -LiteralPath $DestPath -PathType Leaf)
+        return ((Test-Path -LiteralPath $DestPath -PathType Leaf) -and ((Get-Item -LiteralPath $DestPath).Length -gt 1000000))
     }
     catch {
+        Write-Log "Invoke-WebRequest exception for ${Url}: $($_.Exception.Message)" -LogOnly
         if (Test-Path -LiteralPath $DestPath) {
             Remove-Item -LiteralPath $DestPath -Force -ErrorAction SilentlyContinue
         }
@@ -132,6 +213,32 @@ function Invoke-FileDownload {
     }
     finally {
         $ProgressPreference = $prevProgress
+    }
+}
+
+
+function Expand-ZipSafely {
+    param(
+        [string]$ZipPath,
+        [string]$DestDir
+    )
+    if (Test-Path -LiteralPath $DestDir) {
+        Remove-Item -LiteralPath $DestDir -Recurse -Force -ErrorAction SilentlyContinue
+    }
+    New-Item -ItemType Directory -Path $DestDir -Force | Out-Null
+
+    try {
+        Add-Type -AssemblyName System.IO.Compression.FileSystem -ErrorAction Stop
+        [System.IO.Compression.ZipFile]::ExtractToDirectory($ZipPath, $DestDir)
+        return
+    }
+    catch {
+        Write-Log ".NET ZipFile extraction failed ($($_.Exception.Message)); falling back to Expand-Archive..." -LogOnly
+        if (Test-Path -LiteralPath $DestDir) {
+            Remove-Item -LiteralPath $DestDir -Recurse -Force -ErrorAction SilentlyContinue
+        }
+        New-Item -ItemType Directory -Path $DestDir -Force | Out-Null
+        Expand-Archive -LiteralPath $ZipPath -DestinationPath $DestDir -Force
     }
 }
 
@@ -145,7 +252,7 @@ function Test-RepositoryIntegrity {
     foreach ($rel in $requiredFiles) {
         $full = Join-Path $RepoRoot $rel
         if (-not (Test-Path -LiteralPath $full -PathType Leaf)) {
-            throw "Incomplete repository clone: missing '$rel'. Run setup.bat from the repository root."
+            throw "Incomplete repository clone: missing '$rel'. Run setup.bat from the extracted repository root."
         }
     }
 
@@ -159,15 +266,16 @@ function Test-RepositoryIntegrity {
 
     $pngCount = (Get-ChildItem -LiteralPath (Join-Path $RepoRoot "assets\sprites") -Filter "*.png" -File -ErrorAction SilentlyContinue | Measure-Object).Count
     $wavCount = (Get-ChildItem -LiteralPath (Join-Path $RepoRoot "assets\audio") -Filter "*.wav" -File -ErrorAction SilentlyContinue | Measure-Object).Count
+    Write-Log "Asset check: $pngCount PNG sprites, $wavCount WAV audio files." -LogOnly
     if ($pngCount -eq 0 -or $wavCount -eq 0) {
-        throw "Game assets appear incomplete (found $pngCount PNG sprites and $wavCount WAV audio files). Verify git clone completed without errors."
+        throw "Game assets appear incomplete (found $pngCount PNG sprites and $wavCount WAV audio files). Verify git clone or ZIP extraction completed without errors."
     }
 }
 
 
 function Install-GodotEngine {
     if ((-not $Force) -and (Test-GodotExecutable -ExePath $GodotExe)) {
-        Write-Host "[OK] Godot $GodotVersion already installed at tools\godot\$ExeName." -ForegroundColor Green
+        Write-Log "[OK] Godot $GodotVersion already installed at tools\godot\$ExeName." -Color Green
         return
     }
 
@@ -184,59 +292,70 @@ function Install-GodotEngine {
 
         $downloaded = $false
         foreach ($url in $DownloadUrls) {
-            Write-Host "Downloading Godot $GodotVersion from $url ..." -ForegroundColor Yellow
+            Write-Log "Downloading Godot $GodotVersion from $url ..." -Color Yellow
             $ok = Invoke-FileDownload -Url $url -DestPath $tmpZip
             if (-not $ok) {
-                Write-Warning "Download failed from $url; trying next mirror..."
+                Write-Log "[WARN] Download failed from $url; trying next mirror..." -Color Yellow
                 continue
             }
 
             $actualHash = (Get-FileHash -LiteralPath $tmpZip -Algorithm SHA512).Hash.ToLowerInvariant()
             if ($actualHash -ne $ExpectedSha512.ToLowerInvariant()) {
-                Write-Warning "SHA-512 mismatch from $url (expected $ExpectedSha512, got $actualHash); trying next mirror..."
+                Write-Log "[WARN] SHA-512 mismatch from $url (got $actualHash); trying next mirror..." -Color Yellow
                 Remove-Item -LiteralPath $tmpZip -Force -ErrorAction SilentlyContinue
                 continue
             }
 
-            Write-Host "[OK] Downloaded and verified SHA-512 checksum." -ForegroundColor Green
+            Write-Log "[OK] Downloaded and verified SHA-512 checksum." -Color Green
             $downloaded = $true
             break
         }
 
         if (-not $downloaded) {
-            Write-Host ""
-            Write-Host "[ERROR] Could not automatically download Godot $GodotVersion." -ForegroundColor Red
-            Write-Host "Manual workaround:" -ForegroundColor Yellow
-            Write-Host "  1. Download Godot_v4.3-stable_win64.exe.zip from:"
-            Write-Host "     https://github.com/godotengine/godot-builds/releases/tag/4.3-stable"
-            Write-Host "  2. Extract Godot_v4.3-stable_win64.exe into:"
-            Write-Host "     $GodotDir"
-            Write-Host "  3. Run setup.bat again (or launch run_game.bat directly)."
-            throw "Automatic download of Godot $GodotVersion failed."
+            Write-Log ""
+            Write-Log "[ERROR] Could not automatically download Godot $GodotVersion." -Color Red
+            Write-Log "Manual workaround:" -Color Yellow
+            Write-Log "  1. Download Godot_v4.3-stable_win64.exe.zip from:"
+            Write-Log "     https://github.com/godotengine/godot-builds/releases/tag/4.3-stable"
+            Write-Log "  2. Extract Godot_v4.3-stable_win64.exe into:"
+            Write-Log "     $GodotDir"
+            Write-Log "  3. Run setup.bat again (or launch run_game.bat directly)."
+            throw "Automatic download of Godot $GodotVersion failed (check internet connection or firewall)."
         }
 
-        Write-Host "Extracting Godot $GodotVersion into tools\godot\ ..." -ForegroundColor Cyan
-        New-Item -ItemType Directory -Path $tmpExtract -Force | Out-Null
-        Expand-Archive -LiteralPath $tmpZip -DestinationPath $tmpExtract -Force
+        Write-Log "Extracting Godot $GodotVersion into tools\godot\ ..." -Color Cyan
+        Invoke-WithRetry -Label "ZIP extraction" -Action {
+            Expand-ZipSafely -ZipPath $tmpZip -DestDir $tmpExtract
+        }
 
         $mainExeFound = Get-ChildItem -LiteralPath $tmpExtract -Filter $ExeName -Recurse -File | Select-Object -First 1
         if ($null -eq $mainExeFound) {
             throw "Extracted archive did not contain $ExeName."
         }
-        Move-Item -LiteralPath $mainExeFound.FullName -Destination $GodotExe -Force
+
+        Invoke-WithRetry -Label "Moving $ExeName" -Action {
+            Move-Item -LiteralPath $mainExeFound.FullName -Destination $GodotExe -Force
+        }
         Unblock-File -LiteralPath $GodotExe -ErrorAction SilentlyContinue
 
         $consoleExeFound = Get-ChildItem -LiteralPath $tmpExtract -Filter $ConsoleExeName -Recurse -File | Select-Object -First 1
         if ($null -ne $consoleExeFound) {
             $consoleDest = Join-Path $GodotDir $ConsoleExeName
-            Move-Item -LiteralPath $consoleExeFound.FullName -Destination $consoleDest -Force
+            Invoke-WithRetry -Label "Moving $ConsoleExeName" -Action {
+                Move-Item -LiteralPath $consoleExeFound.FullName -Destination $consoleDest -Force
+            }
             Unblock-File -LiteralPath $consoleDest -ErrorAction SilentlyContinue
         }
 
-        if (-not (Test-GodotExecutable -ExePath $GodotExe)) {
-            throw "Extracted Godot binary at $GodotExe failed '--headless --version' check."
+        $verified = Invoke-WithRetry -Label "Godot version verification" -Action {
+            if (-not (Test-GodotExecutable -ExePath $GodotExe)) {
+                throw "Godot binary at $GodotExe did not respond with $ExpectedVersionPrefix."
+            }
+            return $true
         }
-        Write-Host "[OK] Godot $GodotVersion installed and verified." -ForegroundColor Green
+        if ($verified) {
+            Write-Log "[OK] Godot $GodotVersion installed and verified." -Color Green
+        }
     }
     finally {
         Remove-Item -LiteralPath $tmpZip -Force -ErrorAction SilentlyContinue
@@ -247,7 +366,7 @@ function Install-GodotEngine {
 
 function Invoke-StartupVerify {
     if ($SkipVerify) {
-        Write-Host "[SKIP] Headless startup verification skipped (-SkipVerify)." -ForegroundColor Yellow
+        Write-Log "[SKIP] Headless startup verification skipped (-SkipVerify)." -Color Yellow
         return
     }
 
@@ -255,65 +374,75 @@ function Invoke-StartupVerify {
         Remove-Item -LiteralPath $VerifyLogPath -Force -ErrorAction SilentlyContinue
     }
 
-    Write-Host "Verifying game startup (headless)..." -ForegroundColor Cyan
+    Write-Log "Verifying game startup (headless)..." -Color Cyan
     $proc = Start-Process -FilePath $GodotExe `
         -ArgumentList @("--headless", "--path", ".", "--quit-after", "3", "--log-file", $VerifyLogRel) `
         -Wait -PassThru -NoNewWindow
 
-    Start-Sleep -Milliseconds 200
+    Start-Sleep -Milliseconds 300
     if (-not (Test-Path -LiteralPath $VerifyLogPath -PathType Leaf)) {
         throw "Startup verification failed: expected log file '$VerifyLogRel' was not created."
     }
 
     $errMatches = @(Select-String -LiteralPath $VerifyLogPath -Pattern "Parse Error|SCRIPT ERROR|Failed to load script")
     if ($proc.ExitCode -ne 0 -or $errMatches.Count -gt 0) {
-        Write-Host "[ERROR] Headless startup verification reported errors:" -ForegroundColor Red
+        Write-Log "[ERROR] Headless startup verification reported errors:" -Color Red
         foreach ($em in ($errMatches | Select-Object -First 30)) {
-            Write-Host ("  " + $em.Line) -ForegroundColor Red
+            Write-Log ("  " + $em.Line) -Color Red
         }
         throw "Game startup verification failed (exit=$($proc.ExitCode), errors=$($errMatches.Count)). See $VerifyLogRel"
     }
 
     Remove-Item -LiteralPath $VerifyLogPath -Force -ErrorAction SilentlyContinue
-    Write-Host "[OK] Game scripts and main scene verified with 0 startup errors." -ForegroundColor Green
+    Write-Log "[OK] Game scripts and main scene verified with 0 startup errors." -Color Green
 }
 
 
 $ShouldPause = Test-LaunchedFromExplorer
 $ExitCode = 0
 
-Push-Location $RepoRoot
 try {
-    Write-Host "=== Wings of the Brotherhood — Setup ===" -ForegroundColor Cyan
-    Write-Host "[1/3] Checking OS and repository files..." -ForegroundColor Cyan
-    Test-RepositoryIntegrity
-    Write-Host "[OK] Repository files and runtime assets verified." -ForegroundColor Green
+    if (Test-Path -LiteralPath $SetupLogPath) {
+        Remove-Item -LiteralPath $SetupLogPath -Force -ErrorAction SilentlyContinue
+    }
+    Write-Log "=== Wings of the Brotherhood - Setup ===" -Color Cyan
+    Write-Log ("Environment: OS=" + [Environment]::OSVersion.VersionString + " 64bit=" + [Environment]::Is64BitOperatingSystem + " PS=" + $PSVersionTable.PSVersion.ToString() + " Repo=" + $RepoRoot) -LogOnly
+}
+catch {}
 
-    Write-Host "[2/3] Ensuring Godot $GodotVersion (win64)..." -ForegroundColor Cyan
+Push-Location -LiteralPath $RepoRoot
+try {
+    Write-Log "[1/3] Checking OS and repository files..." -Color Cyan
+    Test-RepositoryIntegrity
+    Write-Log "[OK] Repository files and runtime assets verified." -Color Green
+
+    Write-Log "[2/3] Ensuring Godot $GodotVersion (win64)..." -Color Cyan
     Install-GodotEngine
 
-    Write-Host "[3/3] Running quick headless startup check..." -ForegroundColor Cyan
+    Write-Log "[3/3] Running quick headless startup check..." -Color Cyan
     Invoke-StartupVerify
 
-    Write-Host ""
-    Write-Host "========================================" -ForegroundColor Green
-    Write-Host " Setup complete! Game is ready to play." -ForegroundColor Green
-    Write-Host "========================================" -ForegroundColor Green
-    Write-Host "  Play the game:          run_game.bat"
-    Write-Host "  Optional dev tools:     run_creator_studio.bat (requires Python 3)"
-    Write-Host "  Optional smoke test:    powershell -ExecutionPolicy Bypass -File tools\smoke_test.ps1"
-    Write-Host ""
+    Write-Log ""
+    Write-Log "========================================" -Color Green
+    Write-Log " Setup complete! Game is ready to play." -Color Green
+    Write-Log "========================================" -Color Green
+    Write-Log "  Play the game:          run_game.bat"
+    Write-Log "  Optional dev tools:     run_creator_studio.bat (requires Python 3)"
+    Write-Log "  Optional smoke test:    powershell -ExecutionPolicy Bypass -File tools\smoke_test.ps1"
+    Write-Log ""
+    Remove-Item -LiteralPath $SetupLogPath -Force -ErrorAction SilentlyContinue
 }
 catch {
-    Write-Host ""
-    Write-Host "[FAILED] $($_.Exception.Message)" -ForegroundColor Red
+    Write-Log ""
+    Write-Log "[FAILED] $($_.Exception.Message)" -Color Red
+    Write-Log ("StackTrace: " + $_.ScriptStackTrace) -LogOnly
     $ExitCode = 1
 }
 finally {
     Pop-Location
 }
 
-if ($ShouldPause) {
+if ($ShouldPause -and $ExitCode -eq 0) {
     Write-Host ""
     Read-Host "Press Enter to close..." | Out-Null
 }

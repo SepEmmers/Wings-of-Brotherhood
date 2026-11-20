@@ -1,0 +1,49 @@
+name: Headless Smoke Test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: smoke-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  smoke-test:
+    name: Setup & Smoke Suite (Windows / Godot 4.3)
+    runs-on: windows-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Cache Godot 4.3-stable (win64)
+        uses: actions/cache@v4
+        with:
+          path: tools/godot
+          key: godot-4.3-stable-win64-v1
+
+      - name: Run setup.bat
+        shell: cmd
+        run: setup.bat -NoPause
+
+      - name: Run headless multi-region smoke suite
+        shell: pwsh
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File tools\smoke_test.ps1
+
+      - name: Upload smoke log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: godot-smoke-log
+          path: |
+            tools/godot_smoke.log
+            tools/setup_verify.log
+          if-no-files-found: ignore

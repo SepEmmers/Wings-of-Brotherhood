@@ -39,6 +39,7 @@
 
 - `project.godot` — Godot 4.3 (`GL Compatibility`), viewport `1280x720` (`canvas_items` / `expand`), `default_texture_filter=0` (Nearest), main scene `res://scenes/Main.tscn`, Autoloads `GameState` and `SoundManager`.
 - `setup.bat` & `tools/setup.ps1` — One-step Windows bootstrapper after `git clone`: checks runtime assets, downloads & SHA-512-verifies official Godot 4.3-stable (`win64`) into `tools/godot/`, and runs a quick headless startup verification.
+- `.github/workflows/smoke.yml` — GitHub Actions CI workflow (`windows-latest`) running `setup.bat -NoPause` + `tools/smoke_test.ps1` on pushes/PRs to `main` (with cached `tools/godot` and failure log artifact upload).
 - `run_game.bat` — Windows launcher checking `tools\godot\Godot_v4.3-stable_win64.exe` (prompting `setup.bat` if absent) and launching `--path "."`.
 - `README.md` — Repository quick-start guide (`git clone` -> `setup.bat` -> `run_game.bat`), controls reference, and dev/smoke-test instructions.
 - `AGENTS.md` — Top-level project rules, canonical doc links, pixel-art & workflow guide.
