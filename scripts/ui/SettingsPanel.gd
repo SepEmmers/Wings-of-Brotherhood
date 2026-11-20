@@ -413,7 +413,6 @@ func _build_gameplay_tab(parent: VBoxContainer) -> void:
 	scroll.add_child(list_vbox)
 
 	hints_btn = _add_toggle_row(
-		box,
 		list_vbox,
 		"Gameplay Hints",
 		"Shows pulsing gate chevrons, HUD bag/map nudges, wharf clues, and minigame tips.",
@@ -424,7 +423,6 @@ func _build_gameplay_tab(parent: VBoxContainer) -> void:
 	)["btn"]
 
 	prompts_btn = _add_toggle_row(
-		box,
 		list_vbox,
 		"HUD Control Prompts",
 		"Shows keybind reminders along the bottom HUD bar, dialogue box, and cutscenes.",
@@ -435,7 +433,6 @@ func _build_gameplay_tab(parent: VBoxContainer) -> void:
 	)["btn"]
 
 	speed_btn = _add_toggle_row(
-		box,
 		list_vbox,
 		"Dialogue Text Speed",
 		"Controls how fast spoken and telepathic lines appear in the dialogue box.",
@@ -448,7 +445,6 @@ func _build_gameplay_tab(parent: VBoxContainer) -> void:
 	)["btn"]
 
 	shake_btn = _add_toggle_row(
-		box,
 		list_vbox,
 		"Screen Shake",
 		"Camera tremor during cannon impacts, dragon roars, and storm gusts.",
@@ -459,7 +455,6 @@ func _build_gameplay_tab(parent: VBoxContainer) -> void:
 	)["btn"]
 
 	display_btn = _add_toggle_row(
-		box,
 		list_vbox,
 		"Window Mode",
 		"Switch between Windowed, Maximized, and Borderless Fullscreen.",
@@ -502,7 +497,6 @@ func _build_gameplay_tab(parent: VBoxContainer) -> void:
 	)["btn"]
 
 	playtest_hud_btn = _add_toggle_row(
-		box,
 		list_vbox,
 		"Show HUD [F1] Jump Button",
 		"Shows or hides the top-right Chapters/Playtest corner badge (hotkey [F1] always works).",

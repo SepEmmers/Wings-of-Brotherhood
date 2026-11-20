@@ -38,7 +38,9 @@
 ### 2.1 Root & Engine Config
 
 - `project.godot` — Godot 4.3 (`GL Compatibility`), viewport `1280x720` (`canvas_items` / `expand`), `default_texture_filter=0` (Nearest), main scene `res://scenes/Main.tscn`, Autoloads `GameState` and `SoundManager`.
-- `run_game.bat` — Windows launcher invoking `tools\godot\Godot_v4.3-stable_win64.exe --path "."`.
+- `setup.bat` & `tools/setup.ps1` — One-step Windows bootstrapper after `git clone`: checks runtime assets, downloads & SHA-512-verifies official Godot 4.3-stable (`win64`) into `tools/godot/`, and runs a quick headless startup verification.
+- `run_game.bat` — Windows launcher checking `tools\godot\Godot_v4.3-stable_win64.exe` (prompting `setup.bat` if absent) and launching `--path "."`.
+- `README.md` — Repository quick-start guide (`git clone` -> `setup.bat` -> `run_game.bat`), controls reference, and dev/smoke-test instructions.
 - `AGENTS.md` — Top-level project rules, canonical doc links, pixel-art & workflow guide.
 - `bruges_map_builder.html` & `creator_studio.html` — Unified 4-in-1 In-Browser **Creator Studio** (`World & Region Map Builder` across 12 Book I & Book II regions, `Pixel Art & Kit Studio` across all 832 sprites + 32-color `PAL`, `Dialogue & Lore Studio` w/ live `DialogueBox` preview, and `Dungeon & Puzzle Maker` w/ live playable simulation & logic wire editor), powered offline by `tools/studio_data/*.js` (`build_studio_bundles.py`) and live-synced to disk via `run_creator_studio.bat` -> `tools/creator_server.py` (`127.0.0.1:8765`).
 - `data/custom_dungeon.json` & `data/dialogue_overrides.json` — User-authored custom dungeon layout & live dialogue overrides read at runtime by `CustomDungeonRegion.gd` and `DialogueOverrides.gd`.

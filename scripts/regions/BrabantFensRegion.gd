@@ -222,10 +222,6 @@ func enter_region(opts: Dictionary = {}) -> void:
 	SoundManager.set_ambience(get_ambience_track())
 	step_water_layer()
 	if hd2d_stage != null:
-		hd2d_stage.set_hd2d_enabled(not bool(opts.get("force_2d", false)))
-		hd2d_stage.set_wide_vista(bool(opts.get("wide_vista", false)))
-		hd2d_stage.step(0.0, Time.get_ticks_msec() * 0.001)
-		hd2d_stage.snap_camera()
 		hd2d_stage.on_region_enter(opts)
 	queue_redraw()
 	queue_foreground_redraw()
@@ -233,7 +229,6 @@ func enter_region(opts: Dictionary = {}) -> void:
 
 func exit_region() -> void:
 	if hd2d_stage != null:
-		hd2d_stage.set_hd2d_enabled(false)
 		hd2d_stage.on_region_exit()
 	hatch_anim_active = false
 	if hatching_cutscene != null:
