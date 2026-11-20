@@ -41,6 +41,9 @@ var speed_btn: Button
 var shake_btn: Button
 var display_btn: Button
 var playtest_hud_btn: Button
+var hd2d_mode_btn: Button
+var invert_cam_x_btn: Button
+var invert_cam_y_btn: Button
 
 # Controls widgets
 var controls_status_lbl: Label
@@ -397,8 +400,21 @@ func _build_gameplay_tab(parent: VBoxContainer) -> void:
 	parent.add_child(box)
 	tab_pages.append(box)
 
+	var scroll := ScrollContainer.new()
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	if _assets != null:
+		_assets.style_vscrollbar(scroll)
+	box.add_child(scroll)
+
+	var list_vbox := VBoxContainer.new()
+	list_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	list_vbox.add_theme_constant_override("separation", 8)
+	scroll.add_child(list_vbox)
+
 	hints_btn = _add_toggle_row(
 		box,
+		list_vbox,
 		"Gameplay Hints",
 		"Shows pulsing gate chevrons, HUD bag/map nudges, wharf clues, and minigame tips.",
 		"ui_icon_gameplay.png",
@@ -409,6 +425,7 @@ func _build_gameplay_tab(parent: VBoxContainer) -> void:
 
 	prompts_btn = _add_toggle_row(
 		box,
+		list_vbox,
 		"HUD Control Prompts",
 		"Shows keybind reminders along the bottom HUD bar, dialogue box, and cutscenes.",
 		"ui_icon_controls.png",
@@ -419,6 +436,7 @@ func _build_gameplay_tab(parent: VBoxContainer) -> void:
 
 	speed_btn = _add_toggle_row(
 		box,
+		list_vbox,
 		"Dialogue Text Speed",
 		"Controls how fast spoken and telepathic lines appear in the dialogue box.",
 		"ui_icon_quill.png",
@@ -431,6 +449,7 @@ func _build_gameplay_tab(parent: VBoxContainer) -> void:
 
 	shake_btn = _add_toggle_row(
 		box,
+		list_vbox,
 		"Screen Shake",
 		"Camera tremor during cannon impacts, dragon roars, and storm gusts.",
 		"ui_icon_display.png",
@@ -441,6 +460,7 @@ func _build_gameplay_tab(parent: VBoxContainer) -> void:
 
 	display_btn = _add_toggle_row(
 		box,
+		list_vbox,
 		"Window Mode",
 		"Switch between Windowed, Maximized, and Borderless Fullscreen.",
 		"ui_icon_display.png",
@@ -451,8 +471,39 @@ func _build_gameplay_tab(parent: VBoxContainer) -> void:
 			GameState.apply_and_save_settings()
 	)["btn"]
 
+	hd2d_mode_btn = _add_toggle_row(
+		list_vbox,
+		"HD-2D Diorama Mode",
+		"Toggles Octopath-style 3D tilted diorama camera and lighting in supported regions ([H]).",
+		"ui_icon_display.png",
+		func():
+			GameState.hd2d_mode_enabled = not GameState.hd2d_mode_enabled
+			GameState.apply_and_save_settings()
+	)["btn"]
+
+	invert_cam_x_btn = _add_toggle_row(
+		list_vbox,
+		"Invert Camera X (Arrows)",
+		"Reverses horizontal orbit direction for Left/Right Arrow keys in HD-2D mode.",
+		"ui_icon_controls.png",
+		func():
+			GameState.invert_cam_x_arrows = not GameState.invert_cam_x_arrows
+			GameState.apply_and_save_settings()
+	)["btn"]
+
+	invert_cam_y_btn = _add_toggle_row(
+		list_vbox,
+		"Invert Camera Y (Arrows)",
+		"Reverses pitch tilt direction for Up/Down Arrow keys in HD-2D mode.",
+		"ui_icon_controls.png",
+		func():
+			GameState.invert_cam_y_arrows = not GameState.invert_cam_y_arrows
+			GameState.apply_and_save_settings()
+	)["btn"]
+
 	playtest_hud_btn = _add_toggle_row(
 		box,
+		list_vbox,
 		"Show HUD [F1] Jump Button",
 		"Shows or hides the top-right Chapters/Playtest corner badge (hotkey [F1] always works).",
 		"icon_brotherhood_emblem.png",
@@ -670,6 +721,12 @@ func sync_from_state() -> void:
 		shake_btn.text = "ON" if GameState.screen_shake_enabled else "OFF"
 	if display_btn != null:
 		display_btn.text = SettingsConfigScript.DISPLAY_MODE_LABELS.get(GameState.display_mode, "Windowed")
+	if hd2d_mode_btn != null:
+		hd2d_mode_btn.text = "ON" if GameState.hd2d_mode_enabled else "OFF"
+	if invert_cam_x_btn != null:
+		invert_cam_x_btn.text = "ON" if GameState.invert_cam_x_arrows else "OFF"
+	if invert_cam_y_btn != null:
+		invert_cam_y_btn.text = "ON" if GameState.invert_cam_y_arrows else "OFF"
 	if playtest_hud_btn != null:
 		playtest_hud_btn.text = "Shown" if GameState.show_playtest_hud_btn else "Hidden"
 
@@ -755,6 +812,9 @@ func apply_post_theme_fixes() -> void:
 	_apply_toggle_style(hints_btn, GameState.hints_enabled)
 	_apply_toggle_style(prompts_btn, GameState.control_prompts_enabled)
 	_apply_toggle_style(shake_btn, GameState.screen_shake_enabled)
+	_apply_toggle_style(hd2d_mode_btn, GameState.hd2d_mode_enabled)
+	_apply_toggle_style(invert_cam_x_btn, GameState.invert_cam_x_arrows)
+	_apply_toggle_style(invert_cam_y_btn, GameState.invert_cam_y_arrows)
 	_apply_toggle_style(playtest_hud_btn, GameState.show_playtest_hud_btn)
 	_apply_cycle_style(speed_btn)
 	_apply_cycle_style(display_btn)

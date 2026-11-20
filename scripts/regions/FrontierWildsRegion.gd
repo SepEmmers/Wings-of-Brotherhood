@@ -112,11 +112,10 @@ func _register_interactables() -> void:
 		{"id": "wilds_black_dragon", "name": "Wounded Black-Scaled Dragon", "pos": BLACK_DRAGON_POS, "radius": 98.0, "callback": _on_interact_black_dragon},
 		{"id": "wilds_egg_nest", "name": "Claim Black-Scaled Dragon Egg", "pos": EGG_NEST_POS, "radius": 78.0, "callback": _on_pickup_dragon_egg},
 		{"id": "hollow_gate", "name": "Overgrown Ridge Roots", "pos": HOLLOW_GATE_POS, "radius": 74.0, "callback": _on_inspect_hollow_gate},
-		{"id": "gorge_winch_e", "name": "Grapple Across Gorge ([E] / Click Post)", "pos": GORGE_WINCH_E, "radius": 82.0, "callback": func(): _cross_winch("gorge")},
-		{"id": "gorge_winch_w", "name": "Grapple Back Across Gorge ([E] / Click Post)", "pos": GORGE_WINCH_W, "radius": 82.0, "callback": func(): _cross_winch("gorge")},
-		{"id": "creek_winch_s", "name": "Grapple North Across Creek ([E] / Click Post)", "pos": CREEK_WINCH_S, "radius": 82.0, "callback": func(): _cross_winch("creek")},
-		{"id": "creek_winch_n", "name": "Grapple South Across Creek ([E] / Click Post)", "pos": CREEK_WINCH_N, "radius": 82.0, "callback": func(): _cross_winch("creek")},
-		{"id": "wilds_outpost", "name": "Brotherhood Watchtower Hearth", "pos": OUTPOST_POS, "radius": 98.0, "callback": _on_reach_frontier_outpost}
+		{"id": "gorge_winch_e", "name": "Grapple Across Gorge", "pos": GORGE_WINCH_E, "radius": 82.0, "callback": func(): _cross_winch("gorge")},
+		{"id": "gorge_winch_w", "name": "Grapple Back Across Gorge", "pos": GORGE_WINCH_W, "radius": 82.0, "callback": func(): _cross_winch("gorge")},
+		{"id": "creek_winch_s", "name": "Grapple North Across Creek", "pos": CREEK_WINCH_S, "radius": 82.0, "callback": func(): _cross_winch("creek")},
+		{"id": "creek_winch_n", "name": "Grapple South Across Creek", "pos": CREEK_WINCH_N, "radius": 82.0, "callback": func(): _cross_winch("creek")},
 	]
 	register_walk_portal("wilds_outpost", Rect2(OUTPOST_POS.x - 42.0, OUTPOST_POS.y - 24.0, 84.0, 52.0), Vector2.UP, _on_reach_frontier_outpost, "^ Watchtower Hearth", "WATCHTOWER HEARTH", "Brotherhood Outpost")
 
@@ -720,24 +719,19 @@ func _skip_dragon_breath_cutscene() -> void:
 	_finish_dragon_breath_cutscene()
 
 func _on_reach_frontier_outpost() -> void:
-	if not GameState.carrying_egg or _outpost_fading: return
+	if not GameState.carrying_egg or _outpost_fading:
+		return
 	GameState.current_step = GameState.QuestStep.BOOK1_WATCHTOWER_HEARTH
-	SoundManager.play_chime()
-	ui.show_dialogue([
-		{"speaker": "Anna", "portrait": "portrait_anna.png", "text": "%s? We swept three ridges searching every fern brake for your coat—wait. What are you cradling inside your sling?" % GameState.player_name},
-		{"speaker": GameState.player_name, "portrait": "portrait_boy_angry.png", "text": "Don't look at me like I turned soft on beasts. Church bolts crippled the black one out in the hollow—I just wasn't leaving a live thing in the dirt to freeze."},
-		{"speaker": "Anna", "portrait": "portrait_anna.png", "text": "Black-scaled...? Bring it inside by the stone hearth before the chill settles through the shell. Tomorrow we talk."}
-	], func():
-		_outpost_fading = true
-		ui.set_fade(1.0, false)
-		get_tree().create_timer(0.55).timeout.connect(func():
-			if is_inside_tree(): director.load_region("hearth", {})
-		)
+	_outpost_fading = true
+	SoundManager.play_door()
+	ui.set_fade(1.0, false)
+	get_tree().create_timer(0.45).timeout.connect(func():
+		if is_inside_tree():
+			director.load_region("hearth", {})
 	)
 
 func get_active_npc_colliders() -> Array:
 	var list: Array = [{"pos": BLACK_DRAGON_POS, "offset": Vector2.ZERO, "radius": 42.0}]
-	if GameState.black_dragon_found: list.append(OUTPOST_POS + Vector2(-42, 34))
 	if GameState.carrying_egg and GameState.current_step == GameState.QuestStep.ACT3_EGG_TREK:
 		for hp: Dictionary in hunter_patrols: list.append(Vector2(hp["pos"]))
 	return list

@@ -55,7 +55,7 @@ static func draw_world(r) -> void:
 	var cog_tex: Texture2D = r.assets.get_tex("merchant_cog.png")
 	var bol_tex: Texture2D = r.assets.get_tex("prop_bollard.png")
 	if cam_rect.intersects(Rect2(r.ship_pos - Vector2(90, 160), Vector2(180, 300))):
-		if not GameState.ship_docked:
+		if not GameState.ship_docked and r.ship_pos.distance_to(r.ship_target_pos) > 4.0:
 			for wi in range(1, 5):
 				var spread := float(wi) * 9.0
 				r.draw_arc(r.ship_pos + Vector2(0, -82 - float(wi) * 14.0), 22.0 + spread, 0.2, PI - 0.2, 10, Color(0.84, 0.94, 0.98, 0.42 - float(wi) * 0.08), 2.0)
@@ -71,7 +71,8 @@ static func draw_world(r) -> void:
 			var ct: Texture2D = r.assets.get_tex("prop_crate.png")
 			if ct != null:
 				r.draw_texture_rect(ct, Rect2(r.ship_pos + Vector2(-34, 28), Vector2(32, 32)), false)
-		r.assets.draw_npc_sprite(r, r.ship_pos + Vector2(4, -22), "npc_shipmaster.png", "Shipmaster Hendrik", font)
+		var hendrik_lbl := "Shipmaster Hendrik" if GameState.ship_docked else ""
+		r.assets.draw_npc_sprite(r, r.ship_pos + Vector2(4, -22), "npc_shipmaster.png", hendrik_lbl, font)
 
 	if r.gangplank_deployed and cam_rect.intersects(Rect2(204, 464, 64, 32)):
 		r.assets.draw_tiled_rect(r, Rect2(204, 464, 64, 32), r.assets.get_tex("tile_wharf.png"), 32.0)
@@ -104,10 +105,10 @@ static func draw_world(r) -> void:
 	if coil_tex != null and cam_rect.has_point(r.HARBOUR_RIGGING_POST):
 		r.draw_texture_rect(coil_tex, Rect2(r.HARBOUR_RIGGING_POST + Vector2(-16, 4), Vector2(32, 32)), false)
 
-	if cam_rect.intersects(Rect2(348, 36, 336, 216)):
-		r.assets.draw_sprite_building(r, Rect2(348, 36, 336, 216), "building_warehouse.png", "", font)
-	if cam_rect.intersects(Rect2(936, 28, 548, 192)):
-		r.assets.draw_sprite_building(r, Rect2(936, 28, 548, 192), "building_ropewalk.png", "", font)
+	if cam_rect.intersects(Rect2(364, 54, 288, 180)):
+		r.assets.draw_sprite_building(r, Rect2(364, 54, 288, 180), "building_warehouse.png", "", font)
+	if cam_rect.intersects(Rect2(950, 44, 456, 154)):
+		r.assets.draw_sprite_building(r, Rect2(950, 44, 456, 154), "building_ropewalk.png", "", font)
 
 	if cam_rect.has_point(r.NOTICEBOARD_POS):
 		var nb_tex: Texture2D = r.assets.get_tex("prop_noticeboard.png")
@@ -128,25 +129,25 @@ static func draw_world(r) -> void:
 			r.draw_texture_rect(tc_tex, Rect2(r.TWINE_CACHE_POS - Vector2(20, 22), Vector2(40, 40)), false)
 		r.draw_arc(r.TWINE_CACHE_POS, 21.0 + sin(t_now * 3.8) * 2.0, 0.0, TAU, 16, Color(0.95, 0.78, 0.42, 0.50), 1.5)
 
-	if cam_rect.intersects(Rect2(944, 206, 488, 60)):
-		r.draw_line(Vector2(970, 224), Vector2(1410, 224), Color(0.76, 0.62, 0.36), 3.0)
+	if cam_rect.intersects(Rect2(944, 194, 470, 60)):
+		r.draw_line(Vector2(970, 214), Vector2(1390, 214), Color(0.76, 0.62, 0.36), 3.0)
 		var windlass_tex: Texture2D = r.assets.get_tex("prop_rope_windlass.png")
 		if windlass_tex != null:
-			r.draw_texture_rect(windlass_tex, Rect2(950, 212, 46, 36), false)
-			r.draw_texture_rect(windlass_tex, Rect2(1382, 212, 46, 36), false)
+			r.draw_texture_rect(windlass_tex, Rect2(950, 200, 46, 36), false)
+			r.draw_texture_rect(windlass_tex, Rect2(1364, 200, 46, 36), false)
 		if coil_tex != null:
-			for rx in range(1018, 1380, 92):
+			for rx in range(1018, 1360, 92):
 				if float(rx) >= cam_rect.position.x and float(rx) <= cam_rect.end.x:
-					r.draw_texture_rect(coil_tex, Rect2(rx - 16, 232, 32, 32), false)
+					r.draw_texture_rect(coil_tex, Rect2(rx - 16, 224, 32, 32), false)
 
 	var prop_crate: Texture2D = r.assets.get_tex("prop_crate.png")
 	var prop_barrel: Texture2D = r.assets.get_tex("prop_barrel.png")
 	if prop_crate != null:
-		for cp in [Vector2(336, 620), Vector2(372, 634), Vector2(338, 668), Vector2(372, 216), Vector2(602, 214), Vector2(1124, 782)]:
+		for cp in [Vector2(336, 620), Vector2(372, 634), Vector2(338, 668), Vector2(372, 214), Vector2(598, 212), Vector2(1176, 782)]:
 			if cam_rect.has_point(cp):
 				r.draw_texture_rect(prop_crate, Rect2(cp, Vector2(32, 32)), false)
 	if prop_barrel != null:
-		for bp in [Vector2(374, 672), Vector2(344, 700), Vector2(636, 198), Vector2(406, 218), Vector2(1124, 816)]:
+		for bp in [Vector2(374, 672), Vector2(344, 700), Vector2(628, 198), Vector2(406, 216), Vector2(1176, 816)]:
 			if cam_rect.has_point(bp):
 				r.draw_texture_rect(prop_barrel, Rect2(bp, Vector2(32, 32)), false)
 
@@ -155,16 +156,16 @@ static func draw_world(r) -> void:
 		if pulpit_tex != null:
 			r.draw_texture_rect(pulpit_tex, Rect2(744, 290, 112, 64), false)
 
-	if cam_rect.intersects(Rect2(714, 480, 162, 136)):
-		r.assets.draw_sprite_building(r, Rect2(714, 480, 162, 136), "building_baker.png", "", font)
+	if cam_rect.intersects(Rect2(718, 504, 156, 104)):
+		r.assets.draw_sprite_building(r, Rect2(718, 504, 156, 104), "building_baker.png", "", font)
 	var oven_rect := Rect2(876, 550, 56, 46)
 	if cam_rect.intersects(oven_rect.grow(36.0)):
 		r.assets.draw_bakery_oven_fx(r, oven_rect, t_now)
 	var sack_tex: Texture2D = r.assets.get_tex("prop_flour_sack_stack.png")
 	if sack_tex != null and cam_rect.intersects(Rect2(838, 598, 34, 28)):
 		r.draw_texture_rect(sack_tex, Rect2(838, 598, 34, 28), false)
-	if cam_rect.intersects(Rect2(1148, 616, 324, 244)):
-		r.assets.draw_sprite_building(r, Rect2(1148, 616, 324, 244), "building_house.png", "", font)
+	if cam_rect.intersects(Rect2(1214, 704, 196, 144)):
+		r.assets.draw_sprite_building(r, Rect2(1214, 704, 196, 144), "building_house.png", "", font)
 
 	var pine_tex: Texture2D = r.assets.get_tex("prop_pine_tree.png")
 	if pine_tex != null:
@@ -172,12 +173,12 @@ static func draw_world(r) -> void:
 			if cam_rect.has_point(tp):
 				r.draw_texture_rect(pine_tex, Rect2(tp - Vector2(36, 78), Vector2(72, 96)), false)
 
-	if cam_rect.has_point(Vector2(842, 482)):
-		r.assets.draw_chimney_smoke(r, Vector2(842, 482), 0)
+	if cam_rect.has_point(Vector2(840, 508)):
+		r.assets.draw_chimney_smoke(r, Vector2(840, 508), 0)
 	if cam_rect.has_point(Vector2(898, 554)):
 		r.assets.draw_chimney_smoke(r, Vector2(898, 554), 1)
-	if cam_rect.has_point(Vector2(1398, 620)):
-		r.assets.draw_chimney_smoke(r, Vector2(1398, 620), 1)
+	if cam_rect.has_point(Vector2(1354, 708)):
+		r.assets.draw_chimney_smoke(r, Vector2(1354, 708), 1)
 
 	var ltex: Texture2D = r.assets.get_tex("prop_lantern.png")
 	for lpos in [Vector2(290, 380), Vector2(680, 250), Vector2(930, 255), Vector2(705, 600), Vector2(1260, 916), Vector2(1360, 916)]:
@@ -204,34 +205,22 @@ static func draw_world(r) -> void:
 	if cam_rect.has_point(Vector2(795, 628)):
 		r.assets.draw_npc_sprite(r, r.get_npc_yield_pos("pob_baker", Vector2(795, 628), 34.0, 12.0), "npc_baker.png", "Baker Pieter", font)
 
-	var pier_tex: Texture2D = r.assets.get_tex("prop_gatehouse_pier_v.png")
+	var port_gate_tex: Texture2D = r.assets.get_tex("prop_port_gatehouse.png")
 	var sign_tex: Texture2D = r.assets.get_tex("prop_milestone.png")
 	var is_ch1_gated := GameState.current_step < GameState.QuestStep.ACT2_SANCTUARY
-	if pier_tex != null and cam_rect.intersects(Rect2(624, 0, 192, 110)):
-		r.draw_texture_rect(pier_tex, Rect2(648, 0, 28, 36), false)
-		r.draw_texture_rect(pier_tex, Rect2(764, 0, 28, 36), false)
-		if is_ch1_gated:
-			r.draw_rect(Rect2(674, 22, 92, 7), Color(0.36, 0.22, 0.12))
-			r.draw_rect(Rect2(674, 22, 92, 7), Color(0.14, 0.08, 0.05), false, 1.2)
-			for bx in [686, 712, 738]:
-				r.draw_rect(Rect2(bx, 22, 10, 7), Color(0.68, 0.22, 0.16, 0.85))
+	if port_gate_tex != null and cam_rect.intersects(Rect2(598, -20, 246, 150)):
+		r.draw_texture_rect(port_gate_tex, Rect2(606, -18, 228, 134), false)
 		if sign_tex != null:
-			r.draw_texture_rect(sign_tex, Rect2(632, 48, 30, 38), false)
-	if is_ch1_gated and cam_rect.has_point(Vector2(692, 62)):
-		r.assets.draw_npc_sprite(r, Vector2(692, 62), "npc_city_guard_%d.png" % idle_idx, "Gatewarden Maerten", font)
-	if cam_rect.intersects(Rect2(1420, 0, 180, 300)):
-		if pier_tex != null:
-			r.draw_texture_rect(pier_tex, Rect2(1468, 0, 28, 36), false)
-			r.draw_texture_rect(pier_tex, Rect2(1556, 0, 28, 36), false)
-		if is_ch1_gated:
-			r.draw_rect(Rect2(1494, 22, 64, 7), Color(0.36, 0.22, 0.12))
-			r.draw_rect(Rect2(1494, 22, 64, 7), Color(0.14, 0.08, 0.05), false, 1.2)
-			for bx in [1502, 1528]:
-				r.draw_rect(Rect2(bx, 22, 10, 7), Color(0.68, 0.22, 0.16, 0.85))
+			r.draw_texture_rect(sign_tex, Rect2(624, 62, 30, 38), false)
+	if is_ch1_gated and cam_rect.has_point(Vector2(720, 92)):
+		r.assets.draw_npc_sprite(r, Vector2(720, 92), "npc_city_guard_%d.png" % idle_idx, "Gatewarden Maerten", font)
+	if cam_rect.intersects(Rect2(1420, -20, 210, 300)):
+		if port_gate_tex != null:
+			r.draw_texture_rect(port_gate_tex, Rect2(1432, -12, 188, 118), false)
 		if sign_tex != null:
 			r.draw_texture_rect(sign_tex, Rect2(1448, 250, 30, 38), false)
-	if is_ch1_gated and cam_rect.has_point(Vector2(1504, 62)):
-		r.assets.draw_npc_sprite(r, Vector2(1504, 62), "npc_city_guard_%d.png" % (1 - idle_idx), "Customsman Dirk", font)
+	if is_ch1_gated and cam_rect.has_point(Vector2(1526, 98)):
+		r.assets.draw_npc_sprite(r, Vector2(1526, 98), "npc_city_guard_%d.png" % (1 - idle_idx), "Customsman Dirk", font)
 
 	_draw_watchmen(r, font, cam_rect)
 	_draw_ambush_cast(r, font, idle_idx, t_now, cam_rect)
@@ -284,10 +273,10 @@ static func _draw_foreground(r, fg: Node2D) -> void:
 	var py: float = r.player.position.y
 
 	for b in [
-		{"rect": Rect2(348, 36, 336, 216), "tex": "building_warehouse.png"},
-		{"rect": Rect2(936, 28, 548, 192), "tex": "building_ropewalk.png"},
-		{"rect": Rect2(714, 480, 162, 136), "tex": "building_baker.png"},
-		{"rect": Rect2(1148, 616, 324, 244), "tex": "building_house.png"},
+		{"rect": Rect2(364, 54, 288, 180), "tex": "building_warehouse.png"},
+		{"rect": Rect2(950, 44, 456, 154), "tex": "building_ropewalk.png"},
+		{"rect": Rect2(718, 504, 156, 104), "tex": "building_baker.png"},
+		{"rect": Rect2(1214, 704, 196, 144), "tex": "building_house.png"},
 	]:
 		var br: Rect2 = b["rect"]
 		if py < br.end.y - 6.0 and py > br.position.y - 24.0 and cam_rect.intersects(br):
@@ -315,8 +304,8 @@ static func _draw_foreground(r, fg: Node2D) -> void:
 			npcs.append({"pos": r.get_npc_yield_pos("pob_jan", Vector2(308, 608), 34.0, 12.0), "tex": "npc_dockhand_%d.png" % idle_idx, "name": "Dockhand Jan"})
 			npcs.append({"pos": r.get_npc_yield_pos("pob_piet", Vector2(575, 595), 34.0, 12.0), "tex": "npc_piet_%d.png" % piet_idx, "name": "Old Piet"})
 		if GameState.current_step < GameState.QuestStep.ACT2_SANCTUARY:
-			npcs.append({"pos": Vector2(692, 62), "tex": "npc_city_guard_%d.png" % idle_idx, "name": "Gatewarden Maerten"})
-			npcs.append({"pos": Vector2(1504, 62), "tex": "npc_city_guard_%d.png" % (1 - idle_idx), "name": "Customsman Dirk"})
+			npcs.append({"pos": Vector2(720, 92), "tex": "npc_city_guard_%d.png" % idle_idx, "name": "Gatewarden Maerten"})
+			npcs.append({"pos": Vector2(1526, 98), "tex": "npc_city_guard_%d.png" % (1 - idle_idx), "name": "Customsman Dirk"})
 		for n in npcs:
 			var np_pos := Vector2(n["pos"])
 			if np_pos.y > py + 2.0 and cam_rect.has_point(np_pos):
@@ -355,8 +344,7 @@ static func _draw_ambush_cast(r, font: Font, idle_idx: int, t_now: float, cam_re
 	if r.ambush_cutscene_active:
 		r.assets.draw_npc_sprite(r, r.amb_rider_l, "npc_brotherhood_guard_%d.png" % idle_idx, "Brotherhood Rider", font)
 		r.assets.draw_npc_sprite(r, r.amb_rider_r, "npc_brotherhood_guard_%d.png" % (1 - idle_idx), "Brotherhood Rider", font, Color(0.95, 0.92, 0.84), true)
-		if r.ambush_stage >= 1:
-			r.assets.draw_npc_sprite(r, r.amb_anna, "npc_anna.png", "Anna", font)
+		r.assets.draw_npc_sprite(r, r.amb_anna, "npc_anna.png", "Hooded Captain", font)
 		for dp in r.amb_dust_puffs:
 			var a := clampf(float(dp["t"]) / float(dp["max_t"]), 0.0, 1.0)
 			r.draw_circle(dp["pos"], 5.0 * a + 2.0, Color(0.76, 0.72, 0.62, 0.45 * a))
@@ -372,4 +360,4 @@ static func _draw_ambush_cast(r, font: Font, idle_idx: int, t_now: float, cam_re
 	elif (GameState.current_step == GameState.QuestStep.SNITCH_TO_CHURCH or GameState.current_step == GameState.QuestStep.BROTHERHOOD_AMBUSH) and cam_rect.has_point(r.AMBUSH_CENTER):
 		r.assets.draw_npc_sprite(r, r.AMBUSH_CENTER + Vector2(-42, -20), "npc_brotherhood_guard_%d.png" % idle_idx, "Brotherhood Rider", font)
 		r.assets.draw_npc_sprite(r, r.AMBUSH_CENTER + Vector2(38, 18), "npc_brotherhood_guard_%d.png" % (1 - idle_idx), "Brotherhood Rider", font, Color(0.95, 0.92, 0.84), true)
-		r.assets.draw_npc_sprite(r, r.AMBUSH_CENTER + Vector2(0, -45), "npc_anna.png", "Captain Anna", font)
+		r.assets.draw_npc_sprite(r, r.AMBUSH_CENTER + Vector2(0, -45), "npc_anna.png", "Hooded Captain", font)

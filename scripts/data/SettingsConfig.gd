@@ -14,6 +14,9 @@ const DEFAULTS: Dictionary = {
 	"screen_shake_enabled": true,
 	"display_mode": "windowed",
 	"show_playtest_hud_btn": false,
+	"hd2d_mode_enabled": true,
+	"invert_cam_x_arrows": false,
+	"invert_cam_y_arrows": false,
 }
 
 const DIALOGUE_SPEED_CPS: Dictionary = {
@@ -235,6 +238,9 @@ static func load_into_state(state) -> void:
 	state.screen_shake_enabled = bool(DEFAULTS["screen_shake_enabled"])
 	state.display_mode = str(DEFAULTS["display_mode"])
 	state.show_playtest_hud_btn = bool(DEFAULTS["show_playtest_hud_btn"])
+	state.hd2d_mode_enabled = bool(DEFAULTS["hd2d_mode_enabled"])
+	state.invert_cam_x_arrows = bool(DEFAULTS["invert_cam_x_arrows"])
+	state.invert_cam_y_arrows = bool(DEFAULTS["invert_cam_y_arrows"])
 
 	var cfg := ConfigFile.new()
 	if cfg.load(CFG_PATH) != OK:
@@ -253,6 +259,9 @@ static func load_into_state(state) -> void:
 		state.dialogue_speed_mode = spd
 	state.screen_shake_enabled = bool(cfg.get_value("gameplay", "screen_shake_enabled", state.screen_shake_enabled))
 	state.show_playtest_hud_btn = bool(cfg.get_value("gameplay", "show_playtest_hud_btn", state.show_playtest_hud_btn))
+	state.hd2d_mode_enabled = bool(cfg.get_value("gameplay", "hd2d_mode_enabled", state.hd2d_mode_enabled))
+	state.invert_cam_x_arrows = bool(cfg.get_value("gameplay", "invert_cam_x_arrows", state.invert_cam_x_arrows))
+	state.invert_cam_y_arrows = bool(cfg.get_value("gameplay", "invert_cam_y_arrows", state.invert_cam_y_arrows))
 
 	var disp := str(cfg.get_value("display", "display_mode", state.display_mode))
 	if DISPLAY_MODE_LABELS.has(disp):
@@ -279,6 +288,9 @@ static func save_from_state(state) -> void:
 	cfg.set_value("gameplay", "dialogue_speed_mode", state.dialogue_speed_mode)
 	cfg.set_value("gameplay", "screen_shake_enabled", state.screen_shake_enabled)
 	cfg.set_value("gameplay", "show_playtest_hud_btn", state.show_playtest_hud_btn)
+	cfg.set_value("gameplay", "hd2d_mode_enabled", state.hd2d_mode_enabled)
+	cfg.set_value("gameplay", "invert_cam_x_arrows", state.invert_cam_x_arrows)
+	cfg.set_value("gameplay", "invert_cam_y_arrows", state.invert_cam_y_arrows)
 
 	cfg.set_value("display", "display_mode", state.display_mode)
 

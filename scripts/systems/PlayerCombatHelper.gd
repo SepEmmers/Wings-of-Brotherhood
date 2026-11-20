@@ -86,44 +86,90 @@ func begin_slash() -> Dictionary:
 
 
 static func resolve_knot_targets(knot_id: String, caster_pos: Vector2, tip_pos: Vector2, enemies: Array) -> Dictionary:
-	## Applies Book II tactical Knot interactions against enemy dictionaries ({pos, has_shield, stunned_t, snared_t, hp}).
-	## Returns summary dictionary: {"hit": bool, "yanked": Array, "snared": Array, "zipped_target": Variant}.
-	var out := {"hit": false, "yanked": [], "snared": [], "zipped_target": null}
-	var radius := 46.0
+	## Applies unified Book I & Book II tactical Knot interactions against enemy dictionaries:
+	## - clove_hitch: permanently binds ONE enemy at a time (rebinding elsewhere releases previous foe).
+	## - bruges_whipping: deals 1 ranged whip-crack damage, rips shields, and yanks foes closer.
+	## - bowline: wide 92px AOE temporary loop snare (3.2s) over clusters of foes.
+	## - dragon_splice: high-speed grapple zip & stagger.
+	var out := {"hit": false, "bound": [], "yanked": [], "snared": [], "damaged": [], "zipped_target": null}
+	var radius := 48.0
 	if knot_id == "bowline":
 		radius = 92.0
 	elif knot_id == "bruges_whipping":
-		radius = 52.0
+		radius = 54.0
 	elif knot_id == "dragon_splice":
 		radius = 60.0
 
+	if knot_id == "clove_hitch":
+		var best_en = null
+		var best_dist := 99999.0
+		for en in enemies:
+			if not (en is Dictionary):
+				continue
+			if not bool(en.get("alive", true)) or (en.has("hp") and int(en["hp"]) <= 0):
+				continue
+			var epos: Vector2 = en.get("pos", Vector2.ZERO)
+			var cp := Geometry2D.get_closest_point_to_segment(epos, caster_pos, tip_pos)
+			var d := minf(epos.distance_to(cp), epos.distance_to(tip_pos))
+			if d <= radius and d < best_dist:
+				best_dist = d
+				best_en = en
+		if best_en != null:
+			for prev in enemies:
+				if prev is Dictionary and prev != best_en and bool(prev.get("permanently_bound", false)):
+					prev["permanently_bound"] = false
+					prev["snared_t"] = 0.0
+					prev["stunned_t"] = 0.0
+					if prev.has("stun") and float(prev["stun"]) > 10.0:
+						prev["stun"] = 0.0
+			best_en["permanently_bound"] = true
+			best_en["snared_t"] = 9999.0
+			best_en["stunned_t"] = 9999.0
+			if best_en.has("stun"):
+				best_en["stun"] = 9999.0
+			out["bound"].append(best_en)
+			out["hit"] = true
+		return out
+
 	for en in enemies:
-		if not (en is Dictionary) or not bool(en.get("alive", true)):
+		if not (en is Dictionary):
+			continue
+		if not bool(en.get("alive", true)) or (en.has("hp") and int(en["hp"]) <= 0):
 			continue
 		var epos: Vector2 = en.get("pos", Vector2.ZERO)
 		var closest_pt := Geometry2D.get_closest_point_to_segment(epos, caster_pos, tip_pos)
-		if epos.distance_to(closest_pt) > radius:
+		if epos.distance_to(closest_pt) > radius and epos.distance_to(tip_pos) > radius:
 			continue
 		out["hit"] = true
 		match knot_id:
-			"clove_hitch":
-				en["stunned_t"] = maxf(float(en.get("stunned_t", 0.0)), 0.85)
 			"bruges_whipping":
-				# Yank shields right out of Catchpole hands & drag toward Boy
+				# Ranged whip-crack damage + rip shields out of Catchpole hands & pull toward Boy
+				if en.has("hp"):
+					en["hp"] = maxi(0, int(en["hp"]) - 1)
+					if int(en["hp"]) <= 0:
+						en["alive"] = false
+				en["whip_damaged"] = true
+				out["damaged"].append(en)
 				if bool(en.get("has_shield", false)):
 					en["has_shield"] = false
 					en["shield_yanked"] = true
 				var pull_dir := (caster_pos - epos).normalized()
 				en["pos"] = epos + pull_dir * minf(42.0, epos.distance_to(caster_pos) * 0.45)
 				en["stunned_t"] = maxf(float(en.get("stunned_t", 0.0)), 1.25)
+				if en.has("stun"):
+					en["stun"] = maxf(float(en["stun"]), 1.25)
 				out["yanked"].append(en)
 			"bowline":
-				# Wide rescue lasso snares multiple foes in place
-				en["snared_t"] = maxf(float(en.get("snared_t", 0.0)), 2.40)
+				# Wide rescue lasso snares multiple foes in place (~3.2s)
+				en["snared_t"] = maxf(float(en.get("snared_t", 0.0)), 3.20)
+				if en.has("stun"):
+					en["stun"] = maxf(float(en["stun"]), 3.20)
 				out["snared"].append(en)
 			"dragon_splice":
 				# Dash target: zips into stunned/snared targets for heavy impact
 				if out["zipped_target"] == null:
 					out["zipped_target"] = en
 				en["stunned_t"] = maxf(float(en.get("stunned_t", 0.0)), 1.50)
+				if en.has("stun"):
+					en["stun"] = maxf(float(en["stun"]), 1.50)
 	return out

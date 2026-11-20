@@ -610,30 +610,45 @@ def _make_stalls_props_and_livestock(sprites_dir: str) -> None:
         pg.pset(2, 6, "PK")
         _save(pg, sprites_dir, f"animal_pig_{frame}.png")
 
-    # 31. Butchered Mutton Quarter Carry & Rack Prop (22x18)
+    # 31. Butchered Mutton Quarter Carry & Rack Prop (22x18) — sculpted marbled joint, twine & bone knuckle
     mj = PixelCanvas(22, 18)
-    mj.ellipse(8.5, 9.0, 6.2, 4.8, "D0")
-    mj.ellipse(8.0, 8.5, 5.2, 4.0, "D1")
-    mj.ellipse(7.0, 7.2, 3.2, 2.2, "R2")
-    mj.pset(6, 9, "L1")
+    mj.ellipse(8.2, 9.2, 6.2, 5.0, "I0")
+    mj.ellipse(7.8, 8.8, 5.4, 4.2, "D1")
+    mj.ellipse(6.8, 7.6, 3.6, 2.6, "R2")
+    mj.ellipse(5.8, 6.8, 1.8, 1.2, "R3")
+    # Fat cap highlight & savory marbling flecks
+    mj.line(4, 5, 9, 4, "L1")
+    mj.line(5, 6, 8, 5, "L0")
+    mj.pset(6, 9, "L0")
     mj.pset(9, 10, "L1")
-    # Femur bone shank + butcher twine wrap
-    mj.rect(13, 7, 5, 3, "L1")
-    mj.line(14, 7, 17, 7, "L0")
-    mj.circle(18, 8, 1.6, "L0")
-    mj.line(12, 6, 12, 12, "H2")
-    _save(mj, sprites_dir, "prop_mutton_joint.png")
+    # Hemp butcher twine wrap & carved femur shank + twin ivory knuckle knobs
+    mj.line(12, 5, 12, 12, "H1")
+    mj.line(13, 6, 13, 12, "H2")
+    mj.rect(14, 7, 4, 3, "L1")
+    mj.line(14, 7, 18, 7, "L0")
+    mj.circle(18, 7, 1.3, "L0")
+    mj.circle(18, 10, 1.3, "L1")
+    mj.pset(18, 7, "EW")
+    mj.add_outline("K", selective_hue=True)
+    mj.save_png(os.path.join(sprites_dir, "prop_mutton_joint.png"))
 
-    # 32. Compact Mutton Bag/Popup Icon (16x16)
+    # 32. Compact Mutton Bag/Popup Icon (16x16) — crisp appetizing shank silhouette
     mi = PixelCanvas(16, 16)
-    mi.ellipse(6.5, 8.5, 4.5, 3.8, "D0")
-    mi.ellipse(6.0, 8.0, 3.6, 3.0, "D1")
-    mi.ellipse(5.5, 7.0, 2.2, 1.5, "R2")
-    mi.rect(10, 7, 4, 2, "L0")
-    mi.pset(14, 7, "L1")
-    mi.pset(14, 9, "L1")
-    mi.line(9, 6, 9, 10, "H2")
-    _save(mi, sprites_dir, "icon_mutton.png")
+    mi.ellipse(6.0, 8.8, 4.6, 4.0, "I0")
+    mi.ellipse(5.6, 8.3, 3.8, 3.2, "D1")
+    mi.ellipse(5.0, 7.2, 2.4, 1.7, "R2")
+    mi.line(4, 5, 8, 5, "L0")
+    mi.pset(5, 9, "L1")
+    mi.line(9, 5, 9, 11, "H1")
+    mi.pset(9, 7, "H2")
+    mi.rect(10, 7, 3, 2, "L1")
+    mi.line(10, 7, 12, 7, "L0")
+    mi.pset(13, 6, "L0")
+    mi.pset(14, 6, "EW")
+    mi.pset(13, 9, "L1")
+    mi.pset(14, 9, "L2")
+    mi.add_outline("K", selective_hue=True)
+    mi.save_png(os.path.join(sprites_dir, "icon_mutton.png"))
 
 
 def _make_signal_mast_sprites(sprites_dir: str) -> None:
@@ -854,6 +869,163 @@ def _make_egg_cradle_pedestal(sprites_dir: str):
     _save(c, sprites_dir, "prop_egg_cradle_pedestal.png")
 
 
+def _make_butcher_minigame_assets(sprites_dir: str):
+    """Pixel-art Heavy Oak Butcher Block (270x125), Steel Cleaver (26x48), and 5 Seam-Aligned Mutton Cuts."""
+    bw, bh = 270, 125
+
+    # 1. Heavy Oak Butcher Block (270x125 -> rendered 2x at 540x250)
+    blk = PixelCanvas(bw, bh, PAL["T0"])
+    blk.rect(4, 6, bw - 8, bh - 12, "T1")
+    for py in range(8, bh - 8, 4):
+        shade = "T2" if ((py // 4) % 2 == 0) else "T1"
+        blk.rect(6, py, bw - 12, 3, shade)
+        blk.line(6, py, bw - 7, py, "T3" if shade == "T2" else "T2")
+        seam_x = 40 + ((py * 19) % 190)
+        blk.line(seam_x, py, seam_x, py + 2, "T0")
+    # Dark outer iron-bolted bevel border & old cleaver score marks on oak board
+    blk.rect_outline(4, 6, bw - 8, bh - 12, "K")
+    for cx, cy in ((22, 14), (bw - 24, 14), (22, bh - 16), (bw - 24, bh - 16)):
+        blk.rect(cx - 2, cy - 2, 5, 5, "C0")
+        blk.rect(cx - 1, cy - 1, 3, 3, "C3")
+    for sx, sy, slen in ((36, 30, 22), (210, 88, 18), (44, 96, 16), (224, 34, 15)):
+        blk.line(sx, sy, sx + slen, sy + 5, "T0")
+    blk.save_png(os.path.join(sprites_dir, "ui_butcher_block.png"))
+
+    # 2. 5 Seam-Aligned Pixel-Art Mutton Roast Chunks (each 270x125 transparent layer matching SEAMS UVs)
+    seams = [
+        ((0.275, 0.25), (0.245, 0.87)),
+        ((0.418, 0.23), (0.442, 0.88)),
+        ((0.585, 0.23), (0.556, 0.88)),
+        ((0.735, 0.26), (0.762, 0.86)),
+    ]
+
+    def _seam_x(idx: int, v: float) -> float:
+        ax, ay = seams[idx][0]
+        bx, by = seams[idx][1]
+        t = max(0.0, min(1.0, (v - ay) / max(0.01, by - ay)))
+        return (ax + (bx - ax) * t) * bw
+
+    pieces = [PixelCanvas(bw, bh) for _ in range(5)]
+    knuckles = [(int(0.352 * bw), int(0.355 * bh), 6), (int(0.652 * bw), int(0.760 * bh), 6), (int(0.860 * bw), int(0.560 * bh), 8)]
+
+    for y in range(26, 108):
+        v = y / float(bh)
+        for x in range(30, 246):
+            u = x / float(bw)
+            p = 4
+            for idx in range(4):
+                if x < _seam_x(idx, v):
+                    p = idx
+                    break
+            # Rounded sculpted mutton haunch profile (organic rounded shoulder left, plump loin middle, smooth narrow femur right)
+            bulge_u = max(0.0, min(1.0, (u - 0.14) / 0.64))
+            top_v = 0.34 - 0.055 * math.sin(bulge_u * math.pi)
+            bot_v = 0.77 + 0.055 * math.sin(bulge_u * math.pi)
+            if u < 0.22:
+                edge_round = (0.22 - u) / 0.085
+                squeeze = (1.0 - math.sqrt(max(0.0, 1.0 - min(1.0, edge_round * 0.85)))) * 0.14
+                top_v += squeeze
+                bot_v -= squeeze
+            if p == 4:
+                # Taper meat leg into exposed round white bone shank
+                t_bone = max(0.0, min(1.0, (u - 0.74) / 0.10))
+                top_v = 0.36 + t_bone * 0.13
+                bot_v = 0.76 - t_bone * 0.14
+                if u >= 0.825:
+                    # Twin rounded femur bone knuckle end around u=0.84..0.88
+                    dx_k = (u - 0.855) / 0.025
+                    dy_top = (v - 0.51) / 0.06
+                    dy_bot = (v - 0.61) / 0.06
+                    if dx_k * dx_k + dy_top * dy_top > 1.0 and dx_k * dx_k + dy_bot * dy_bot > 1.0:
+                        if u > 0.85:
+                            continue
+                        top_v = 0.50
+                        bot_v = 0.62
+                    else:
+                        top_v = min(top_v, 0.45)
+                        bot_v = max(bot_v, 0.67)
+            if u < 0.138 or u > 0.882 or v < top_v or v > bot_v:
+                continue
+
+            canvas = pieces[p]
+            edge_top = (v - top_v) < 0.032
+            edge_bot = (bot_v - v) < 0.032
+            left_edge = (p == 0 and u < 0.152)
+
+            if p == 4 and u >= 0.795:
+                # Creamy ivory femur shank with subtle shadow beneath & joint highlight
+                if v < 0.53:
+                    col = "EW"
+                elif v > 0.61:
+                    col = "H2"
+                else:
+                    col = "L0"
+            elif edge_bot or left_edge:
+                col = "T0"  # dark roasted skin underside
+            elif edge_top:
+                col = "L0" if ((x // 3) % 4 != 0) else "L1"  # pale tallow rind cap along top crest
+            else:
+                # Smooth sculpted painterly roast muscle lobes + wavy fat marbling veins (no salt-and-pepper noise)
+                rib_wave = math.sin(u * 26.0 + v * 7.5)
+                vein = math.sin(u * 18.0 - v * 22.0 + math.sin(u * 9.0))
+                if v < top_v + 0.065:
+                    col = "L1" if vein > -0.2 else "H2"
+                elif vein > 0.84:
+                    col = "L1"  # distinct organic fat marbling strand
+                elif v > bot_v - 0.11:
+                    col = "I0"
+                elif rib_wave > 0.32 and v < 0.62:
+                    col = "R2"
+                elif rib_wave < -0.45:
+                    col = "D0"
+                else:
+                    col = "D1"
+            canvas.pset(x, y, col)
+
+    # Paint crisp ivory bone knuckles onto pieces 1, 3, 4 + outlines cleanly
+    for p_idx, (kx, ky, kr) in zip((1, 3, 4), knuckles):
+        pieces[p_idx].circle(kx, ky, kr, "H2")
+        pieces[p_idx].circle(kx, ky, max(2, kr - 1), "L1")
+        pieces[p_idx].circle(kx - 1, ky - 1, max(1, kr - 3), "EW")
+    for canvas in pieces:
+        canvas.add_outline("K", selective_hue=True)
+    for idx, canvas in enumerate(pieces):
+        canvas.save_png(os.path.join(sprites_dir, f"ui_butcher_meat_{idx}.png"))
+
+    # 3. Crisp Forged Steel Butcher Cleaver (26x48, blade pivot around (13, 30))
+    cl = PixelCanvas(26, 48)
+    # Dark hardwood grip handle with twin brass rivets (y=4..20, x=11..15)
+    cl.rect(11, 4, 4, 17, "T0")
+    cl.rect(12, 5, 2, 15, "T2")
+    cl.pset(12, 8, "Y2")
+    cl.pset(12, 15, "Y2")
+    cl.rect(10, 19, 6, 2, "C0")
+    # Heavy broad cleaver steel belly curving downward to keen cutting edge (y=21..44)
+    for py in range(21, 45):
+        frac = (py - 21) / 23.0
+        w_l = 5 + int(math.sin(frac * math.pi * 0.85) * 4)
+        w_r = 6
+        if py >= 41:
+            w_l -= (py - 40) * 2
+            w_r -= (py - 40)
+        for px in range(13 - w_l, 13 + w_r):
+            if px == 13 + w_r - 1 or px == 13 + w_r - 2:
+                col = "C0"  # dark forged cleaver spine on right
+            elif px <= 13 - w_l + 2 or py >= 42:
+                col = "EW" if (py < 42) else "C4"  # gleaming honed bevel
+            elif (px + py) % 7 == 0:
+                col = "C3"
+            else:
+                col = "C2"
+            cl.pset(px, py, col)
+    # Classic butcher's hanging hole near tip spine
+    for hx in (15, 16):
+        for hy in (39, 40):
+            cl.pset_raw(hx, hy, (0, 0, 0, 0))
+    cl.add_outline("K", selective_hue=True)
+    cl.save_png(os.path.join(sprites_dir, "ui_butcher_cleaver.png"))
+
+
 def make_sanctuary_assets(sprites_dir: str) -> int:
     _make_chore_props_and_icons(sprites_dir)
     _make_village_buildings_and_tents(sprites_dir)
@@ -861,4 +1033,5 @@ def make_sanctuary_assets(sprites_dir: str) -> int:
     _make_signal_mast_sprites(sprites_dir)
     _make_hunter_shackle_sprites(sprites_dir)
     _make_egg_cradle_pedestal(sprites_dir)
-    return 41
+    _make_butcher_minigame_assets(sprites_dir)
+    return 48

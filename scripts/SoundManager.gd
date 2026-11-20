@@ -9,15 +9,20 @@ var sfx_pool: Array[AudioStreamPlayer] = []
 var sfx_pool_idx: int = 0
 var blip_player: AudioStreamPlayer
 
-# Dual players for seamless crossfade between scene ambiences
+# Dual players for seamless crossfade between scene ambiences + emotional cutscene motif channel
 var amb_players: Array[AudioStreamPlayer] = []
 var layer_pasture_player: AudioStreamPlayer
 var layer_mess_player: AudioStreamPlayer
+var motif_player: AudioStreamPlayer
 var active_amb_idx: int = 0
 var current_amb_name: String = ""
 var crossfade_t: float = 1.0
 var crossfade_dur: float = 1.4
+var _amb_duck_db: float = 0.0
+var _motif_fading: bool = false
+var _motif_fade_dur: float = 0.6
 const AMB_TARGET_DB: float = -12.0
+const MOTIF_TARGET_DB: float = -7.0
 
 var step_cooldown: float = 0.0
 var current_surface: String = "cobble"
@@ -29,8 +34,15 @@ const AMBIENCE_FILES: Array[String] = [
 	"amb_sanctuary.wav",
 	"amb_wilds.wav",
 	"amb_flight.wav",
+	"amb_catacombs.wav",
+	"amb_stealth.wav",
+	"amb_combat.wav",
 	"amb_layer_pasture.wav",
 	"amb_layer_mess.wav",
+]
+
+const MOTIF_FILES: Array[String] = [
+	"mus_hatch_awakening.wav",
 ]
 
 const SFX_FILES: Array[String] = [
@@ -51,6 +63,7 @@ const SFX_FILES: Array[String] = [
 	"sfx_egg_crack.wav", "sfx_hatch_chirp.wav", "sfx_cage_break.wav",
 	"sfx_butcher_chop.wav", "sfx_dragon_chomp.wav",
 	"sfx_church_bell.wav", "sfx_oven_crackle.wav",
+	"sfx_hatch_rumble.wav", "sfx_hatch_awakening.wav",
 ]
 
 
@@ -86,6 +99,11 @@ func _ready() -> void:
 	layer_mess_player.volume_db = -80.0
 	add_child(layer_mess_player)
 
+	motif_player = AudioStreamPlayer.new()
+	motif_player.bus = "Ambience"
+	motif_player.volume_db = MOTIF_TARGET_DB
+	add_child(motif_player)
+
 	if GameState != null:
 		apply_audio_settings(
 			GameState.master_volume,
@@ -104,7 +122,7 @@ func _exit_tree() -> void:
 		if is_instance_valid(ap):
 			ap.stop()
 			ap.stream = null
-	for lp in [layer_pasture_player, layer_mess_player]:
+	for lp in [layer_pasture_player, layer_mess_player, motif_player]:
 		if is_instance_valid(lp):
 			lp.stop()
 			lp.stream = null
@@ -124,14 +142,26 @@ func _process(delta: float) -> void:
 	if step_cooldown > 0.0:
 		step_cooldown -= delta
 
-	if crossfade_t < 1.0 and amb_players.size() == 2:
-		crossfade_t = minf(1.0, crossfade_t + delta / maxf(0.05, crossfade_dur))
+	var motif_active := is_instance_valid(motif_player) and motif_player.playing
+	if _motif_fading and motif_active:
+		motif_player.volume_db -= delta * (48.0 / maxf(0.1, _motif_fade_dur))
+		if motif_player.volume_db <= -55.0:
+			motif_player.stop()
+			_motif_fading = false
+			motif_active = false
+	_amb_duck_db = move_toward(_amb_duck_db, -6.5 if motif_active else 0.0, delta * 9.0)
+
+	if amb_players.size() == 2:
 		var incoming := amb_players[active_amb_idx]
 		var outgoing := amb_players[1 - active_amb_idx]
-		incoming.volume_db = lerpf(-50.0, AMB_TARGET_DB, crossfade_t)
-		outgoing.volume_db = lerpf(AMB_TARGET_DB, -60.0, crossfade_t)
-		if crossfade_t >= 1.0 and outgoing.playing:
-			outgoing.stop()
+		if crossfade_t < 1.0:
+			crossfade_t = minf(1.0, crossfade_t + delta / maxf(0.05, crossfade_dur))
+			incoming.volume_db = lerpf(-50.0, AMB_TARGET_DB + _amb_duck_db, crossfade_t)
+			outgoing.volume_db = lerpf(AMB_TARGET_DB + _amb_duck_db, -60.0, crossfade_t)
+			if crossfade_t >= 1.0 and outgoing.playing:
+				outgoing.stop()
+		elif incoming.playing:
+			incoming.volume_db = AMB_TARGET_DB + _amb_duck_db
 
 
 func _load_all_wavs() -> void:
@@ -139,6 +169,10 @@ func _load_all_wavs() -> void:
 		var stream := _load_wav_direct("res://assets/audio/" + fname, true)
 		if stream != null:
 			sfx_streams[fname] = stream
+	for fname in MOTIF_FILES:
+		var mstream := _load_wav_direct("res://assets/audio/" + fname, false)
+		if mstream != null:
+			sfx_streams[fname] = mstream
 	for fname in SFX_FILES:
 		var stream := _load_wav_direct("res://assets/audio/" + fname, false)
 		if stream != null:
@@ -452,3 +486,34 @@ func _set_bus_linear(bus_name: String, linear_val: float, force_mute: bool = fal
 
 func play_oven_crackle() -> void:
 	_play_sfx("sfx_oven_crackle.wav", -8.0, 0.92, 1.08)
+
+
+func play_hatch_rumble() -> void:
+	_play_sfx("sfx_hatch_rumble.wav", -3.0, 0.96, 1.04)
+
+
+func play_hatch_awakening() -> void:
+	_play_sfx("sfx_hatch_awakening.wav", -2.5, 0.98, 1.03)
+
+
+func play_cutscene_motif(fname: String = "mus_hatch_awakening.wav") -> void:
+	if _is_headless() or not is_instance_valid(motif_player):
+		return
+	var stream: AudioStreamWAV = sfx_streams.get(fname)
+	if stream == null:
+		return
+	_motif_fading = false
+	motif_player.stream = stream
+	motif_player.volume_db = MOTIF_TARGET_DB
+	motif_player.play()
+
+
+func stop_cutscene_motif(fade_sec: float = 0.5) -> void:
+	if not is_instance_valid(motif_player) or not motif_player.playing:
+		return
+	if fade_sec <= 0.05:
+		motif_player.stop()
+		_motif_fading = false
+		return
+	_motif_fade_dur = fade_sec
+	_motif_fading = true

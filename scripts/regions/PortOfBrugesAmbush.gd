@@ -124,9 +124,9 @@ static func trigger_ambush(r) -> void:
 	r.ambush_t = 0.0
 	r.ambush_wait_dlg = false
 	r.amb_anchor = r.player.position
-	r.amb_rider_l = r.amb_anchor + Vector2(-95, -24)
-	r.amb_rider_r = r.amb_anchor + Vector2(95, -24)
-	r.amb_anna = r.amb_anchor + Vector2(0, -145)
+	r.amb_rider_l = r.AMBUSH_CENTER + Vector2(-42, -20)
+	r.amb_rider_r = r.AMBUSH_CENTER + Vector2(38, 18)
+	r.amb_anna = r.AMBUSH_CENTER + Vector2(0, -45)
 	r.amb_virelai = r.amb_anchor + Vector2(200, -320)
 	r.amb_virelai_visible = false
 	r.amb_virelai_alt = 130.0
@@ -162,9 +162,9 @@ static func process_abduction(r, delta: float) -> void:
 				r.ambush_wait_dlg = true
 				r.player.set_cutscene_pose("")
 				r.ui.show_dialogue([
-					{"speaker": "Anna", "portrait": "portrait_anna.png", "text": "Put the blade away."},
-					{"speaker": "Hooded Brotherhood Rider", "portrait": "portrait_brotherhood.png", "text": "Captain Anna—he's fifty paces from the pulpit!"},
-					{"speaker": "Anna", "portrait": "portrait_anna.png", "text": "I'm not slitting a twelve-year-old's throat over a scrap of leather. Blindfold him and clip him into Virelai's belly-net."}
+					{"speaker": "Hooded Captain", "portrait": "portrait_anna.png", "text": "Put the blade away."},
+					{"speaker": "Hooded Brotherhood Rider", "portrait": "portrait_brotherhood.png", "text": "Captain—he's fifty paces from the pulpit!"},
+					{"speaker": "Hooded Captain", "portrait": "portrait_anna.png", "text": "I'm not slitting a twelve-year-old's throat over a scrap of leather. Blindfold him and clip him into Virelai's belly-net."}
 				], func():
 					r.ambush_wait_dlg = false
 					r.ambush_stage = 2
@@ -238,10 +238,24 @@ static func talk_gatekeeper(r, gate_id: String) -> void:
 
 
 static func attempt_gated_exit(r, gate_id: String) -> void:
-	r.portal_cooldown = 1.1
-	r.player.position.y = maxf(r.player.position.y, 70.0)
+	var npc_pos := Vector2(720, 92) if gate_id == "city" else Vector2(1526, 98)
+	var is_dawn := GameState.current_step >= GameState.QuestStep.DAWN_MISSING_CLARA
+	var spk := "Gatewarden Maerten" if gate_id == "city" else "Customsman Dirk"
+	var msg := ""
+	if gate_id == "city":
+		if not GameState.cargo_delivered:
+			msg = "Halt, ship-boy. Finish unloading your herring crate with Quartermaster Vos before passing Steenstraat."
+		elif is_dawn:
+			msg = "Curfew iron is down across Steenstraat! No dockhand leaves the wharf while the Inquisitor holds Harbor Square."
+		elif not GameState.bought_bread:
+			msg = "Curfew gates shut soon, lad. Finish your errands with Clara and Baker Pieter first."
+		else:
+			msg = "Curfew bells are ringing, boy—take that warm rye loaf home to Uncle Willem's cottage."
+	else:
+		msg = (
+			"Dike road is sealed under curfew! Bring your word straight to the Church Inquisitor in Harbor Square."
+			if is_dawn else
+			"Toll bar is down on the Zwin coast dike, young 'un—stay inside the Harbor Ward with your family."
+		)
 	r.player.velocity = Vector2.ZERO
-	r.player.facing = Vector2.UP
-	SoundManager.play_hit()
-	r.spawn_fx_burst(Vector2(720 if gate_id == "city" else 1528, 34), 6, Color(0.84, 0.72, 0.42), 20.0, 52.0, 0.36, 2.2)
-	talk_gatekeeper(r, gate_id)
+	r.trigger_story_roadblock(npc_pos, spk, "portrait_watchman.png", msg, Vector2(0, 42))

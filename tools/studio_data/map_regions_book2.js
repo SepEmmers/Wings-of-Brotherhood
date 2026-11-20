@@ -1,0 +1,323 @@
+// Book II Region Presets synced 1:1 with GDScript *Region.gd & *MapData.gd
+window.STUDIO_BOOK2_REGIONS = {
+  meta: {
+    brabant_fens: { label: "Brabant Reed-Fens (Book II)", mapFile: "BrabantFensLayout.gd", regFile: "BrabantFensRegion_markers.gd" },
+    louvain: { label: "City of Louvain (Book II)", mapFile: "LouvainCityMapData.gd", regFile: "LouvainCityRegion_markers.gd" },
+    louvain_catacombs: { label: "Louvain Cathedral & Catacombs", mapFile: "LouvainCatacombsMapData.gd", regFile: "LouvainCatacombsRegion_markers.gd" },
+    old_heverlee: { label: "Old Heverlee Woods (Book II)", mapFile: "OldHeverleeMapData.gd", regFile: "OldHeverleeRegion_markers.gd" },
+    old_heverlee_shrine: { label: "Old Heverlee Golden Shrine", mapFile: "OldHeverleeShrineMapData.gd", regFile: "OldHeverleeShrineRegion_markers.gd" },
+  },
+  builders: {
+    brabant_fens() {
+      const trees = [
+        [290, 360], [450, 310], [710, 300], [1120, 310], [1490, 340], [1670, 410], [1960, 370],
+        [280, 985], [510, 975], [880, 1005], [1470, 975], [1680, 985], [1960, 965]
+      ];
+      return {
+        worldSize: { w: 2160, h: 1440 },
+        baseGround: "grass",
+        fountain: null,
+        gardens: [],
+        plazas: [
+          { x: 760, y: 430, w: 598, h: 430, style: "cobble" },
+          { x: 140, y: 646, w: 172, h: 128, style: "quay" },
+        ],
+        roads: [
+          { x: 300, y: 668, w: 476, h: 84 },
+          { x: 552, y: 410, w: 76, h: 266 },
+          { x: 1344, y: 668, w: 394, h: 84 },
+          { x: 1874, y: 668, w: 286, h: 84 },
+        ],
+        canals: [
+          { x: 0, y: 0, w: 2160, h: 250 },
+          { x: 0, y: 1080, w: 2160, h: 360 },
+          { x: 0, y: 250, w: 132, h: 830 },
+          { x: 1740, y: 250, w: 128, h: 410 },
+          { x: 1740, y: 774, w: 128, h: 306 },
+        ],
+        bridges: [
+          { tex: "prop_timber_bridge_h.png", x: 1732, y: 656, w: 144, h: 114, walk: { x: 1732, y: 656, w: 144, h: 114 } },
+        ],
+        winches: [],
+        walls: [
+          { kind: "wall", x: 1352, y: 240, w: 52, h: 406, label: "North Weir" },
+          { kind: "wall", x: 1352, y: 774, w: 52, h: 316, label: "South Weir" },
+          { kind: "gatehouse", x: 1352, y: 646, w: 52, h: 128, label: "Sluice Gate" },
+        ],
+        cover: [],
+        buildings: [
+          { tex: "bldg_covert_cottage.png", x: 812, y: 430, w: 152, h: 128, sign: "Old Mill", spos: { x: 888, y: 422 } },
+        ],
+        props: [
+          { tex: "prop_campfire.png", x: 936, y: 656, w: 48, h: 48, solid: true, cover: false },
+          { tex: "prop_dragon_vent_grate.png", x: 1360, y: 536, w: 36, h: 36, solid: false, cover: false },
+          { tex: "prop_medieval_lever_idle.png", x: 1400, y: 604, w: 28, h: 36, solid: false, cover: false },
+          { tex: "prop_bramble_thicket_1.png", x: 1044, y: 836, w: 68, h: 48, solid: true, cover: false },
+          { tex: "prop_crate.png", x: 1062, y: 910, w: 32, h: 28, solid: true, cover: false },
+          { tex: "prop_cairn_stone.png", x: 570, y: 372, w: 40, h: 40, solid: true, cover: false },
+          ...trees.map(([x, y]) => ({ tex: "prop_pine_tree.png", x: x - 34, y: y - 72, w: 68, h: 88, solid: true, cover: false })),
+        ],
+        lanterns: [{ x: 960, y: 680 }, { x: 680, y: 628 }, { x: 1660, y: 628 }],
+        townsfolk: [],
+        markers: [
+          { key: "KESTREL_LANDING_POS", label: "Kestrel Landing", tex: "dragon_greyling_down_0.png", x: 228, y: 708 },
+          { key: "CAMPFIRE_POS", label: "Mill Campfire", tex: "prop_campfire.png", x: 960, y: 680 },
+          { key: "EAST_LOUVAIN_PORTAL", label: "Louvain West Gate", tex: "prop_milestone.png", x: 2110, y: 710 },
+        ],
+        route: [],
+        colliders: [],
+      };
+    },
+
+    louvain() {
+      const poortWalls = [
+        { kind: "wall", x: 596, y: 128, w: 384, h: 36, label: "" },
+        { kind: "wall", x: 1120, y: 128, w: 384, h: 36, label: "" },
+        { kind: "wall", x: 596, y: 1936, w: 384, h: 36, label: "" },
+        { kind: "wall", x: 1120, y: 1936, w: 384, h: 36, label: "" },
+        { kind: "wall", x: 128, y: 596, w: 36, h: 356, label: "" },
+        { kind: "wall", x: 128, y: 1120, w: 36, h: 384, label: "" },
+        { kind: "wall", x: 1936, y: 596, w: 36, h: 356, label: "" },
+        { kind: "wall", x: 1936, y: 1120, w: 36, h: 384, label: "" },
+        { kind: "gatehouse", x: 72, y: 868, w: 176, h: 300, label: "Brusselsepoort" },
+        { kind: "gatehouse", x: 920, y: 1830, w: 260, h: 186, label: "Naamsepoort" },
+        { kind: "gatehouse", x: 920, y: 10, w: 260, h: 186, label: "Mechelsepoort" },
+        { kind: "gatehouse", x: 1852, y: 868, w: 176, h: 300, label: "Tiensepoort" },
+        { kind: "wall", x: 1240, y: 252, w: 340, h: 36, label: "Cloister North" },
+        { kind: "wall", x: 1240, y: 288, w: 36, h: 484, label: "Cloister West" },
+        { kind: "wall", x: 1544, y: 288, w: 36, h: 484, label: "Cloister East" },
+        { kind: "wall", x: 1380, y: 736, w: 164, h: 36, label: "Cloister Drain" },
+      ];
+      return {
+        worldSize: { w: 2100, h: 2100 },
+        baseGround: "cobble",
+        fountain: { x: 1050, y: 945 },
+        gardens: [
+          { x: 1284, y: 492, w: 92, h: 114 },
+          { x: 1446, y: 492, w: 92, h: 114 },
+          { x: 204, y: 1528, w: 224, h: 150 },
+          { x: 838, y: 536, w: 56, h: 156 },
+        ],
+        plazas: [
+          { x: 846, y: 756, w: 470, h: 310, style: "flagstone" },
+          { x: 648, y: 1338, w: 276, h: 136, style: "flagstone" },
+          { x: 1264, y: 288, w: 292, h: 452, style: "flagstone" },
+          { x: 558, y: 680, w: 186, h: 316, style: "quay" },
+        ],
+        roads: [
+          { x: 130, y: 996, w: 1824, h: 88 },
+          { x: 752, y: 468, w: 92, h: 540 },
+          { x: 800, y: 430, w: 290, h: 76 },
+          { x: 1004, y: 130, w: 92, h: 340 },
+          { x: 1176, y: 1070, w: 88, h: 490 },
+          { x: 1002, y: 1490, w: 260, h: 84 },
+          { x: 1002, y: 1520, w: 96, h: 452 },
+          { x: 540, y: 456, w: 260, h: 80 },
+          { x: 540, y: 704, w: 232, h: 78 },
+          { x: 190, y: 1266, w: 260, h: 78 },
+          { x: 548, y: 1266, w: 460, h: 78 },
+          { x: 1240, y: 742, w: 420, h: 76 },
+          { x: 1600, y: 742, w: 84, h: 290 },
+        ],
+        canals: [
+          { x: 456, y: 0, w: 84, h: 700 },
+          { x: 436, y: 784, w: 124, h: 202 },
+          { x: 456, y: 1094, w: 84, h: 166 },
+          { x: 456, y: 1348, w: 84, h: 752 },
+        ],
+        bridges: [
+          { tex: "prop_stone_bridge_h.png", x: 436, y: 700, w: 124, h: 84, walk: { x: 436, y: 700, w: 124, h: 84 } },
+          { tex: "prop_stone_bridge_h.png", x: 430, y: 986, w: 140, h: 108, walk: { x: 430, y: 986, w: 140, h: 108 } },
+          { tex: "prop_stone_bridge_h.png", x: 436, y: 1260, w: 124, h: 88, walk: { x: 436, y: 1260, w: 124, h: 88 } },
+        ],
+        winches: [],
+        walls: poortWalls,
+        cover: [],
+        buildings: [
+          { tex: "bldg_louvain_st_peters.png", x: 854, y: 424, w: 368, h: 330, sign: "Sint-Pieterskerk", spos: { x: 1038, y: 416 } },
+          { tex: "bldg_louvain_stadhuis.png", x: 920, y: 1066, w: 260, h: 212, sign: "Het Stadhuis", spos: { x: 1050, y: 1058 } },
+          { tex: "bldg_louvain_lakenhalle.png", x: 600, y: 1096, w: 316, h: 232, sign: "De Lakenhalle", spos: { x: 758, y: 1088 } },
+          { tex: "bldg_louvain_foundry.png", x: 576, y: 276, w: 168, h: 138, sign: "Bell-Foundry", spos: { x: 660, y: 268 } },
+          { tex: "bldg_louvain_abbey.png", x: 1284, y: 264, w: 252, h: 224, sign: "Abbey Cathedral", spos: { x: 1410, y: 256 } },
+          { tex: "city_leuven_tavern_6a.png", x: 248, y: 1104, w: 184, h: 148, sign: "Hunters' Tavern", spos: { x: 340, y: 1096 } },
+          { tex: "city_louvain_dyer_5b.png", x: 228, y: 1384, w: 168, h: 138, sign: "Herbalist", spos: { x: 312, y: 1376 } },
+          { tex: "city_leuven_garrison_7c.png", x: 1648, y: 804, w: 198, h: 148, sign: "Catchpole Garrison", spos: { x: 1747, y: 796 } },
+        ],
+        props: [
+          { tex: "prop_stall_food.png", x: 878, y: 822, w: 68, h: 48, solid: true, cover: true },
+          { tex: "prop_stall_gear.png", x: 1168, y: 824, w: 68, h: 48, solid: true, cover: true },
+          { tex: "prop_noticeboard.png", x: 1134, y: 922, w: 38, h: 46, solid: true, cover: false },
+          { tex: "prop_mason_yard.png", x: 1176, y: 680, w: 62, h: 42, solid: true, cover: true },
+          { tex: "prop_lime_tree.png", x: 848, y: 560, w: 56, h: 72, solid: true, cover: false },
+          { tex: "prop_lime_tree.png", x: 1248, y: 864, w: 58, h: 74, solid: true, cover: false },
+          { tex: "prop_iron_chain_wagon.png", x: 1690, y: 1084, w: 88, h: 56, solid: true, cover: true },
+        ],
+        lanterns: [
+          { x: 218, y: 988 }, { x: 582, y: 790 }, { x: 920, y: 756 }, { x: 1148, y: 756 },
+          { x: 1372, y: 480 }, { x: 1448, y: 480 }, { x: 1016, y: 1880 },
+        ],
+        townsfolk: [
+          { id: "lv_pieter", tex: "npc_city_cooper", x: 648, y: 472, name: "Bell-Founder Pieter", bark: "The Church Catchpoles ordered six alarm-bells overnight and cracked my master mould!" },
+          { id: "lv_aleidis", tex: "npc_city_fishwife", x: 310, y: 1270, name: "Guildmistress Aleidis", bark: "Bless me—you have your mother's eyes!" },
+          { id: "lv_mason", tex: "npc_louvain_mason", x: 1148, y: 764, name: "Master Mason Matthijs", bark: "Brussels brags their belfry spire will scrape the clouds first!" },
+          { id: "lv_katelijne", tex: "npc_city_apothecary", x: 332, y: 1528, name: "Sister Katelijne", bark: "Rust wedged my dye-vat sluice shut while Catchpoles camp at the gate!" },
+        ],
+        markers: [
+          { key: "WEST_ENTRY_SPAWN", label: "Brusselsepoort Spawn", tex: "prop_milestone.png", x: 226, y: 1040 },
+          { key: "ABBEY_VENT_POS", label: "Cloister Vent", tex: "prop_dragon_vent_grate.png", x: 1458, y: 754 },
+          { key: "CATHEDRAL_DOOR", label: "Cathedral Dungeon Portal", tex: "prop_crypt_stairs.png", x: 1410, y: 478 },
+        ],
+        route: [],
+        colliders: [],
+      };
+    },
+
+    louvain_catacombs() {
+      const graves = [
+        [1140, 216, "cross"], [1340, 216, "crown"], [1540, 216, "stag"], [1740, 216, "chalice"],
+        [1140, 356, "stag"], [1340, 356, "chalice"], [1540, 356, "crown"], [1740, 356, "cross"],
+        [1140, 496, "crown"], [1340, 496, "stag"], [1540, 496, "cross"], [1740, 496, "chalice"],
+        [1140, 636, "chalice"], [1340, 636, "cross"], [1540, 636, "stag"], [1740, 636, "crown"],
+      ];
+      return {
+        worldSize: { w: 2880, h: 900 },
+        baseGround: "interior",
+        fountain: null,
+        gardens: [],
+        plazas: [
+          { x: 144, y: 132, w: 672, h: 668, style: "flagstone" },
+          { x: 1036, y: 144, w: 808, h: 636, style: "cobble" },
+          { x: 2004, y: 136, w: 792, h: 652, style: "wood" },
+        ],
+        roads: [],
+        canals: [],
+        bridges: [],
+        winches: [],
+        walls: [],
+        cover: [],
+        buildings: [],
+        props: [
+          { tex: "prop_stained_altar.png", x: 432, y: 184, w: 96, h: 42, solid: true, cover: false },
+          { tex: "prop_altar_candle.png", x: 292, y: 224, w: 24, h: 32, solid: true, cover: false },
+          { tex: "prop_altar_candle.png", x: 644, y: 224, w: 24, h: 32, solid: true, cover: false },
+          { tex: "prop_altar_candle.png", x: 292, y: 576, w: 24, h: 32, solid: true, cover: false },
+          { tex: "prop_altar_candle.png", x: 644, y: 576, w: 24, h: 32, solid: true, cover: false },
+          { tex: "prop_crypt_tapestry.png", x: 1030, y: 546, w: 36, h: 44, solid: false, cover: false },
+          { tex: "prop_crypt_tapestry.png", x: 1418, y: 114, w: 44, h: 36, solid: false, cover: false },
+          ...graves.map(([x, y, cr]) => ({ tex: `prop_sarcophagus_${cr}.png`, x: x - 21, y: y - 22, w: 42, h: 44, solid: true, cover: false })),
+          { tex: "prop_library_shelf.png", x: 2044, y: 540, w: 160, h: 68, solid: true, cover: false },
+          { tex: "prop_library_shelf.png", x: 2596, y: 360, w: 160, h: 68, solid: true, cover: false },
+        ],
+        lanterns: [
+          { x: 304, y: 240 }, { x: 656, y: 240 }, { x: 1240, y: 168 }, { x: 1640, y: 168 }, { x: 2400, y: 594 },
+        ],
+        townsfolk: [],
+        markers: [
+          { key: "NAVE_ENTRY_SPAWN", label: "Floor 0 Nave", tex: "prop_crypt_stairs.png", x: 480, y: 732 },
+          { key: "CRYPT_ENTRY_SPAWN", label: "Floor 1 Crypt", tex: "prop_crypt_stairs.png", x: 1440, y: 712 },
+          { key: "LIBRARY_ENTRY_SPAWN", label: "Floor 2 Library", tex: "prop_hidden_ladder.png", x: 2400, y: 692 },
+        ],
+        route: [],
+        colliders: [],
+      };
+    },
+
+    old_heverlee() {
+      return {
+        worldSize: { w: 2200, h: 1500 },
+        baseGround: "grass",
+        fountain: null,
+        gardens: [],
+        plazas: [],
+        roads: [
+          { x: 1062, y: 16, w: 76, h: 460 },
+          { x: 520, y: 444, w: 620, h: 68 },
+          { x: 524, y: 480, w: 72, h: 276 },
+          { x: 524, y: 838, w: 72, h: 310 },
+          { x: 540, y: 1094, w: 640, h: 72 },
+          { x: 1140, y: 396, w: 440, h: 68 },
+          { x: 1504, y: 420, w: 72, h: 336 },
+          { x: 1504, y: 838, w: 72, h: 340 },
+          { x: 1160, y: 1110, w: 700, h: 76 },
+        ],
+        canals: [
+          { x: 0, y: 756, w: 2200, h: 84 },
+        ],
+        bridges: [
+          { tex: "prop_stone_bridge_v.png", x: 512, y: 748, w: 96, h: 96, walk: { x: 512, y: 748, w: 96, h: 96 } },
+        ],
+        winches: [
+          { west: { x: 1540, y: 722 }, east: { x: 1540, y: 868 } },
+        ],
+        walls: [],
+        cover: [],
+        buildings: [],
+        props: [
+          { tex: "prop_parents_ambush_bow.png", x: 522, y: 458, w: 36, h: 36, solid: true, cover: false },
+          { tex: "prop_tavern_table.png", x: 1288, y: 410, w: 44, h: 28, solid: true, cover: false },
+          { tex: "prop_bramble_thicket_1.png", x: 1106, y: 1094, w: 68, h: 48, solid: true, cover: false },
+          { tex: "prop_campfire.png", x: 1796, y: 1164, w: 48, h: 48, solid: true, cover: false },
+          { tex: "prop_pine_tree.png", x: 146, y: 108, w: 68, h: 88, solid: true, cover: false },
+          { tex: "prop_pine_tree.png", x: 666, y: 78, w: 68, h: 88, solid: true, cover: false },
+          { tex: "prop_pine_tree.png", x: 1466, y: 103, w: 68, h: 88, solid: true, cover: false },
+        ],
+        lanterns: [{ x: 1820, y: 1188 }],
+        townsfolk: [],
+        markers: [
+          { key: "NORTH_ENTRY_SPAWN", label: "Louvain South Gate", tex: "prop_milestone.png", x: 1100, y: 128 },
+          { key: "AMBUSH_STUMP_POS", label: "Parents' Ambush Glade", tex: "prop_parents_ambush_bow.png", x: 540, y: 476 },
+          { key: "SHRINE_DOOR", label: "Golden Shrine Stairs", tex: "prop_crypt_stairs.png", x: 1140, y: 1072 },
+          { key: "KESTREL_ROCK_POS", label: "Kestrel Cliff Roost", tex: "dragon_greyling_down_0.png", x: 1894, y: 1132 },
+        ],
+        route: [],
+        colliders: [],
+      };
+    },
+
+    old_heverlee_shrine() {
+      return {
+        worldSize: { w: 1600, h: 960 },
+        baseGround: "interior",
+        fountain: null,
+        gardens: [],
+        plazas: [
+          { x: 112, y: 152, w: 422, h: 656, style: "flagstone" },
+          { x: 572, y: 152, w: 496, h: 656, style: "flagstone" },
+          { x: 1106, y: 152, w: 386, h: 656, style: "flagstone" },
+        ],
+        roads: [],
+        canals: [{ x: 764, y: 152, w: 116, h: 656 }],
+        bridges: [],
+        winches: [{ west: { x: 732, y: 480 }, east: { x: 912, y: 480 } }],
+        walls: [
+          { kind: "wall", x: 534, y: 152, w: 38, h: 282, label: "" },
+          { kind: "wall", x: 534, y: 526, w: 38, h: 282, label: "" },
+          { kind: "wall", x: 1068, y: 152, w: 38, h: 282, label: "" },
+          { kind: "wall", x: 1068, y: 526, w: 38, h: 282, label: "" },
+          { kind: "gatehouse", x: 534, y: 434, w: 38, h: 92, label: "Gate 1" },
+          { kind: "gatehouse", x: 1068, y: 434, w: 38, h: 92, label: "Gate 2" },
+        ],
+        cover: [],
+        buildings: [],
+        props: [
+          { tex: "prop_devildragon_relief.png", x: 284, y: 150, w: 88, h: 68, solid: false, cover: false },
+          { tex: "prop_shrine_boulder.png", x: 210, y: 460, w: 36, h: 36, solid: true, cover: false },
+          { tex: "prop_weight_plate_up.png", x: 378, y: 465, w: 36, h: 30, solid: false, cover: false },
+          { tex: "prop_shrine_serpent_vent.png", x: 474, y: 329, w: 36, h: 30, solid: false, cover: false },
+          { tex: "prop_shrine_sconce_off.png", x: 694, y: 316, w: 28, h: 38, solid: true, cover: false },
+          { tex: "prop_shrine_sconce_off.png", x: 922, y: 316, w: 28, h: 38, solid: true, cover: false },
+          { tex: "prop_shrine_pedestal.png", x: 1264, y: 450, w: 40, h: 44, solid: true, cover: false },
+        ],
+        lanterns: [{ x: 328, y: 184 }, { x: 708, y: 340 }, { x: 936, y: 340 }, { x: 1284, y: 476 }],
+        townsfolk: [],
+        markers: [
+          { key: "ENTRY_SPAWN", label: "Shrine Entrance", tex: "prop_crypt_stairs.png", x: 328, y: 742 },
+          { key: "PEDESTAL_POS", label: "Shrine Relic Key", tex: "prop_shrine_key_relic.png", x: 1284, y: 476 },
+          { key: "BACK_STAIRS", label: "East Escape Tunnel", tex: "prop_crypt_stairs.png", x: 1450, y: 480 },
+        ],
+        route: [],
+        colliders: [],
+      };
+    },
+  },
+};

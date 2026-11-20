@@ -909,4 +909,76 @@ def make_dragons(sprites_dir: str):
         hdu.add_outline("DO", selective_hue=True)
         hdu.save_png(os.path.join(sprites_dir, f"dragon_gold_s1_diag_up_{frame}.png"))
 
+    # EATING / EMBER-BREATH ACTION FRAMES (`dragon_gold_s1_eat_0.png` & `_1.png`, `24x22` side-right mirrorable)
+    #   eat_0: lowered eager open-jaw chomp lunge forward-right (also reads crisply for ember-spew posture!)
+    #   eat_1: head tossed happily up swallowing with crescent squint, puffed gold throat & high wagging tail
+    for ef in range(2):
+        he = PixelCanvas(24, 22)
+        he.ellipse(12, 18, 6.2, 2.2, (12, 14, 18, 95))
+        # Tail curling enthusiastically high on swallow `_1`
+        if ef == 0:
+            he.line(7, 14, 3, 12, "O1")
+            he.pset(2, 11, "Y2")
+        else:
+            he.line(7, 13, 3, 9, "O1")
+            he.line(3, 9, 2, 6, "O2")
+            he.pset(2, 6, "Y3")
+        # Planted bracing paws
+        he.rect(8, 16, 2, 3, "O1")
+        he.rect(14, 16, 2, 3, "O2")
+        he.pset(9, 18, "C3")
+        he.pset(15, 18, "C3")
+        # Torso leaning forward (`ef == 0`) or upright happy swallow (`ef == 1`)
+        ty = 13 if ef == 0 else 12
+        he.ellipse(11, ty, 4.6, 3.4, "O0")
+        he.ellipse(11, ty, 3.6, 2.5, "O1")
+        he.pset(11, ty, "Y2")
+        he.pset(13, ty + 1, "Y3")
+        # Excited fluttering wing raised back-up
+        wl = -2 if ef == 0 else -1
+        for i in range(6):
+            wx = 10 - i
+            for wy in range(6 + wl + i // 3, 11 + wl - i // 4 + 1):
+                he.pset(wx, wy, "O2" if wy == 6 + wl + i // 3 else "O1")
+        he.line(11, 8 + wl, 5, 5 + wl, "Y2")
+        he.pset(5, 5 + wl, "Y3")
+
+        if ef == 0:
+            # Lunging forward-right with WIDE OPEN EMBER-LIT JAWS (`x=15..22, y=7..15`)
+            he.ellipse(16, 10, 3.6, 3.0, "O0")
+            he.ellipse(16, 10, 2.8, 2.2, "O1")
+            he.line(18, 8, 22, 8, "O2", 2)      # upper snout open high
+            he.rect(18, 10, 3, 2, "Y2")         # warm golden inner mouth glow
+            he.pset(20, 10, "Y3")
+            he.line(18, 13, 22, 14, "O1", 2)    # lowered open jaw snapping down
+            he.line(15, 7, 13, 4, "C3")
+            he.rect(16, 8, 2, 2, "Y2")
+            he.pset(17, 8, "EW")
+        else:
+            # Tilted happily upward swallowing with happy closed crescent eye (`^`) & glowing cheek!
+            he.ellipse(15, 8, 3.6, 3.2, "O0")
+            he.ellipse(15, 8, 2.8, 2.4, "O1")
+            he.line(17, 6, 21, 5, "O2", 2)      # upturned happy snout
+            he.rect(14, 10, 3, 2, "Y1")         # warm swallowed throat pulse
+            he.pset(15, 10, "Y3")
+            he.line(14, 5, 12, 2, "C3")
+            # Happy curved eye glint (`Y3`)
+            he.pset(16, 7, "Y3")
+            he.pset(17, 6, "Y3")
+            he.pset(18, 7, "Y2")
+
+        he.add_outline("DO", selective_hue=True)
+        he.save_png(os.path.join(sprites_dir, f"dragon_gold_s1_eat_{ef}.png"))
+
+    # Warm carved ration steak morsel (`prop_meat_cut.png`, `12x12`) tossed on feeding
+    mc = PixelCanvas(12, 12)
+    mc.ellipse(6, 7, 4.5, 3.0, "R0")
+    mc.ellipse(6, 6, 3.8, 2.4, "R2")
+    mc.ellipse(5, 5, 2.2, 1.4, "R3")
+    mc.rect(8, 5, 2, 2, "L0")  # marrow bone gleam
+    mc.pset(4, 6, "R4")
+    mc.add_outline("DK", selective_hue=True)
+    mc.save_png(os.path.join(sprites_dir, "prop_meat_cut.png"))
+
+
 

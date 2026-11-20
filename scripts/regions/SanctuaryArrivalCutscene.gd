@@ -120,11 +120,11 @@ static func finish_arrival(r, was_skipped: bool = false) -> void:
 	if was_skipped:
 		return
 	r.ui.show_dialogue([
-		{"speaker": "Captain Anna", "portrait": "portrait_anna.png", "text": "Keep your boots clear of the cliff drop, boy."},
+		{"speaker": "Hooded Captain", "portrait": "portrait_anna.png", "text": "Keep your boots clear of the cliff drop, boy."},
 		{"speaker": GameState.player_name, "portrait": "portrait_boy_angry.png", "text": "Keep that thing back! What did you do with my sister?!"},
-		{"speaker": "Captain Anna", "portrait": "portrait_anna.png", "text": "We don't snatch ropewalk girls in the dark. Half the Church's scouts fly stolen dragon-gear when they raid the harbor."},
+		{"speaker": "Hooded Captain", "portrait": "portrait_anna.png", "text": "We don't snatch ropewalk girls in the dark. Half the Church's scouts fly stolen dragon-gear when they raid the harbor."},
 		{"speaker": GameState.player_name, "portrait": "portrait_boy_angry.png", "text": "Liar! Then why knock me out on the cobbles?!"},
-		{"speaker": "Captain Anna", "portrait": "portrait_anna.png", "text": "Because three steps more would have brought an Inquisitor's torch down on everyone here. You want bread and answers? Start under Saddler Hendrick by the south rack."}
+		{"speaker": "Captain Anna", "portrait": "portrait_anna.png", "text": "Because three steps more would have brought an Inquisitor's torch down on everyone here. Name's Anna. You want bread and answers? Start under Saddler Hendrick by the south rack."}
 	])
 
 
@@ -145,7 +145,7 @@ static func draw_arrival_fx(r, _t_now: float) -> void:
 			var draw_p := vpos - Vector2(0, alt)
 			r.draw_texture_rect(vtex, Rect2(draw_p - Vector2(88, 72), Vector2(176, 144)), false)
 	elif r.arrival_active:
-		assets.draw_npc_sprite(r, r.arrival_anna_pos, "npc_anna.png", "Captain Anna", ThemeDB.fallback_font)
+		assets.draw_npc_sprite(r, r.arrival_anna_pos, "npc_anna.png", "Hooded Captain", ThemeDB.fallback_font)
 
 	if r.arrival_cloth_timer > 0.0:
 		var cp := 1.0 - clampf(r.arrival_cloth_timer / 0.85, 0.0, 1.0)

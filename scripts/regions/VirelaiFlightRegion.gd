@@ -146,7 +146,7 @@ func _skip_attack_cutscene() -> void:
 
 
 func get_ambience_track() -> String:
-	return "flight"
+	return "combat" if (attack_cutscene_active or sortie_id == 2) else "flight"
 
 
 func get_lighting_tint() -> Color:

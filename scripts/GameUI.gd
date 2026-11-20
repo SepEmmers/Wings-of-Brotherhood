@@ -9,9 +9,11 @@ signal lighting_mode_changed(mode: String)
 signal replay_requested
 signal quit_requested
 signal modal_state_changed
+signal companion_eat_requested(fire_pos: Vector2, on_done: Callable)
 
 const KnotMinigameScript := preload("res://scripts/KnotMinigame.gd")
 const ButcherMinigameScript := preload("res://scripts/ui/ButcherMinigamePanel.gd")
+const MasonCraneMinigameScript := preload("res://scripts/ui/MasonCraneMinigamePanel.gd")
 const DialogueBoxScript := preload("res://scripts/ui/DialogueBox.gd")
 const JournalModalScript := preload("res://scripts/ui/JournalModal.gd")
 const ForestMapPanelScript := preload("res://scripts/ui/ForestMapPanel.gd")
@@ -35,11 +37,14 @@ var name_input: LineEdit
 var settings_panel: Control
 var pause_panel: Control
 var hud_overlay: Control
+var parchment_note_panel: Control
+var item_acquire_banner: Control
 
 var dialogue_panel: PanelContainer
 var journal_panel: PanelContainer
 var knot_minigame: Control
 var butcher_minigame: Control
+var mason_minigame: Control
 var map_panel: PanelContainer
 var playtest_panel: PanelContainer
 var failure_panel: Control
@@ -75,9 +80,13 @@ var pending_knot_callback: Callable
 var pending_knot_fail_callback: Callable
 var pending_butcher_callback: Callable
 var pending_butcher_cancel_callback: Callable
+var pending_mason_callback: Callable
+var pending_mason_cancel_callback: Callable
+var _pending_ui_queue: Array[Dictionary] = []
 
 
 func setup_ui(assets_ref) -> void:
+	layer = 2
 	assets = assets_ref
 	_build_ui()
 	GameState.state_updated.connect(func(): refresh_current_hud())
@@ -86,7 +95,7 @@ func setup_ui(assets_ref) -> void:
 
 
 func is_blocking_gameplay() -> bool:
-	for p in [title_panel, settings_panel, pause_panel, journal_panel, map_panel, playtest_panel, knot_minigame, butcher_minigame, campfire_panel, dragon_name_panel, checkpoint_panel, failure_panel]:
+	for p in [title_panel, settings_panel, pause_panel, journal_panel, map_panel, playtest_panel, knot_minigame, butcher_minigame, mason_minigame, campfire_panel, dragon_name_panel, parchment_note_panel, item_acquire_banner, checkpoint_panel, failure_panel]:
 		if p != null and p.visible:
 			return true
 	return dialogue_active or cutscene_active
@@ -126,6 +135,8 @@ func process_ui(delta: float) -> void:
 		border_banner.step(delta)
 	if dialogue_panel != null:
 		dialogue_panel.process_typewriter(delta)
+	if item_acquire_banner != null:
+		item_acquire_banner.step_banner(delta)
 	if hud_overlay != null:
 		hud_overlay.step(delta)
 
@@ -192,6 +203,7 @@ func _on_settings_changed() -> void:
 
 
 func hide_all_overlays() -> void:
+	_pending_ui_queue.clear()
 	if dialogue_panel != null:
 		dialogue_panel.hide_box()
 	if time_skip_panel != null:
@@ -200,7 +212,7 @@ func hide_all_overlays() -> void:
 		border_banner.hide_banner()
 	if settings_panel != null and settings_panel.has_method("close_settings"):
 		settings_panel.close_settings()
-	for node in [title_panel, settings_panel, pause_panel, journal_panel, map_panel, playtest_panel, knot_minigame, butcher_minigame, campfire_panel, dragon_name_panel, checkpoint_panel, failure_panel, letterbox_top, letterbox_bot, fade_overlay, cutscene_skip_hint]:
+	for node in [title_panel, settings_panel, pause_panel, journal_panel, map_panel, playtest_panel, knot_minigame, butcher_minigame, mason_minigame, campfire_panel, dragon_name_panel, parchment_note_panel, item_acquire_banner, checkpoint_panel, failure_panel, letterbox_top, letterbox_bot, fade_overlay, cutscene_skip_hint]:
 		if node != null:
 			node.visible = false
 	pending_checkpoint_continue = Callable()
@@ -213,6 +225,9 @@ func hide_all_overlays() -> void:
 	pending_knot_callback = Callable()
 	pending_knot_fail_callback = Callable()
 	pending_butcher_callback = Callable()
+	pending_mason_callback = Callable()
+	pending_mason_cancel_callback = Callable()
+	_pending_ui_queue.clear()
 
 
 func update_world_map_state(region_id: String, player_pos: Vector2) -> void:
@@ -321,10 +336,13 @@ func toggle_playtest_menu() -> void:
 
 
 func show_dialogue(lines: Array, on_done: Callable = Callable()) -> void:
-	if dialogue_panel != null:
-		dialogue_panel.show_dialogue(lines, on_done)
-		if not lines.is_empty():
-			emit_signal("modal_state_changed")
+	if lines.is_empty() or dialogue_panel == null:
+		return
+	if is_item_banner_visible() or is_parchment_open():
+		_pending_ui_queue.append({"type": "dialogue", "lines": lines, "cb": on_done})
+		return
+	dialogue_panel.show_dialogue(lines, on_done)
+	emit_signal("modal_state_changed")
 
 
 func advance_dialogue() -> void:
@@ -347,9 +365,21 @@ func open_butcher_minigame(on_done: Callable = Callable(), on_cancel: Callable =
 	emit_signal("modal_state_changed")
 
 
+func open_mason_minigame(on_done: Callable = Callable(), on_cancel: Callable = Callable()) -> void:
+	pending_mason_callback = on_done
+	pending_mason_cancel_callback = on_cancel
+	if mason_minigame != null:
+		mason_minigame.start_crane_build()
+	emit_signal("modal_state_changed")
+
+
 func open_campfire_roost(region_id: String, fire_pos: Vector2, site_title: String = "Wayside Campfire", kestrel_ready: bool = false, kestrel_label: String = "Meet Kestrel Courier") -> void:
 	if campfire_panel != null:
 		campfire_panel.open_roost(region_id, fire_pos, site_title, kestrel_ready, kestrel_label)
+
+
+func trigger_companion_eat(fire_pos: Vector2, on_done: Callable = Callable()) -> void:
+	emit_signal("companion_eat_requested", fire_pos, on_done)
 
 
 func open_dragon_name_prompt(on_done: Callable = Callable()) -> void:
@@ -424,12 +454,13 @@ func _build_ui() -> void:
 
 	dialogue_panel = DialogueBoxScript.new()
 	dialogue_panel.setup(assets)
-	dialogue_panel.dialogue_completed.connect(func(): emit_signal("modal_state_changed"))
+	dialogue_panel.dialogue_completed.connect(_on_dialogue_panel_completed)
 	add_child(dialogue_panel)
 
 	journal_panel = JournalModalScript.new()
 	journal_panel.setup(assets)
-	journal_panel.close_requested.connect(func(): emit_signal("modal_state_changed"))
+	journal_panel.close_requested.connect(_on_journal_panel_closed)
+	journal_panel.visibility_changed.connect(_on_journal_visibility_changed)
 	add_child(journal_panel)
 
 	knot_minigame = KnotMinigameScript.new()
@@ -442,6 +473,12 @@ func _build_ui() -> void:
 	butcher_minigame.chop_completed.connect(_on_butcher_minigame_completed)
 	butcher_minigame.chop_cancelled.connect(_on_butcher_minigame_cancelled)
 	add_child(butcher_minigame)
+
+	mason_minigame = MasonCraneMinigameScript.new()
+	mason_minigame.setup(assets)
+	mason_minigame.crane_completed.connect(_on_mason_minigame_completed)
+	mason_minigame.crane_cancelled.connect(_on_mason_minigame_cancelled)
+	add_child(mason_minigame)
 
 	campfire_panel = CampfirePanelScript.new()
 	campfire_panel.setup(assets, self)
@@ -499,6 +536,21 @@ func _build_ui() -> void:
 
 	_build_checkpoint_panel(seal_tex)
 
+	var ParchmentNotePanelScript := preload("res://scripts/ui/ParchmentNotePanel.gd")
+	parchment_note_panel = ParchmentNotePanelScript.new()
+	parchment_note_panel.setup(assets)
+	parchment_note_panel.visibility_changed.connect(_on_parchment_note_visibility_changed)
+	add_child(parchment_note_panel)
+
+	var ItemAcquireBannerScript := preload("res://scripts/ui/ItemAcquireBanner.gd")
+	item_acquire_banner = ItemAcquireBannerScript.new()
+	item_acquire_banner.setup(assets)
+	item_acquire_banner.open_inventory_requested.connect(open_inventory_to_item)
+	item_acquire_banner.dismissed.connect(_on_item_banner_dismissed)
+	add_child(item_acquire_banner)
+	if not GameState.item_acquired.is_connected(_on_game_item_acquired):
+		GameState.item_acquired.connect(_on_game_item_acquired)
+
 	assets.style_buttons_recursive(self)
 	journal_panel.apply_post_theme_fixes()
 	for themed in [title_panel, pause_panel, settings_panel, playtest_panel, hud_overlay]:
@@ -512,6 +564,8 @@ func _build_ui() -> void:
 		knot_minigame.apply_medieval_ui_theme(p_sb, b_norm, b_hov, b_prs)
 	if butcher_minigame != null and butcher_minigame.has_method("apply_medieval_ui_theme"):
 		butcher_minigame.apply_medieval_ui_theme(p_sb, b_norm, b_hov, b_prs)
+	if mason_minigame != null and mason_minigame.has_method("apply_medieval_ui_theme"):
+		mason_minigame.apply_medieval_ui_theme(p_sb, b_norm, b_hov, b_prs)
 
 
 func _make_lbl(txt: String, fsize: int, col: Color, align := HORIZONTAL_ALIGNMENT_LEFT) -> Label:
@@ -595,6 +649,104 @@ func show_time_skip(era_title: String, sub_title: String, chronicle_text: String
 func dismiss_time_skip() -> void:
 	if time_skip_panel != null:
 		time_skip_panel.dismiss()
+
+
+func _on_game_item_acquired(item_name: String) -> void:
+	if GameState.suppress_item_banner or item_acquire_banner == null:
+		return
+	if is_title_visible() or (checkpoint_panel != null and checkpoint_panel.visible):
+		return
+	if dialogue_active or is_parchment_open() or is_item_banner_visible() or (journal_panel != null and journal_panel.visible):
+		_pending_ui_queue.append({"type": "item", "name": item_name})
+		return
+	item_acquire_banner.show_item(item_name)
+	emit_signal("modal_state_changed")
+
+
+func show_parchment_note(title: String, body_text: String, signature: String = "", on_close: Callable = Callable()) -> void:
+	if parchment_note_panel == null:
+		return
+	if is_item_banner_visible() or dialogue_active:
+		_pending_ui_queue.append({"type": "parchment", "title": title, "body": body_text, "sig": signature, "cb": on_close})
+		return
+	parchment_note_panel.show_note(title, body_text, signature, on_close)
+	emit_signal("modal_state_changed")
+
+
+func _on_item_banner_dismissed() -> void:
+	emit_signal("modal_state_changed")
+	_drain_ui_queue()
+
+
+func _on_parchment_note_visibility_changed() -> void:
+	emit_signal("modal_state_changed")
+	if parchment_note_panel != null and not parchment_note_panel.visible:
+		_drain_ui_queue()
+
+
+func _on_dialogue_panel_completed() -> void:
+	emit_signal("modal_state_changed")
+	_drain_ui_queue()
+
+
+func _on_journal_panel_closed() -> void:
+	emit_signal("modal_state_changed")
+	_drain_ui_queue()
+
+
+func _on_journal_visibility_changed() -> void:
+	if journal_panel != null and not journal_panel.visible:
+		_drain_ui_queue()
+
+
+func _drain_ui_queue() -> void:
+	if _pending_ui_queue.is_empty():
+		return
+	if is_item_banner_visible() or is_parchment_open() or dialogue_active or (journal_panel != null and journal_panel.visible):
+		return
+	var next_entry: Dictionary = _pending_ui_queue.pop_front()
+	var kind := String(next_entry.get("type", ""))
+	if kind == "item":
+		if item_acquire_banner != null:
+			item_acquire_banner.show_item(String(next_entry.get("name", "")))
+			emit_signal("modal_state_changed")
+	elif kind == "parchment":
+		if parchment_note_panel != null:
+			parchment_note_panel.show_note(String(next_entry.get("title", "")), String(next_entry.get("body", "")), String(next_entry.get("sig", "")), next_entry.get("cb", Callable()))
+			emit_signal("modal_state_changed")
+	elif kind == "dialogue":
+		if dialogue_panel != null:
+			var d_lines: Array = next_entry.get("lines", [])
+			if not d_lines.is_empty():
+				dialogue_panel.show_dialogue(d_lines, next_entry.get("cb", Callable()))
+				emit_signal("modal_state_changed")
+			else:
+				_drain_ui_queue()
+
+
+func dismiss_parchment_note() -> void:
+	if parchment_note_panel != null and parchment_note_panel.visible:
+		parchment_note_panel.dismiss()
+		emit_signal("modal_state_changed")
+
+
+func is_parchment_open() -> bool:
+	return parchment_note_panel != null and parchment_note_panel.visible
+
+
+func is_item_banner_visible() -> bool:
+	return item_acquire_banner != null and item_acquire_banner.visible
+
+
+func open_inventory_to_item(item_name: String) -> void:
+	if item_acquire_banner != null:
+		item_acquire_banner.visible = false
+	if journal_panel != null:
+		if journal_panel.has_method("open_to_item"):
+			journal_panel.open_to_item(item_name)
+		elif journal_panel.has_method("open_modal"):
+			journal_panel.open_modal(1)
+	emit_signal("modal_state_changed")
 
 
 func _build_checkpoint_panel(seal_tex: Texture2D) -> void:
@@ -697,6 +849,24 @@ func _on_butcher_minigame_cancelled() -> void:
 	if pending_butcher_cancel_callback.is_valid():
 		var cb := pending_butcher_cancel_callback
 		pending_butcher_cancel_callback = Callable()
+		cb.call()
+
+
+func _on_mason_minigame_completed() -> void:
+	pending_mason_cancel_callback = Callable()
+	emit_signal("modal_state_changed")
+	if pending_mason_callback.is_valid():
+		var cb := pending_mason_callback
+		pending_mason_callback = Callable()
+		cb.call()
+
+
+func _on_mason_minigame_cancelled() -> void:
+	pending_mason_callback = Callable()
+	emit_signal("modal_state_changed")
+	if pending_mason_cancel_callback.is_valid():
+		var cb := pending_mason_cancel_callback
+		pending_mason_cancel_callback = Callable()
 		cb.call()
 
 

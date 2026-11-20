@@ -19,11 +19,18 @@ var _npc_yield_offsets: Dictionary = {}
 var _fg_layer: RegionForegroundLayer
 var _portal_hint_layer: RegionForegroundLayer
 var _portal_hint_was_near: bool = false
+var _bubble_on_hint_layer: bool = false
 var lights: Array[PointLight2D] = []
 var interactables: Array[Dictionary] = []
 var nearest_interactable: Dictionary = {}
 var walk_portals: Array[Dictionary] = []
 var portal_cooldown: float = 0.85
+var last_interacted_pos: Vector2 = Vector2.INF
+var last_interacted_id: String = ""
+var roadblock_speaker_pos: Vector2 = Vector2.INF
+var _roadblock_badge_pos: Vector2 = Vector2.INF
+var _roadblock_badge_timer: float = 0.0
+var _wayboard_style: StyleBox = null
 
 var _nav := RegionNavHelperScript.new()
 
@@ -115,11 +122,51 @@ func interact_with_nearest() -> bool:
 		update_nearest_interactable(player.position)
 	if nearest_interactable.is_empty():
 		return false
+	var ipos: Vector2 = nearest_interactable.get("pos", Vector2.INF)
+	if player != null and ipos.is_finite() and ipos.distance_to(player.position) > 2.0:
+		player.facing = (ipos - player.position).normalized()
+	last_interacted_pos = ipos
+	last_interacted_id = str(nearest_interactable.get("id", ""))
 	var cb: Callable = nearest_interactable["callback"]
 	if cb.is_valid():
 		cb.call()
 		return true
 	return false
+
+
+func clear_dialogue_focus() -> void:
+	roadblock_speaker_pos = Vector2.INF
+
+
+func trigger_story_roadblock(npc_pos: Vector2, speaker_name: String, portrait_tex: String, line_text: String, push_delta: Vector2 = Vector2(0, 34), on_done: Callable = Callable()) -> void:
+	ensure_portal_hint_layer()
+	portal_cooldown = 0.80
+	roadblock_speaker_pos = npc_pos
+	last_interacted_pos = npc_pos
+	_roadblock_badge_pos = npc_pos
+	_roadblock_badge_timer = 0.72
+	if player != null and npc_pos.distance_to(player.position) > 2.0:
+		player.facing = (npc_pos - player.position).normalized()
+	if _portal_hint_layer != null:
+		_portal_hint_layer.queue_redraw()
+	SoundManager.play_blip(1.55)
+	var lines := [{
+		"speaker": speaker_name,
+		"portrait": portrait_tex,
+		"text": line_text,
+	}]
+	var push_cb := func():
+		roadblock_speaker_pos = Vector2.INF
+		portal_cooldown = 0.75
+		if player != null and push_delta.length_squared() > 0.1:
+			player.position += push_delta
+			player.facing = push_delta.normalized()
+		if on_done.is_valid():
+			on_done.call()
+	if ui != null:
+		ui.show_dialogue(lines, push_cb)
+	elif push_cb.is_valid():
+		push_cb.call()
 
 
 func get_surface_at(_pos: Vector2) -> String:
@@ -308,11 +355,27 @@ func update_nearest_interactable(pos: Vector2) -> void:
 			best_dist = d
 			nearest_interactable = item.duplicate()
 			nearest_interactable["pos"] = ipos
+	if _portal_hint_layer != null and is_instance_valid(_portal_hint_layer):
+		_portal_hint_layer.queue_redraw()
 
 
 func clear_walk_portals() -> void:
 	walk_portals.clear()
 	portal_cooldown = 0.75
+
+
+func ensure_portal_hint_layer() -> RegionForegroundLayer:
+	if _portal_hint_layer != null and is_instance_valid(_portal_hint_layer):
+		_portal_hint_layer.assets = assets
+		return _portal_hint_layer
+	_portal_hint_layer = RegionForegroundLayer.new()
+	_portal_hint_layer.z_as_relative = false
+	_portal_hint_layer.z_index = 22
+	_portal_hint_layer.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_portal_hint_layer.assets = assets
+	_portal_hint_layer.draw_cb = _draw_portal_hints
+	add_child(_portal_hint_layer)
+	return _portal_hint_layer
 
 
 func register_walk_portal(id: String, rect: Rect2, move_dir_hint: Vector2, callback: Callable, sign_label: String = "", banner_title: String = "", banner_sub: String = "") -> void:
@@ -325,66 +388,98 @@ func register_walk_portal(id: String, rect: Rect2, move_dir_hint: Vector2, callb
 		"banner_title": banner_title,
 		"banner_sub": banner_sub,
 	})
-	if _portal_hint_layer == null:
-		_portal_hint_layer = RegionForegroundLayer.new()
-		_portal_hint_layer.z_index = 22
-		_portal_hint_layer.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
-		_portal_hint_layer.draw_cb = _draw_portal_hints
-		add_child(_portal_hint_layer)
+	ensure_portal_hint_layer()
 
 
 func is_portal_unlocked(_id: String) -> bool:
 	return true
 
 
+func _clean_wayboard_label(raw_lbl: String) -> String:
+	var s := raw_lbl.strip_edges()
+	for pref in ["<- ", "-> ", "^ ", "v ", "← ", "→ ", "↑ ", "↓ "]:
+		if s.begins_with(pref):
+			s = s.substr(pref.length()).strip_edges()
+	for suf in [" ->", " <-", " →", " ←"]:
+		if s.ends_with(suf):
+			s = s.substr(0, s.length() - suf.length()).strip_edges()
+	return s
+
+
 func _draw_portal_hints(canvas: Node2D) -> void:
-	if player == null or not player.visible or (ui != null and ui.is_blocking_gameplay()):
+	if _portal_hint_layer != null and is_instance_valid(_portal_hint_layer) and canvas != _portal_hint_layer:
 		return
 	var font: Font = assets.get_ui_font() if assets != null else ThemeDB.fallback_font
+	if _bubble_on_hint_layer:
+		draw_interact_bubble_if_active_on(canvas, font)
+	if _roadblock_badge_timer > 0.0 and _roadblock_badge_pos.is_finite() and assets != null:
+		var badge_tex: Texture2D = assets.get_tex("ui_exclamation_badge.png")
+		if badge_tex != null:
+			var bob := sin(_roadblock_badge_timer * 14.0) * 2.0
+			canvas.draw_texture_rect(badge_tex, Rect2(_roadblock_badge_pos + Vector2(-8.0, -52.0 - absf(bob)), Vector2(16.0, 18.0)), false)
+	if player == null or not player.visible or (ui != null and ui.is_blocking_gameplay()):
+		return
 	var t_now: float = float(assets.time_elapsed) if assets != null else 0.0
 	var pulse := 0.5 + 0.5 * sin(t_now * 4.4)
+	if _wayboard_style == null and assets != null:
+		_wayboard_style = assets.make_ui_9slice_style("ui_wayboard_9slice.png", 5.0, 10.0, 6.0)
 	for wp: Dictionary in walk_portals:
 		var pid := str(wp.get("id", ""))
 		if pid != "" and not is_interactable_active(pid):
+			continue
+		if not is_portal_unlocked(pid):
 			continue
 		var r: Rect2 = wp["rect"]
 		var ctr := r.get_center()
 		if player.position.distance_to(ctr) > 120.0:
 			continue
-		var unlocked := is_portal_unlocked(pid)
 		var dhint: Vector2 = wp.get("dir", Vector2.ZERO)
 		var dn := dhint.normalized() if dhint.length_squared() > 0.01 else Vector2.UP
-		var perp := Vector2(-dn.y, dn.x)
-		var col := Color(0.98, 0.84, 0.42, 0.55 + 0.35 * pulse) if unlocked else Color(0.88, 0.36, 0.28, 0.65 + 0.25 * pulse)
-		var c_base := ctr - dn * (4.0 - pulse * 3.0)
-		if unlocked and GameState.hints_enabled:
-			var tip := c_base + dn * 7.0
-			canvas.draw_colored_polygon(PackedVector2Array([tip, c_base - dn * 3.0 + perp * 6.0, c_base - dn * 3.0 - perp * 6.0]), col)
-		var lbl := str(wp.get("sign_label", ""))
+		var arrow_name := "ui_wayboard_arrow_u.png"
+		if absf(dn.x) >= absf(dn.y):
+			arrow_name = "ui_wayboard_arrow_l.png" if dn.x < 0.0 else "ui_wayboard_arrow_r.png"
+		else:
+			arrow_name = "ui_wayboard_arrow_u.png" if dn.y < 0.0 else "ui_wayboard_arrow_d.png"
+		var arrow_tex: Texture2D = assets.get_tex(arrow_name) if assets != null else null
+		if GameState.hints_enabled and arrow_tex != null:
+			var c_base := ctr + dn * (2.0 + pulse * 3.0)
+			canvas.draw_texture_rect(arrow_tex, Rect2(c_base - Vector2(6.0, 6.0), Vector2(12.0, 12.0)), false)
+		var lbl := _clean_wayboard_label(str(wp.get("sign_label", "")))
 		if lbl != "":
-			var show_lbl := lbl if unlocked else ("Toll Lock  |  " + lbl)
-			var tw := maxf(font.get_string_size(show_lbl, HORIZONTAL_ALIGNMENT_LEFT, -1, 10).x + 14.0, 74.0)
-			var py := r.end.y + 8.0 if dn.y < -0.5 else (r.position.y - 26.0 if dn.y > 0.5 else ctr.y - 38.0)
+			var has_arrow := arrow_tex != null
+			var arrow_pad := 18.0 if has_arrow else 0.0
+			var tw := maxf(font.get_string_size(lbl, HORIZONTAL_ALIGNMENT_LEFT, -1, 10).x + 18.0 + arrow_pad, 84.0)
+			var py := r.end.y + 8.0 if dn.y < -0.5 else (r.position.y - 28.0 if dn.y > 0.5 else ctr.y - 40.0)
 			var px := clampf(ctr.x - tw * 0.5, 8.0, maxf(8.0, ctr.x + 200.0))
 			if dn.x > 0.5:
-				px = r.position.x - tw - 6.0
+				px = r.position.x - tw - 8.0
 			elif dn.x < -0.5:
-				px = r.end.x + 6.0
-			var box := Rect2(px, py, tw, 19.0)
-			canvas.draw_rect(Rect2(box.position + Vector2(1, 2), box.size), Color(0.04, 0.03, 0.02, 0.55))
-			canvas.draw_rect(box, Color(0.18, 0.13, 0.08, 0.90))
-			canvas.draw_rect(box, Color(0.76, 0.60, 0.30, 0.85) if unlocked else Color(0.76, 0.34, 0.26, 0.85), false, 1.2)
-			canvas.draw_string(font, Vector2(px + 7.0, py + 13.0), show_lbl, HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color(0.96, 0.88, 0.64) if unlocked else Color(0.98, 0.72, 0.62))
+				px = r.end.x + 8.0
+			var box := Rect2(px, py, tw, 22.0)
+			canvas.draw_rect(Rect2(box.position + Vector2(1, 2), box.size), Color(0.03, 0.02, 0.02, 0.52))
+			if _wayboard_style != null:
+				canvas.draw_style_box(_wayboard_style, box)
+			else:
+				canvas.draw_rect(box, Color(0.24, 0.16, 0.10, 0.94))
+				canvas.draw_rect(box, Color(0.76, 0.60, 0.30, 0.88), false, 1.2)
+			var left_arrow := (dn.x < -0.5)
+			var text_x := px + (24.0 if (has_arrow and left_arrow) else 9.0)
+			if has_arrow:
+				var ax := px + 7.0 if left_arrow else (px + tw - 18.0)
+				canvas.draw_texture_rect(arrow_tex, Rect2(ax, py + 5.0, 11.0, 11.0), false)
+			canvas.draw_string(font, Vector2(text_x, py + 15.0), lbl, HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color(0.96, 0.90, 0.72))
 
 
 func step_walk_portals(delta: float) -> void:
+	if _roadblock_badge_timer > 0.0:
+		_roadblock_badge_timer = maxf(0.0, _roadblock_badge_timer - delta)
 	if _portal_hint_layer != null and player != null:
 		var near_any := false
 		for wp: Dictionary in walk_portals:
 			if player.position.distance_to(wp["rect"].get_center()) <= 125.0:
 				near_any = true
 				break
-		if near_any or _portal_hint_was_near:
+		if near_any or _portal_hint_was_near or _roadblock_badge_timer > 0.0:
 			_portal_hint_layer.queue_redraw()
 		_portal_hint_was_near = near_any
 	if portal_cooldown > 0.0:
@@ -431,8 +526,10 @@ func draw_interact_bubble_if_active_on(canvas: Node2D, font: Font) -> void:
 	assets.draw_interact_bubble(canvas, nearest_interactable["pos"] + off, "[E] " + str(nearest_interactable["name"]), font)
 
 
-func draw_interact_bubble_if_active(font: Font) -> void:
-	draw_interact_bubble_if_active_on(self, font)
+func draw_interact_bubble_if_active(_font: Font) -> void:
+	_bubble_on_hint_layer = true
+	var hl := ensure_portal_hint_layer()
+	hl.queue_redraw()
 
 
 ## Returns the live camera world rectangle expanded by pad pixels for frustum culling.

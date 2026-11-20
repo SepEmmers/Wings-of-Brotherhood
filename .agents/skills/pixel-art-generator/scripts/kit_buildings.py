@@ -24,6 +24,8 @@ WALL_PRESETS = {
     "brick_rose": ("D0", "D1", "R2", "R0", "L1", "C0", "C1"),
     "ashlar_stone": ("C0", "C1", "C2", "C0", "C3", "C0", "C1"),
     "wharf_oak": ("T0", "T1", "T2", "T0", "T3", "C0", "C1"),
+    "gobertange_sandstone": ("L2", "L1", "L0", "C3", "H2", "C1", "C2"),
+    "leuven_speklagen": ("R0", "R1", "L1", "R2", "L0", "C1", "C2"),
 }
 
 # Roof shingle / thatch palettes: (dark, mid, hi, ridge_hi)
@@ -63,10 +65,29 @@ def _paint_wall_region(
 ) -> None:
     base, mid, hi, beam, quoin, _, _ = WALL_PRESETS[wall_id]
     rng = random.Random(seed)
-    if wall_id in ("brick_warm", "brick_rose", "ashlar_stone"):
+    if wall_id == "leuven_speklagen":
+        # Historic Brabantine striped red-brick & white Gobertange sandstone courses ("speklagen")
+        c.rect(x, y, w, h, "R0")
+        for row, py in enumerate(range(y, y + h - 1, 3)):
+            bh = min(2, y + h - py)
+            is_stone_band = (row % 3 == 1)
+            for px in range(x + (2 if row % 2 else 0), x + w - 1, 6):
+                bw = min(5, x + w - px)
+                if is_stone_band:
+                    col = "L0" if rng.random() < 0.35 else "L1"
+                else:
+                    col = "R2" if rng.random() < 0.28 else "R1"
+                c.rect(px, py, bw, bh, col)
+            if py + 2 < y + h:
+                c.line(x, py + 2, x + w - 1, py + 2, "C3" if is_stone_band else "R0")
+        for qy in range(y + 1, y + h - 4, 6):
+            qw = 3 if ((qy // 6) % 2 == 0) else 2
+            c.rect(x, qy, qw, 4, "L1")
+            c.rect(x + w - qw, qy, qw, 4, "L1")
+    elif wall_id in ("brick_warm", "brick_rose", "ashlar_stone", "gobertange_sandstone"):
         c.rect(x, y, w, h, base)
-        step_x = 7 if wall_id == "ashlar_stone" else 5
-        step_y = 4 if wall_id == "ashlar_stone" else 3
+        step_x = 7 if wall_id in ("ashlar_stone", "gobertange_sandstone") else 5
+        step_y = 4 if wall_id in ("ashlar_stone", "gobertange_sandstone") else 3
         for row, py in enumerate(range(y, y + h - 1, step_y)):
             off = 3 if (row % 2) else 0
             for px in range(x + off, x + w - 1, step_x):
@@ -74,6 +95,8 @@ def _paint_wall_region(
                 bh = min(step_y - 1, y + h - py)
                 col = hi if rng.random() < 0.24 else mid
                 c.rect(px, py, bw, bh, col)
+            if wall_id == "gobertange_sandstone" and py + step_y - 1 < y + h:
+                c.line(x, py + step_y - 1, x + w - 1, py + step_y - 1, "C3")
         # Rusticated stone corner quoins
         for qy in range(y + 2, y + h - 4, 6):
             qw = 3 if ((qy // 6) % 2 == 0) else 2
@@ -553,10 +576,72 @@ CITY_BUILDING_RECIPES = {
         "chimneys": [4], "lanterns": [1], "sign": (2, "cloth"),
     },
     "city_louvain_mason_4a.png": {
-        "blocks": 4, "stories": 1, "wall": "ashlar_stone", "roof": "slate",
+        "blocks": 4, "stories": 1, "wall": "gobertange_sandstone", "roof": "slate",
         "roof_style": "stepped_center", "shutter": "T2", "flower": "Y2",
         "ground": ["win_shutter", "door_oak", "woodstack", "ivy"],
         "chimneys": [0], "lanterns": [1],
+    },
+    "city_leuven_house_4a.png": {
+        "blocks": 4, "stories": 2, "wall": "gobertange_sandstone", "roof": "slate",
+        "roof_style": "stepped_center", "shutter": "I1", "flower": "R3",
+        "ground": ["win_flower", "door_oak", "win_tall", "ivy"],
+        "upper": ["u_win", "u_flower", "u_flower", "u_win"],
+        "chimneys": [3], "lanterns": [1],
+    },
+    "city_leuven_house_4b.png": {
+        "blocks": 4, "stories": 2, "wall": "leuven_speklagen", "roof": "terracotta",
+        "roof_style": "stepped_left", "shutter": "T2", "flower": "Y2",
+        "ground": ["door_oak", "win_flower", "win_tall", "woodstack"],
+        "upper": ["u_hoist", "u_double", "u_win", "u_timber"],
+        "chimneys": [0], "lanterns": [0],
+    },
+    "city_leuven_cottage_4c.png": {
+        "blocks": 4, "stories": 1, "wall": "gobertange_sandstone", "roof": "terracotta",
+        "roof_style": "pitched", "shutter": "E1", "flower": "Y2",
+        "ground": ["win_shutter", "door_oak", "win_flower", "woodstack"],
+        "chimneys": [2], "lanterns": [1],
+    },
+    "city_leuven_bakery_5a.png": {
+        "blocks": 5, "stories": 2, "wall": "leuven_speklagen", "roof": "terracotta",
+        "roof_style": "stepped_center", "shutter": "E1", "awning": "crimson",
+        "ground": ["stall_bread", "stall_bread", "door_oak", "win_flower", "win_shutter"],
+        "upper": ["u_win", "u_flower", "u_hoist", "u_flower", "u_win"],
+        "chimneys": [0], "lanterns": [2], "sign": (2, "bread"),
+    },
+    "city_leuven_tavern_6a.png": {
+        "blocks": 6, "stories": 2, "wall": "gobertange_sandstone", "roof": "slate",
+        "roof_style": "dormer", "shutter": "I1", "flower": "Y2", "awning": "crimson",
+        "ground": ["win_tall", "double_door_l", "double_door_r", "stall_herb", "win_tall", "ivy"],
+        "upper": ["u_double", "u_timber", "u_flower", "u_flower", "u_double", "u_timber"],
+        "chimneys": [1, 5], "lanterns": [1, 3], "sign": (3, "tankard"),
+    },
+    "city_leuven_manor_7a.png": {
+        "blocks": 7, "stories": 2, "wall": "leuven_speklagen", "roof": "slate",
+        "roof_style": "twin_gable", "shutter": "I0", "flower": "L0", "awning": "crimson",
+        "ground": ["win_lancet", "win_flower", "double_door_l", "double_door_r", "win_flower", "win_lancet", "ivy"],
+        "upper": ["u_win", "u_double", "u_flower", "u_hoist", "u_flower", "u_double", "u_win"],
+        "chimneys": [0, 6], "lanterns": [2, 4], "sign": (6, "scroll"),
+    },
+    "city_leuven_weavers_6b.png": {
+        "blocks": 6, "stories": 2, "wall": "leuven_speklagen", "roof": "slate",
+        "roof_style": "stepped_center", "shutter": "U1", "flower": "Y2", "awning": "crimson",
+        "ground": ["stall_cloth", "win_tall", "double_door_l", "double_door_r", "stall_cloth", "win_flower"],
+        "upper": ["u_win", "u_flower", "u_hoist", "u_hoist", "u_flower", "u_win"],
+        "chimneys": [0, 5], "lanterns": [2, 3], "sign": (1, "cloth"),
+    },
+    "city_leuven_garrison_7c.png": {
+        "blocks": 7, "stories": 2, "wall": "gobertange_sandstone", "roof": "slate",
+        "roof_style": "dormer", "shutter": "I0", "awning": "crimson",
+        "ground": ["banner_guard", "win_lancet", "double_door_l", "double_door_r", "win_lancet", "banner_guard", "win_lancet"],
+        "upper": ["u_timber", "u_double", "u_win", "u_double", "u_win", "u_double", "u_timber"],
+        "chimneys": [1, 5], "lanterns": [2, 4], "sign": (1, "shield"),
+    },
+    "city_leuven_begijnhof_5a.png": {
+        "blocks": 5, "stories": 2, "wall": "gobertange_sandstone", "roof": "terracotta",
+        "roof_style": "stepped_center", "shutter": "I1", "flower": "R3", "awning": "ochre",
+        "ground": ["win_flower", "door_gothic", "stall_herb", "win_flower", "ivy"],
+        "upper": ["u_win", "u_flower", "u_win", "u_flower", "u_timber"],
+        "chimneys": [0, 4], "lanterns": [1],
     },
 }
 

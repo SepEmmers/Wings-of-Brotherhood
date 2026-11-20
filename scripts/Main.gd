@@ -19,6 +19,11 @@ const BrugesOutskirtsScript := preload("res://scripts/regions/BrugesOutskirtsReg
 const BrabantFensScript := preload("res://scripts/regions/BrabantFensRegion.gd")
 const LouvainCityScript := preload("res://scripts/regions/LouvainCityRegion.gd")
 const LouvainCatacombsScript := preload("res://scripts/regions/LouvainCatacombsRegion.gd")
+const OldHeverleeScript := preload("res://scripts/regions/OldHeverleeRegion.gd")
+const OldHeverleeShrineScript := preload("res://scripts/regions/OldHeverleeShrineRegion.gd")
+const AnnaSanctuaryCh1Script := preload("res://scripts/regions/AnnaSanctuaryCh1Region.gd")
+const VirelaiConvoyRaidScript := preload("res://scripts/regions/VirelaiConvoyRaidRegion.gd")
+const CustomDungeonScript := preload("res://scripts/regions/CustomDungeonRegion.gd")
 const SmokeRunnerScript := preload("res://scripts/tools/HeadlessSmokeRunner.gd")
 const VisualAuditRunnerScript := preload("res://scripts/tools/VisualAuditRunner.gd")
 const HatchlingCompanionScript := preload("res://scripts/companions/HatchlingCompanion.gd")
@@ -38,6 +43,7 @@ var _shake_timer: float = 0.0
 var _shake_strength: float = 0.0
 var _smoke_runner = null
 var _visual_audit = null
+var _default_cam_zoom: Vector2 = Vector2(1.5, 1.5)
 
 
 func _ready() -> void:
@@ -79,6 +85,7 @@ func _ready() -> void:
 	ui.replay_requested.connect(_on_replay_requested)
 	ui.quit_requested.connect(_on_quit_requested)
 	ui.modal_state_changed.connect(_sync_player_can_move)
+	ui.companion_eat_requested.connect(_on_companion_eat_requested)
 
 	companion = HatchlingCompanionScript.new()
 	companion.setup(assets, player, ui, null)
@@ -138,6 +145,16 @@ func load_region(region_id: String, opts: Dictionary = {}) -> void:
 			active_region = LouvainCityScript.new()
 		"louvain_catacombs":
 			active_region = LouvainCatacombsScript.new()
+		"old_heverlee":
+			active_region = OldHeverleeScript.new()
+		"old_heverlee_shrine":
+			active_region = OldHeverleeShrineScript.new()
+		"anna_ch1_sanctuary":
+			active_region = AnnaSanctuaryCh1Script.new()
+		"anna_ch1_raid":
+			active_region = VirelaiConvoyRaidScript.new()
+		"custom_dungeon":
+			active_region = CustomDungeonScript.new()
 		_:
 			push_warning("Unknown region_id '%s', defaulting to Port of Bruges." % region_id)
 			active_region = PortOfBrugesScript.new()
@@ -206,6 +223,35 @@ func _process(delta: float) -> void:
 		active_region.update_region_lights(assets.time_elapsed)
 		_sync_ambience_and_lighting(false, delta)
 
+	var target_zoom: Vector2 = active_region.get_default_camera_zoom() if (active_region != null and active_region.has_method("get_default_camera_zoom")) else _default_cam_zoom
+	if ui.is_item_banner_visible():
+		target_zoom = Vector2(2.15, 2.15)
+		if player != null and active_region != null and active_region.uses_standard_player_movement():
+			camera.position = camera.position.lerp(player.position + Vector2(0, -10), minf(1.0, delta * 6.0))
+	elif ui.dialogue_active and not ui.cutscene_active and current_region_id != "flight" and current_region_id != "anna_ch1_raid":
+		target_zoom = Vector2(2.05, 2.05)
+		var anna_pos_v: Variant = active_region.get("anna_pos") if active_region != null else null
+		var std_move: bool = active_region != null and active_region.uses_standard_player_movement()
+		if active_region != null and (std_move or anna_pos_v is Vector2):
+			var focus_origin: Vector2 = player.position if std_move else Vector2(anna_pos_v)
+			var focus_pos: Vector2 = focus_origin
+			var ipos_v: Variant = active_region.get("roadblock_speaker_pos")
+			if not (ipos_v is Vector2 and ipos_v.is_finite()):
+				ipos_v = active_region.get("last_interacted_pos")
+			if ipos_v is Vector2 and ipos_v.is_finite() and ipos_v.distance_to(focus_origin) <= 190.0:
+				focus_pos = focus_origin.lerp(ipos_v, 0.45) + Vector2(0, 14)
+				assets.active_dialogue_speaker_pos = ipos_v
+				assets.active_dialogue_player_pos = focus_origin
+			else:
+				focus_pos = focus_origin + Vector2(0, 14)
+				assets.active_dialogue_speaker_pos = Vector2.INF
+			camera.position = camera.position.lerp(focus_pos, minf(1.0, delta * 5.2))
+	else:
+		assets.active_dialogue_speaker_pos = Vector2.INF
+		if active_region != null and active_region.has_method("clear_dialogue_focus"):
+			active_region.clear_dialogue_focus()
+	camera.zoom = camera.zoom.lerp(target_zoom, minf(1.0, delta * 5.2))
+
 
 func _unhandled_input(event: InputEvent) -> void:
 	if ui.is_rebind_active():
@@ -234,6 +280,14 @@ func _unhandled_input(event: InputEvent) -> void:
 			ui.campfire_panel.close_panel()
 			get_viewport().set_input_as_handled()
 			return
+		if ui.is_parchment_open():
+			ui.dismiss_parchment_note()
+			get_viewport().set_input_as_handled()
+			return
+		if ui.is_item_banner_visible():
+			ui.item_acquire_banner.dismiss()
+			get_viewport().set_input_as_handled()
+			return
 		if ui.map_panel != null and ui.map_panel.visible:
 			ui.toggle_map()
 			get_viewport().set_input_as_handled()
@@ -260,6 +314,22 @@ func _unhandled_input(event: InputEvent) -> void:
 	if ui.checkpoint_panel.visible:
 		return
 
+	if ui.is_item_banner_visible():
+		if event.is_action_pressed("inventory_screen"):
+			ui.item_acquire_banner.open_in_bag()
+			get_viewport().set_input_as_handled()
+			return
+		if event.is_action_pressed("interact") or (event is InputEventKey and event.pressed and not event.echo and event.keycode in [KEY_SPACE, KEY_ENTER]):
+			ui.item_acquire_banner.dismiss()
+			get_viewport().set_input_as_handled()
+		return
+
+	if ui.is_parchment_open():
+		if event.is_action_pressed("interact") or (event is InputEventKey and event.pressed and not event.echo and event.keycode in [KEY_SPACE, KEY_ENTER]):
+			ui.dismiss_parchment_note()
+			get_viewport().set_input_as_handled()
+		return
+
 	if ui.dialogue_active:
 		if event.is_action_pressed("interact"):
 			ui.advance_dialogue()
@@ -275,6 +345,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		ui.is_title_visible()
 		or ui.knot_minigame.visible
 		or (ui.butcher_minigame != null and ui.butcher_minigame.visible)
+		or (ui.mason_minigame != null and ui.mason_minigame.visible)
 		or ui.playtest_panel.visible
 		or (ui.settings_panel != null and ui.settings_panel.visible)
 		or (ui.pause_panel != null and ui.pause_panel.visible)
@@ -339,8 +410,9 @@ func _sync_ambience_and_lighting(immediate: bool, delta: float = 0.016) -> void:
 		return
 	var want_amb: String = active_region.get_ambience_track()
 	if want_amb != _current_ambience_key:
+		var combat_swap := want_amb.ends_with("combat") or _current_ambience_key.ends_with("combat")
 		_current_ambience_key = want_amb
-		SoundManager.set_ambience(want_amb)
+		SoundManager.set_ambience(want_amb, 0.38 if combat_swap else 1.4)
 
 	var target_tint: Color = active_region.get_lighting_tint()
 	match ui.lighting_mode:
@@ -369,6 +441,13 @@ func _on_player_knife_slash(tip_pos: Vector2, dir: Vector2) -> void:
 
 func _on_lighting_mode_changed(_mode: String) -> void:
 	_sync_ambience_and_lighting(true)
+
+
+func _on_companion_eat_requested(fire_pos: Vector2, on_done: Callable) -> void:
+	if companion != null and companion.has_method("play_eat_animation") and companion.is_companion_enabled():
+		companion.play_eat_animation(fire_pos, on_done)
+	elif on_done.is_valid():
+		on_done.call()
 
 
 func _on_start_game_requested(chosen_name: String) -> void:
@@ -418,6 +497,8 @@ func _get_current_region_label() -> String:
 			return "Louvain (Dijle City)"
 		"louvain_catacombs":
 			return "Abbey Cathedral & Catacombs"
+		"custom_dungeon":
+			return "Custom Studio Dungeon"
 	return "Flanders"
 
 

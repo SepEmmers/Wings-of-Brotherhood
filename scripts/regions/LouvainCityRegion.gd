@@ -7,6 +7,7 @@ extends "res://scripts/regions/RegionBase.gd"
 
 const MapData := preload("res://scripts/regions/LouvainCityMapData.gd")
 const DrawHelper := preload("res://scripts/regions/LouvainCityDraw.gd")
+const QuestsHelper := preload("res://scripts/regions/LouvainCityQuests.gd")
 const CityHeatHelperScript := preload("res://scripts/systems/CityHeatHelper.gd")
 const PlayerCombatHelperScript := preload("res://scripts/systems/PlayerCombatHelper.gd")
 
@@ -74,16 +75,18 @@ func _ready() -> void:
 
 func _build_interactables() -> void:
 	interactables = [
-		{"id": "lv_pieter", "name": "Deaf Bell-Founder Pieter", "pos": NPC_PIETER_POS, "radius": 72.0, "callback": _on_interact_pieter},
-		{"id": "lv_mason", "name": "Master Mason Matthijs", "pos": NPC_MASON_POS, "radius": 68.0, "callback": _on_interact_mason},
-		{"id": "lv_scholar", "name": "University Beadle Hendrik", "pos": NPC_SCHOLAR_POS, "radius": 68.0, "callback": _on_interact_scholar},
-		{"id": "lv_winch", "name": "Foundry Bell Hoist ([F])", "pos": MapData.FOUNDRY_WINCH_POS, "radius": 70.0, "callback": func(): _repair_foundry_hoist()},
-		{"id": "lv_clay", "name": "Dijle River Clay Bank", "pos": MapData.CLAY_BANK_POS, "radius": 68.0, "callback": _on_interact_clay},
-		{"id": "lv_aleidis", "name": "Guildmistress Aleidis", "pos": NPC_ALEIDIS_POS, "radius": 72.0, "callback": _on_interact_aleidis},
-		{"id": "lv_martijn", "name": "One-Eyed Veteran Martijn", "pos": NPC_MARTIJN_POS, "radius": 72.0, "callback": _on_interact_martijn},
-		{"id": "lv_katelijne", "name": "Herbalist Sister Katelijne", "pos": NPC_KATELIJNE_POS, "radius": 72.0, "callback": _on_interact_katelijne},
-		{"id": "lv_sluice", "name": "Herbalist Dye-Sluice ([F] / [R])", "pos": MapData.HERBALIST_SLUICE_POS, "radius": 72.0, "callback": func(): _clear_herbalist_sluice()},
-		{"id": "lv_ring_chest", "name": "Confiscated Watch Chest", "pos": MapData.CONFISCATED_CHEST_POS, "radius": 68.0, "callback": _on_interact_ring_chest},
+		{"id": "lv_pieter", "name": "Deaf Bell-Founder Pieter", "pos": NPC_PIETER_POS, "radius": 72.0, "callback": func(): QuestsHelper.on_interact_pieter(self)},
+		{"id": "lv_mason", "name": "Master Mason Matthijs", "pos": NPC_MASON_POS, "radius": 68.0, "callback": func(): QuestsHelper.on_interact_mason(self)},
+		{"id": "lv_mason_stone", "name": "Gobertange Ashlar Crate", "pos": MapData.MASON_STONE_POS, "radius": 68.0, "callback": func(): QuestsHelper.on_interact_mason_stone(self, MapData)},
+		{"id": "lv_mason_crane", "name": "Sint-Pieterskerk Hoist Crane", "pos": MapData.MASON_CRANE_POS, "radius": 70.0, "callback": func(): QuestsHelper.open_crane_builder(self)},
+		{"id": "lv_scholar", "name": "University Beadle Hendrik", "pos": NPC_SCHOLAR_POS, "radius": 68.0, "callback": func(): QuestsHelper.on_interact_scholar(self)},
+		{"id": "lv_winch", "name": "Foundry Bell Hoist", "pos": MapData.FOUNDRY_WINCH_POS, "radius": 70.0, "callback": func(): QuestsHelper.repair_foundry_hoist(self, MapData)},
+		{"id": "lv_clay", "name": "Dijle River Clay Bank", "pos": MapData.CLAY_BANK_POS, "radius": 68.0, "callback": func(): QuestsHelper.on_interact_clay(self)},
+		{"id": "lv_aleidis", "name": "Guildmistress Aleidis", "pos": NPC_ALEIDIS_POS, "radius": 72.0, "callback": func(): QuestsHelper.on_interact_aleidis(self)},
+		{"id": "lv_martijn", "name": "One-Eyed Veteran Martijn", "pos": NPC_MARTIJN_POS, "radius": 72.0, "callback": func(): QuestsHelper.on_interact_martijn(self)},
+		{"id": "lv_katelijne", "name": "Herbalist Sister Katelijne", "pos": NPC_KATELIJNE_POS, "radius": 72.0, "callback": func(): QuestsHelper.on_interact_katelijne(self)},
+		{"id": "lv_sluice", "name": "Herbalist Dye-Sluice ([F] / [R])", "pos": MapData.HERBALIST_SLUICE_POS, "radius": 72.0, "callback": func(): QuestsHelper.clear_herbalist_sluice(self, MapData)},
+		{"id": "lv_ring_chest", "name": "Confiscated Watch Chest", "pos": MapData.CONFISCATED_CHEST_POS, "radius": 68.0, "callback": func(): QuestsHelper.on_interact_ring_chest(self)},
 		{"id": "lv_south_sign", "name": "Read South Gate Milestone", "pos": MapData.SOUTH_SIGN_POS, "radius": 64.0, "callback": _on_read_south_sign},
 	]
 	for p: Dictionary in MapData.get_wanted_posters():
@@ -169,7 +172,6 @@ func handle_region_input(event: InputEvent) -> bool:
 
 func step_region(delta: float) -> void:
 	step_water_layer()
-	step_walk_portals(delta)
 	DrawHelper.step_citizens(ambient_citizens, player.position if player != null else Vector2.ZERO, delta)
 	_step_fx(delta)
 	if abbey_vent_crawl_t > 0.0:
@@ -280,6 +282,8 @@ func _snapshot_checkpoint(spawn_pos: Vector2, dir_v: Vector2) -> void:
 		"louvain_vent_opened": GameState.louvain_vent_opened,
 		"louvain_brazier_lit": GameState.louvain_brazier_lit,
 		"louvain_crypt_ladder_open": GameState.louvain_crypt_ladder_open,
+		"louvain_crypt_treasure_open": GameState.louvain_crypt_treasure_open,
+		"louvain_crypt_treasure_taken": GameState.louvain_crypt_treasure_taken,
 		"louvain_found_1422": GameState.louvain_found_1422,
 		"louvain_found_1426": GameState.louvain_found_1426,
 		"louvain_archive_read": GameState.louvain_archive_read,
@@ -290,6 +294,9 @@ func _snapshot_checkpoint(spawn_pos: Vector2, dir_v: Vector2) -> void:
 		"louvain_guild_visited": GameState.louvain_guild_visited,
 		"louvain_ring_found": GameState.louvain_ring_found,
 		"louvain_survivor_done": GameState.louvain_survivor_done,
+		"louvain_mason_started": GameState.louvain_mason_started,
+		"louvain_mason_stone_hauled": GameState.louvain_mason_stone_hauled,
+		"louvain_mason_done": GameState.louvain_mason_done,
 		"resonance_chimes": GameState.resonance_chimes,
 		"smoke_pellets": GameState.smoke_pellets,
 	}
@@ -303,6 +310,8 @@ func _restore_checkpoint() -> void:
 		GameState.louvain_vent_opened = bool(_checkpoint_state.get("louvain_vent_opened", false))
 		GameState.louvain_brazier_lit = bool(_checkpoint_state.get("louvain_brazier_lit", false))
 		GameState.louvain_crypt_ladder_open = bool(_checkpoint_state.get("louvain_crypt_ladder_open", false))
+		GameState.louvain_crypt_treasure_open = bool(_checkpoint_state.get("louvain_crypt_treasure_open", false))
+		GameState.louvain_crypt_treasure_taken = bool(_checkpoint_state.get("louvain_crypt_treasure_taken", false))
 		GameState.louvain_found_1422 = bool(_checkpoint_state.get("louvain_found_1422", false))
 		GameState.louvain_found_1426 = bool(_checkpoint_state.get("louvain_found_1426", false))
 		GameState.louvain_archive_read = bool(_checkpoint_state.get("louvain_archive_read", false))
@@ -313,6 +322,9 @@ func _restore_checkpoint() -> void:
 		GameState.louvain_guild_visited = bool(_checkpoint_state.get("louvain_guild_visited", false))
 		GameState.louvain_ring_found = bool(_checkpoint_state.get("louvain_ring_found", false))
 		GameState.louvain_survivor_done = bool(_checkpoint_state.get("louvain_survivor_done", false))
+		GameState.louvain_mason_started = bool(_checkpoint_state.get("louvain_mason_started", false))
+		GameState.louvain_mason_stone_hauled = bool(_checkpoint_state.get("louvain_mason_stone_hauled", false))
+		GameState.louvain_mason_done = bool(_checkpoint_state.get("louvain_mason_done", false))
 		GameState.resonance_chimes = int(_checkpoint_state.get("resonance_chimes", 0))
 		GameState.smoke_pellets = int(_checkpoint_state.get("smoke_pellets", 0))
 	var cp_spawn: Vector2 = _checkpoint_state.get("spawn", MapData.WEST_ENTRY_SPAWN)
@@ -327,6 +339,8 @@ func _make_foe(kind: String, pos: Vector2, dir: Vector2) -> Dictionary:
 func _step_breakout_enemies(delta: float) -> void:
 	for e: Dictionary in breakout_enemies:
 		if int(e["hp"]) <= 0:
+			continue
+		if bool(e.get("permanently_bound", false)):
 			continue
 		if float(e.get("snared_t", 0.0)) > 0.0:
 			e["snared_t"] = maxf(0.0, float(e.get("snared_t", 0.0)) - delta)
@@ -419,22 +433,32 @@ func on_knife_slash(tip_pos: Vector2, _dir: Vector2) -> void:
 
 func on_rope_cast_hit(target_pos: Vector2, knot_id: String) -> void:
 	if target_pos.distance_to(MapData.FOUNDRY_WINCH_POS) <= 72.0:
-		_repair_foundry_hoist(knot_id)
+		QuestsHelper.repair_foundry_hoist(self, MapData, knot_id)
+		return
+	if target_pos.distance_to(MapData.MASON_CRANE_POS) <= 72.0:
+		QuestsHelper.open_crane_builder(self)
 		return
 	if target_pos.distance_to(MapData.HERBALIST_SLUICE_POS) <= 72.0:
-		_clear_herbalist_sluice()
+		QuestsHelper.clear_herbalist_sluice(self, MapData)
 		return
 	var res := PlayerCombatHelperScript.resolve_knot_targets(knot_id, player.position, target_pos, breakout_enemies)
 	if bool(res.get("hit", false)):
 		for e: Dictionary in breakout_enemies:
-			e["stun"] = maxf(float(e.get("stun", 0.0)), maxf(float(e.get("stunned_t", 0.0)), float(e.get("snared_t", 0.0))))
+			if bool(e.get("permanently_bound", false)):
+				e["stun"] = 9999.0
+			elif float(e.get("snared_t", 0.0)) > 0.0 or float(e.get("stunned_t", 0.0)) > 0.0:
+				e["stun"] = maxf(float(e.get("stun", 0.0)) if float(e.get("stun", 0.0)) < 100.0 else 0.0, maxf(float(e.get("stunned_t", 0.0)), float(e.get("snared_t", 0.0))))
+			elif float(e.get("stun", 0.0)) > 100.0:
+				e["stun"] = 0.0
 			e["stunned_t"] = 0.0
+		for b in res.get("bound", []):
+			_spawn_sparks(Vector2(b["pos"]), Color(0.95, 0.72, 0.24), 14)
 		for yanked in res.get("yanked", []):
-			_spawn_sparks(Vector2(yanked["pos"]), Color(0.98, 0.84, 0.38), 16)
+			_spawn_sparks(Vector2(yanked["pos"]), Color(0.98, 0.56, 0.30), 16)
 			SoundManager.play_cage_break()
 		for snared in res.get("snared", []):
-			snared["snared_t"] = maxf(float(snared.get("snared_t", 0.0)), 2.8)
-			snared["stun"] = maxf(float(snared.get("stun", 0.0)), 2.8)
+			snared["snared_t"] = maxf(float(snared.get("snared_t", 0.0)), 3.2)
+			snared["stun"] = maxf(float(snared.get("stun", 0.0)), 3.2)
 			_spawn_sparks(Vector2(snared["pos"]), Color(0.45, 0.90, 0.72), 14)
 		var zipped = res.get("zipped_target", null)
 		if zipped != null:
@@ -511,6 +535,16 @@ func get_vent_return_pos() -> Vector2:
 	return Vector2(1338, 792)
 
 
+func find_dragon_command_target(origin: Vector2, target_pos: Vector2, _aim: Vector2, _stage: int) -> Dictionary:
+	var ppos := player.position if player != null else origin
+	if not GameState.louvain_vent_opened and (origin.distance_to(MapData.ABBEY_VENT_POS) <= 92.0 or ppos.distance_to(MapData.ABBEY_VENT_POS) <= 92.0 or target_pos.distance_to(MapData.ABBEY_VENT_POS) <= 84.0):
+		return {"kind": "vent_crawl", "target_pos": MapData.ABBEY_VENT_POS, "stand_pos": MapData.ABBEY_VENT_POS + Vector2(0, 22)}
+	if not GameState.louvain_herbalist_done and (origin.distance_to(MapData.HERBALIST_SLUICE_POS) <= 105.0 or ppos.distance_to(MapData.HERBALIST_SLUICE_POS) <= 105.0 or target_pos.distance_to(MapData.HERBALIST_SLUICE_POS) <= 96.0):
+		var sdir := (ppos - MapData.HERBALIST_SLUICE_POS).normalized() if ppos.distance_to(MapData.HERBALIST_SLUICE_POS) > 1.0 else Vector2.DOWN
+		return {"kind": "ember_puff", "target_pos": MapData.HERBALIST_SLUICE_POS, "stand_pos": MapData.HERBALIST_SLUICE_POS + sdir * 26.0}
+	return {}
+
+
 func on_dragon_command(origin: Vector2, target_pos: Vector2, _aim: Vector2, _stage: int) -> bool:
 	_last_command_kind = ""
 	if not GameState.louvain_vent_opened and (origin.distance_to(MapData.ABBEY_VENT_POS) <= 78.0 or target_pos.distance_to(MapData.ABBEY_VENT_POS) <= 68.0):
@@ -527,7 +561,7 @@ func on_dragon_command(origin: Vector2, target_pos: Vector2, _aim: Vector2, _sta
 		return true
 	if not GameState.louvain_herbalist_done and (origin.distance_to(MapData.HERBALIST_SLUICE_POS) <= 86.0 or target_pos.distance_to(MapData.HERBALIST_SLUICE_POS) <= 82.0):
 		_last_command_kind = "ember_puff"
-		_clear_herbalist_sluice()
+		QuestsHelper.clear_herbalist_sluice(self, MapData)
 		return true
 	return false
 
@@ -539,113 +573,13 @@ func _tear_poster(pid: String) -> void:
 		ui.refresh_hud()
 
 
-func _on_interact_clay() -> void:
-	if GameState.louvain_clay_collected or GameState.louvain_bell_mould_fixed:
-		return
-	GameState.louvain_clay_collected = true
-	GameState.add_item("Dijle River Clay")
-	SoundManager.play_chime()
-	ui.pulse_hud_icon("bag")
-
-
-func _on_interact_pieter() -> void:
-	if GameState.louvain_bell_mould_fixed:
-		ui.show_dialogue([{"speaker": "Bell-Founder Pieter", "portrait": "portrait_uncle.png", "text": "Listen to that bronze timbre ring cleanly across the Dijle! Carry those Resonance Chimes safely—ring one down an alley and Catchpoles chase echoes all day."}])
-		return
-	if GameState.louvain_clay_collected:
-		ui.show_dialogue([{"speaker": "Bell-Founder Pieter", "portrait": "portrait_uncle.png", "text": "Aye—fine blue Dijle clay! Now lay a tight rope hitch onto the foundry gantry wheel beside the mould so I can draw the jacket true."}])
-		return
-	ui.show_dialogue([{"speaker": "Bell-Founder Pieter", "portrait": "portrait_uncle.png", "text": "The Church Catchpoles ordered six alarm-bells overnight and cracked my master mould! Dig wet clay down by the Dijle river bank and haul my gantry pulley taut if you want proper bronze Resonance Chimes."}])
-
-
-func _repair_foundry_hoist(_knot_id: String = "") -> void:
-	if GameState.louvain_bell_mould_fixed:
-		return
-	if not GameState.louvain_clay_collected:
-		ui.show_dialogue([{"speaker": "Bell-Founder Pieter", "portrait": "portrait_uncle.png", "text": "Hold up lad—pack wet alluvial clay from the Dijle River Slip first before hoisting the casing!"}])
-		return
-	ui.open_knot_minigame("clove_hitch", func(_id: String):
-		GameState.louvain_bell_mould_fixed = true
-		GameState.remove_item("Dijle River Clay")
-		GameState.resonance_chimes += 2
-		GameState.add_item("Bronze Resonance Chime")
-		GameState.add_dragon_bond(5)
-		SoundManager.play_chime()
-		ui.show_dialogue([{"speaker": "Bell-Founder Pieter", "portrait": "portrait_uncle.png", "text": "Seated tight as Flemish oak! Take two tuned Bronze Resonance Chimes—and slip into your hood whenever Catchpoles pace the bridge."}])
-		ui.refresh_hud()
-	)
-
-
-func _on_interact_aleidis() -> void:
-	GameState.louvain_guild_visited = true
-	ui.refresh_hud()
-	ui.show_dialogue([
-		{"speaker": "Guildmistress Aleidis", "portrait": "portrait_clara.png", "text": "Bless me—you have your mother's eyes, %s! Years back after your parents rode out to Old Heverlee, they marched straight into this tavern and burned their Church hunting seals in the hearth." % GameState.player_name},
-		{"speaker": "Guildmistress Aleidis", "portrait": "portrait_clara.png", "text": "Swore someone above St. Donatian's altar was excavating something older than Flanders. Two nights later, men in black tabards seized every deed from the Abbey Scriptorium northeast across the bridge."}
-	])
-
-
-func _on_interact_martijn() -> void:
-	if GameState.louvain_survivor_done:
-		ui.show_dialogue([{"speaker": "Veteran Martijn", "portrait": "portrait_watchman.png", "text": "The High Inquisitor never told the parish a dragon killed your folks—he paid crossbowmen to ambush us by an ancient gold-carved stone vault in Old Heverlee."}])
-		return
-	if GameState.louvain_ring_found:
-		GameState.louvain_survivor_done = true
-		GameState.remove_item("Old Hunters' Brass Signet")
-		GameState.add_dragon_bond(10)
-		SoundManager.play_chime()
-		ui.show_dialogue([
-			{"speaker": "Veteran Martijn", "portrait": "portrait_watchman.png", "text": "My old Oak-and-Hound signet! You pulled it back from those Abbey thieves..."},
-			{"speaker": "Veteran Martijn", "portrait": "portrait_watchman.png", "text": "Hear the truth then, boy: no beast slaughtered your mother and father at Old Heverlee. Church Inquisitors rode down our camp when your father refused to hand over a bronze shrine key they dug out beneath the oaks!"}
-		])
-		return
-	ui.show_dialogue([{"speaker": "Veteran Martijn", "portrait": "portrait_watchman.png", "text": "Leave an old one-eyed hunter to his ale, lad... unless you pry my Oak-and-Hound signet ring back from the watch chest Catchpoles locked away over in Dyers' Quarter."}])
-
-
-func _on_interact_katelijne() -> void:
-	if GameState.louvain_herbalist_done:
-		ui.show_dialogue([{"speaker": "Sister Katelijne", "portrait": "portrait_maren.png", "text": "Keep those Smoke-Pellets beside your belt—cast one under foot if Catchpole crossbows lock the square, and search our rear watch-crate for confiscated guild trinkets."}])
-		return
-	ui.show_dialogue([{"speaker": "Sister Katelijne", "portrait": "portrait_maren.png", "text": "Rust wedged my dye-vat sluice shut while Catchpoles camp at the gate! Snap the jammed lever free with a strong rope or warm ember and I'll pack fresh Smoke-Pellets for you."}])
-
-
-func _clear_herbalist_sluice() -> void:
-	if GameState.louvain_herbalist_done:
-		return
-	GameState.louvain_herbalist_done = true
-	GameState.smoke_pellets += 2
-	GameState.add_item("Smoke-Pellet")
-	GameState.add_dragon_bond(5)
-	SoundManager.play_chime()
-	_spawn_sparks(MapData.HERBALIST_SLUICE_POS, Color(0.55, 0.90, 0.68), 16)
-	ui.show_dialogue([{"speaker": "Sister Katelijne", "portrait": "portrait_maren.png", "text": "Clean water at last! Here—two ash-and-wax Smoke-Pellets. Oh, and Catchpoles dumped an old hunter's brass signet inside the wooden watch-chest south down our lane."}])
-	ui.refresh_hud()
-
-
-func _on_interact_ring_chest() -> void:
-	if GameState.louvain_ring_found or GameState.louvain_survivor_done:
-		return
-	GameState.louvain_ring_found = true
-	GameState.add_item("Old Hunters' Brass Signet")
-	SoundManager.play_chime()
-	ui.pulse_hud_icon("bag")
-
-
 func _on_enter_catacombs() -> void:
 	SoundManager.play_door()
 	director.load_region("louvain_catacombs", {"from_cloister": true})
 
 
 func _on_read_south_sign() -> void:
-	ui.show_dialogue([{"speaker": "South Post Sign", "portrait": "portrait_baker.png", "text": "\"OLD HEVERLEE WOODS & ABBEY FOREST TRAIL — 3 LEAGUES SOUTH.\""}])
-
-
-func _on_interact_mason() -> void:
-	ui.show_dialogue([{"speaker": "Master Mason Matthijs", "portrait": "portrait_uncle.png", "text": "Brussels brags their belfry spire will scrape the clouds, while St. Peter's timber crane creaks for lack of white Brabant ashlar stone! Wait until Louvain raises three spires higher—and our new Town Hall joins the square."}])
-
-
-func _on_interact_scholar() -> void:
-	ui.show_dialogue([{"speaker": "Beadle Hendrik", "portrait": "portrait_watchman.png", "text": "Mind the cobbles beneath De Lakenhalle's arches, lad—the Duke's new 1425 University masters lodge upstairs above the Cloth Hall looms, and Catchpoles have been questioning every clerk carrying Latin ink."}])
+	ui.show_parchment_note("Naamsepoort South Post", "\"OLD HEVERLEE WOODS & ABBEY FOREST TRAIL — 3 LEAGUES SOUTH.\"", "Louvain City Roadhouse")
 
 
 func _on_exit_west() -> void:
@@ -653,11 +587,16 @@ func _on_exit_west() -> void:
 
 
 func _on_exit_south() -> void:
-	ui.show_chapter_checkpoint(
-		"ACT I PART 1 COMPLETE — SOUTH GATE BREACHED",
-		"Uncovered the Church Decrees inside Louvain and blasted clear toward Old Heverlee Woods! Milestone 3 continues straight down this southern forest road.",
-		"Continue Exploring Louvain"
-	)
+	if not is_portal_unlocked("louvain_south_heverlee"):
+		trigger_story_roadblock(
+			Vector2(1030, 1945),
+			"Naamsepoort Sentinel",
+			"portrait_watchman.png",
+			"Curfew bars stay bolted on Naamsepoort while Catchpoles sweep the Cloister!",
+			Vector2(0, -40)
+		)
+		return
+	director.load_region("old_heverlee", {"spawn": Vector2(1100, 128), "facing": Vector2.DOWN})
 
 
 func is_portal_unlocked(id: String) -> bool:
@@ -669,6 +608,10 @@ func is_portal_unlocked(id: String) -> bool:
 func is_interactable_active(id: String) -> bool:
 	if id == "lv_clay":
 		return not GameState.louvain_clay_collected and not GameState.louvain_bell_mould_fixed
+	if id == "lv_mason_stone":
+		return not GameState.louvain_mason_stone_hauled and not GameState.louvain_mason_done
+	if id == "lv_mason_crane":
+		return not GameState.louvain_mason_done
 	if id == "lv_ring_chest":
 		return not GameState.louvain_ring_found and not GameState.louvain_survivor_done
 	for p: Dictionary in MapData.get_wanted_posters():
@@ -730,7 +673,32 @@ func get_surface_at(pos: Vector2) -> String:
 	return "cobble"
 
 
+func get_active_npc_colliders() -> Array:
+	var list: Array = [
+		{"pos": NPC_PIETER_POS, "yield_key": "lv_pieter"},
+		{"pos": NPC_MASON_POS, "yield_key": "lv_mason"},
+		{"pos": NPC_SCHOLAR_POS, "yield_key": "lv_scholar"},
+		{"pos": NPC_ALEIDIS_POS, "yield_key": "lv_aleidis"},
+		{"pos": NPC_MARTIJN_POS, "yield_key": "lv_martijn"},
+		{"pos": NPC_KATELIJNE_POS, "yield_key": "lv_katelijne"},
+	]
+	for ct: Dictionary in ambient_citizens:
+		list.append({"pos": Vector2(ct["pos"]), "yield_key": "lv_cit_%s" % str(ct.get("name", ""))})
+	if not GameState.louvain_breakout_won and breakout_enemies.is_empty():
+		for pat: Dictionary in patrols:
+			list.append(Vector2(pat["pos"]))
+	for e: Dictionary in breakout_enemies:
+		if int(e.get("hp", 0)) > 0:
+			list.append(Vector2(e["pos"]))
+	return list
+
+
 func get_ambience_track() -> String:
+	for e: Dictionary in breakout_enemies:
+		if int(e.get("hp", 0)) > 0:
+			return "amb_combat"
+	if GameState.city_heat >= 0.40:
+		return "amb_stealth"
 	return "amb_dawn_tension"
 
 

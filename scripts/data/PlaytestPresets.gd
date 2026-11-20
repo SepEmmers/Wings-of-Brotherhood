@@ -195,8 +195,8 @@ const PRESETS: Array = [
 		"chapter": "ch2",
 		"kind": "cutscene",
 		"tag": "CS 3",
-		"title": "Two Winters Montage (Age 12 -> 14)",
-		"label": "Cutscene 3: Two Winters Montage (Age 12 -> 14)",
+		"title": "Two Winters Montage (Age 12–14)",
+		"label": "Cutscene 3: Two Winters Montage (Age 12–14)",
 		"region": "sanctuary",
 		"location": "Sanctuary Gorge Cliffs",
 		"summary": "Multi-shot winter-to-spring montage: rigging practice in snow, Kestrel healing uncaged, and Age 14 drill leap.",
@@ -231,8 +231,8 @@ const PRESETS: Array = [
 		"chapter": "ch2",
 		"kind": "cutscene",
 		"tag": "CS 4",
-		"title": "Cliff Watch Montage (Age 14 -> 17)",
-		"label": "Cutscene 4: Cliff Watch Montage (Age 14 -> 17)",
+		"title": "Cliff Watch Montage (Age 14–17)",
+		"label": "Cutscene 4: Cliff Watch Montage (Age 14–17)",
 		"region": "sanctuary",
 		"location": "Sanctuary & Eastern Cliffs",
 		"summary": "Multi-shot montage: coastal flybys, midnight vigil holding Clara's torn strap, Age 17 senior rigging, storm lightning.",
@@ -303,8 +303,8 @@ const PRESETS: Array = [
 		"chapter": "ch3",
 		"kind": "scene",
 		"tag": "3.2",
-		"title": "Carrying Egg -> Watchtower",
-		"label": "Ch 3.2: Carrying Egg -> Watchtower",
+		"title": "Carrying Egg to Watchtower",
+		"label": "Ch 3.2: Carrying Egg to Watchtower",
 		"region": "wilds",
 		"location": "Whispering Pines (Hollow Exit)",
 		"summary": "Survival trek carrying the egg (92% warmth). Warm by campfires, cut briars, cross the winch, and evade patrols.",
@@ -518,6 +518,14 @@ static func _unlock_post_sanctuary(include_reaper: bool, include_longwing: bool)
 
 
 static func apply_preset(scene_id: String) -> Dictionary:
+	var prev_suppress := GameState.suppress_item_banner
+	GameState.suppress_item_banner = true
+	var res := _apply_preset_inner(scene_id)
+	GameState.suppress_item_banner = prev_suppress
+	return res
+
+
+static func _apply_preset_inner(scene_id: String) -> Dictionary:
 	match scene_id:
 		"boat_sailing":
 			return {"region": "bruges", "params": {"mode": "sailing"}}
@@ -538,21 +546,21 @@ static func apply_preset(scene_id: String) -> Dictionary:
 			GameState.visited_clara = true
 			GameState.bought_bread = true
 			GameState.unlock_knot("bruges_whipping")
-			return {"region": "house", "params": {"step": GameState.QuestStep.EVENING_HOME, "spawn": Vector2(640, 455), "first_entry": true}}
+			return {"region": "house", "params": {"step": GameState.QuestStep.EVENING_HOME, "spawn": Vector2(640, 504), "first_entry": true}}
 		"cutscene_sleep":
 			GameState.current_step = GameState.QuestStep.EVENING_HOME
 			GameState.cargo_delivered = true
 			GameState.visited_clara = true
 			GameState.bought_bread = true
 			GameState.unlock_knot("bruges_whipping")
-			return {"region": "house", "params": {"step": GameState.QuestStep.EVENING_HOME, "spawn": Vector2(732, 315), "cutscene_sleep": true}}
+			return {"region": "house", "params": {"step": GameState.QuestStep.EVENING_HOME, "spawn": Vector2(836, 240), "cutscene_sleep": true}}
 		"dawn_clue":
 			GameState.current_step = GameState.QuestStep.DAWN_MISSING_CLARA
 			GameState.cargo_delivered = true
 			GameState.visited_clara = true
 			GameState.bought_bread = true
 			GameState.unlock_knot("bruges_whipping")
-			return {"region": "house", "params": {"step": GameState.QuestStep.DAWN_MISSING_CLARA, "spawn": Vector2(640, 410), "facing": Vector2.DOWN}}
+			return {"region": "house", "params": {"step": GameState.QuestStep.DAWN_MISSING_CLARA, "spawn": Vector2(640, 502), "facing": Vector2.DOWN}}
 		"ambush":
 			GameState.current_step = GameState.QuestStep.SNITCH_TO_CHURCH
 			GameState.cargo_delivered = true

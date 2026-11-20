@@ -19,6 +19,7 @@ var facing: Vector2 = Vector2.DOWN
 var walk_phase: float = 0.0
 var is_moving: bool = false
 var on_ship: bool = false
+var camera_yaw_rad: float = 0.0
 
 # Multi-phase Rope Throw Animation state
 var rope_timer: float = 0.0
@@ -73,6 +74,7 @@ const CARRY_PROPS := {
 }
 
 var sprite: Sprite2D
+var sling_sprite: Sprite2D
 var carry_prop_sprite: Sprite2D
 var custom_carry_tex: String = ""
 var custom_carry_posture: String = "cradle"
@@ -105,10 +107,16 @@ func _ready() -> void:
 	sprite.texture = anim_textures.get("boy_down_0.png")
 	add_child(sprite)
 
+	sling_sprite = Sprite2D.new()
+	sling_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	sling_sprite.visible = false
+	sling_sprite.z_index = 2
+	add_child(sling_sprite)
+
 	carry_prop_sprite = Sprite2D.new()
 	carry_prop_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	carry_prop_sprite.visible = false
-	carry_prop_sprite.z_index = 2
+	carry_prop_sprite.z_index = 3
 	add_child(carry_prop_sprite)
 
 
@@ -328,6 +336,8 @@ func _physics_process(delta: float) -> void:
 		return
 
 	var input_vec := Input.get_vector("move_left", "move_right", "move_up", "move_down")
+	if absf(camera_yaw_rad) > 0.001 and input_vec.length_squared() > 0.01:
+		input_vec = input_vec.rotated(-camera_yaw_rad)
 	if input_vec.length_squared() > 0.01:
 		facing = input_vec.normalized()
 		is_moving = true
@@ -368,6 +378,31 @@ func _resolve_active_carry() -> Dictionary:
 func _hide_carry_prop() -> void:
 	if carry_prop_sprite != null:
 		carry_prop_sprite.visible = false
+
+
+func _hide_sling_prop() -> void:
+	if sling_sprite != null:
+		sling_sprite.visible = false
+
+
+func _sync_sling_overlay(dir_key: String, dir_flip: bool, step_idx: int, base_y: float) -> void:
+	if sling_sprite == null:
+		return
+	var show_sling := GameState.active_companion_stage >= 1 and GameState.active_perspective == "boy" and GameState.companion_posture == "sling"
+	if not show_sling:
+		sling_sprite.visible = false
+		return
+	var stex: Texture2D = anim_textures.get("prop_hatchling_sling_%s.png" % dir_key, anim_textures.get("prop_hatchling_sling_down.png"))
+	if stex == null:
+		sling_sprite.visible = false
+		return
+	var walk_dy := -1.2 if (is_moving and step_idx > 0) else 0.0
+	sling_sprite.texture = stex
+	sling_sprite.flip_h = dir_flip
+	sling_sprite.scale = sprite.scale
+	sling_sprite.position = Vector2(0, base_y + walk_dy)
+	sling_sprite.modulate = sprite.modulate
+	sling_sprite.visible = true
 
 
 func _apply_carry_visual(carry: Dictionary, dir_key: String, dir_flip: bool, step_idx: int, base_y: float) -> void:
@@ -443,6 +478,7 @@ func _update_sprite() -> void:
 	if cutscene_hidden:
 		sprite.visible = false
 		_hide_carry_prop()
+		_hide_sling_prop()
 		return
 	sprite.visible = true
 
@@ -457,6 +493,7 @@ func _update_sprite() -> void:
 
 	if not cutscene_pose.is_empty() and anim_textures.has(cutscene_pose):
 		_hide_carry_prop()
+		_hide_sling_prop()
 		sprite.flip_h = (cutscene_pose in ["boy_kneel.png", "boy_roll.png", "boy_knife_0.png", "boy_knife_1.png"]) and facing.x < -0.1
 		sprite.texture = _boy_tex(cutscene_pose)
 		sprite.position = Vector2(0, base_y)
@@ -464,6 +501,7 @@ func _update_sprite() -> void:
 
 	if cutscene_blindfolded and anim_textures.has("boy_blindfold.png"):
 		_hide_carry_prop()
+		_hide_sling_prop()
 		sprite.flip_h = facing.x < -0.1
 		sprite.texture = _boy_tex("boy_blindfold.png")
 		sprite.position = Vector2(0, base_y)
@@ -482,6 +520,7 @@ func _update_sprite() -> void:
 		var rkey := "boy_roll_%s_%d.png" % [rdir, roll_phase]
 		if anim_textures.has(rkey):
 			_hide_carry_prop()
+			_hide_sling_prop()
 			sprite.flip_h = rflip
 			sprite.texture = _boy_tex(rkey)
 			sprite.position = Vector2(0, base_y)
@@ -489,6 +528,7 @@ func _update_sprite() -> void:
 
 	if knife_timer > 0.0 and anim_textures.has("boy_knife_0.png"):
 		_hide_carry_prop()
+		_hide_sling_prop()
 		var kp := 1.0 - (knife_timer / knife_duration)
 		sprite.flip_h = knife_dir.x < -0.1
 		sprite.texture = _boy_tex("boy_knife_1.png" if kp >= 0.38 else "boy_knife_0.png")
@@ -497,6 +537,7 @@ func _update_sprite() -> void:
 
 	if rope_timer > 0.0 and anim_textures.has("boy_throw.png"):
 		_hide_carry_prop()
+		_hide_sling_prop()
 		sprite.flip_h = rope_dir.x < -0.1
 		sprite.texture = _boy_tex("boy_throw.png")
 		sprite.position = Vector2(0, base_y)
@@ -516,9 +557,11 @@ func _update_sprite() -> void:
 	var step_idx := (1 if int(walk_phase * 1.3) % 2 == 0 else 2) if is_moving else 0
 	var carry := _resolve_active_carry()
 	if not carry.is_empty():
+		_hide_sling_prop()
 		_apply_carry_visual(carry, dir_key, dir_flip, step_idx, base_y)
 		return
 	_hide_carry_prop()
+	_sync_sling_overlay(dir_key, dir_flip, step_idx, base_y)
 
 	sprite.flip_h = dir_flip
 

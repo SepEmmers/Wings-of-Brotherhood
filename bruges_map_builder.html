@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Temeraire World &amp; Region Builder — 6-Region Sync</title>
+<title>Temeraire Creator Studio — Pixel Art, Dialogue, Dungeon &amp; Map Builder</title>
 <style>
   :root {
     --bg: #141318;
@@ -32,11 +32,83 @@
     font-size: 12px;
     user-select: none;
   }
-  #app {
+  #studio-root {
     display: flex;
     flex-direction: column;
     width: 100vw;
     height: 100vh;
+  }
+  #studio-nav {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 12px;
+    background: #100f14;
+    border-bottom: 1px solid var(--border);
+    z-index: 20;
+  }
+  .studio-title {
+    font-weight: 800;
+    font-size: 13px;
+    color: var(--accent);
+    letter-spacing: 0.4px;
+    margin-right: 8px;
+  }
+  .studio-tab {
+    padding: 5px 12px;
+    border-radius: 5px;
+    background: #1e1c24;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .studio-tab:hover { color: var(--text); background: #2c2935; }
+  .studio-tab.active {
+    background: var(--accent);
+    color: #17140f;
+    border-color: var(--accent-hover);
+  }
+  #studio-conn-badge {
+    margin-left: auto;
+    font-size: 11px;
+    padding: 3px 9px;
+    border-radius: 12px;
+    background: #23202a;
+    border: 1px solid var(--border);
+    color: var(--muted);
+  }
+  #studio-conn-badge.live {
+    background: rgba(92, 184, 116, 0.16);
+    border-color: #4b8f5e;
+    color: #8ee5a4;
+  }
+  #studio-stage {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .studio-view {
+    flex: 1;
+    min-height: 0;
+    display: none;
+    flex-direction: column;
+  }
+  .studio-view.active { display: flex; }
+  .st-shell { display: flex; flex-direction: column; flex: 1; min-height: 0; width: 100%; }
+  .st-toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: 5px; padding: 6px 10px; background: var(--panel); border-bottom: 1px solid var(--border); }
+  .st-body { display: flex; flex: 1; min-height: 0; }
+  .st-left { width: 272px; background: var(--panel); border-right: 1px solid var(--border); display: flex; flex-direction: column; min-height: 0; }
+  .st-center { flex: 1; min-width: 0; min-height: 0; position: relative; }
+  .st-right { width: 298px; background: var(--panel); border-left: 1px solid var(--border); display: flex; flex-direction: column; min-height: 0; }
+  .st-statusbar { height: 24px; padding: 0 10px; background: var(--panel); border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; font-size: 11px; color: var(--muted); }
+  #app {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    width: 100%;
   }
   /* Top Toolbar */
   #toolbar {
@@ -432,10 +504,21 @@
 </style>
 </head>
 <body>
+<div id="studio-root">
+  <div id="studio-nav">
+    <span class="studio-title">✦ Temeraire Creator Studio</span>
+    <button class="studio-tab active" data-tab="map">🗺️ Map Builder</button>
+    <button class="studio-tab" data-tab="pixel">🎨 Pixel Art &amp; Kits</button>
+    <button class="studio-tab" data-tab="dialogue">📜 Dialogue &amp; Lore</button>
+    <button class="studio-tab" data-tab="dungeon">🏰 Dungeon &amp; Puzzles</button>
+    <span id="studio-conn-badge" title="Run run_creator_studio.bat to enable direct writes to assets/sprites/ and data/">🟡 Offline Mode (Download/Export)</span>
+  </div>
+  <div id="studio-stage">
+    <div id="studio-map" class="studio-view active">
 <div id="app">
   <!-- TOP TOOLBAR -->
   <div id="toolbar">
-    <span class="brand">Temeraire World Builder</span>
+    <span class="brand">World &amp; Region Map Builder</span>
     <label class="inline">Region:
       <select id="regionSelect" title="Switch synced game region">
         <option value="bruges_city" selected>Walled City of Bruges (2880×2160)</option>
@@ -445,6 +528,11 @@
         <option value="frontier_wilds">Frontier Wilds &amp; Outpost (2880×2160)</option>
         <option value="willem_house">Uncle Willem's Cottage (1280×720)</option>
         <option value="watchtower_hearth">Watchtower Hearth Interior (1280×720)</option>
+        <option value="brabant_fens">Brabant Reed-Fens — Book II (2160×1440)</option>
+        <option value="louvain">City of Louvain — Book II (2100×2100)</option>
+        <option value="louvain_catacombs">Louvain Catacombs — Book II (2880×900)</option>
+        <option value="old_heverlee">Old Heverlee Woods — Book II (2200×1500)</option>
+        <option value="old_heverlee_shrine">Old Heverlee Golden Shrine (1600×960)</option>
       </select>
     </label>
     <div class="sep"></div>
@@ -548,6 +636,12 @@
     </div>
   </div>
 </div>
+    </div>
+    <div id="studio-pixel" class="studio-view"></div>
+    <div id="studio-dialogue" class="studio-view"></div>
+    <div id="studio-dungeon" class="studio-view"></div>
+  </div>
+</div>
 
 <!-- EXPORT MODAL -->
 <div id="modal-backdrop">
@@ -565,12 +659,20 @@
     </div>
     <div class="modal-foot">
       <span id="copyConfirm" style="color:var(--ok); margin-right:auto; align-self:center; font-weight:600;"></span>
+      <button id="saveMapToDiskBtn" title="Write MapData directly to scripts/regions/ when running Creator Studio Server">Save to Game</button>
       <button id="downloadGdBtn">Download .gd File</button>
       <button id="copyGdBtn" class="primary">Copy to Clipboard</button>
     </div>
   </div>
 </div>
 
+<script src="tools/studio_data/sprites_bundle.js"></script>
+<script src="tools/studio_data/dialogue_bundle.js"></script>
+<script src="tools/studio_data/dungeons_bundle.js"></script>
+<script src="tools/studio_data/map_regions_book2.js"></script>
+<script src="tools/studio_data/pixel_studio.js"></script>
+<script src="tools/studio_data/dialogue_studio.js"></script>
+<script src="tools/studio_data/dungeon_studio.js"></script>
 <script>
 (() => {
   "use strict";
@@ -583,6 +685,7 @@
     frontier_wilds:    { label: "Frontier Wilds & Outpost",   mapFile: "FrontierWildsLayout.gd",     regFile: "FrontierWildsRegion_markers.gd" },
     willem_house:      { label: "Uncle Willem's Cottage",     mapFile: "WillemHouseLayout.gd",       regFile: "WillemHouseRegion_markers.gd" },
     watchtower_hearth: { label: "Watchtower Hearth Interior", mapFile: "WatchtowerHearthLayout.gd",  regFile: "WatchtowerHearth_markers.gd" },
+    ...(window.STUDIO_BOOK2_REGIONS ? window.STUDIO_BOOK2_REGIONS.meta : {}),
   };
   let activeRegionId = "bruges_city";
   function getStorageKey(id = activeRegionId) { return "temeraire_map_builder_v5_" + id; }
@@ -713,7 +816,7 @@
     }
   ];
 
-  // Texture Cache
+  // Texture Cache (uses embedded base64 bundle first so offline & live Pixel Studio edits render instantly)
   const texCache = new Map();
   function getTex(fname) {
     if (!fname) return null;
@@ -723,10 +826,20 @@
     const rec = { img, loaded: false, error: false };
     img.onload = () => { rec.loaded = true; requestDraw(); };
     img.onerror = () => { rec.error = true; };
-    img.src = `assets/sprites/${key}`;
+    const bundled = window.STUDIO_SPRITES_BUNDLE && window.STUDIO_SPRITES_BUNDLE[key];
+    img.src = (bundled && bundled.b64) ? bundled.b64 : `assets/sprites/${key}`;
     texCache.set(key, rec);
     return rec;
   }
+  window.notifySpriteUpdated = function (fname, dataUrl) {
+    if (!fname) return;
+    texCache.delete(fname);
+    if (dataUrl && window.STUDIO_SPRITES_BUNDLE && window.STUDIO_SPRITES_BUNDLE[fname]) {
+      window.STUDIO_SPRITES_BUNDLE[fname].b64 = dataUrl;
+    }
+    requestDraw();
+    renderPalette();
+  };
 
   // Procedural Canvas Patterns (Paved Cobblestone City, Castle Flagstone, Garden Turf)
   let cobblePattern = null;
@@ -892,11 +1005,11 @@
         { kind: "wall",         x: 2048, y: 1752, w: 656,  h: 24,  label: "" },
       ],
       buildings: [
-        { tex: "bldg_bruges_keep.png",      x: 214,  y: 194,  w: 256, h: 218, sign: "", spos: { x: 0, y: 0 } },
+        { tex: "bldg_bruges_keep.png",      x: 196,  y: 152,  w: 304, h: 260, sign: "", spos: { x: 0, y: 0 } },
         { tex: "city_manor_7a.png",         x: 506,  y: 192,  w: 274, h: 194, sign: "", spos: { x: 0, y: 0 } },
         { tex: "city_garrison_7c.png",      x: 204,  y: 550,  w: 240, h: 174, sign: "", spos: { x: 0, y: 0 } },
         { tex: "city_house_4b.png",         x: 648,  y: 572,  w: 164, h: 136, sign: "", spos: { x: 0, y: 0 } },
-        { tex: "bldg_bruges_belfry.png",    x: 1332, y: 922,  w: 224, h: 256, sign: "", spos: { x: 0, y: 0 } },
+        { tex: "bldg_bruges_belfry.png",    x: 1292, y: 918,  w: 304, h: 296, sign: "", spos: { x: 0, y: 0 } },
         { tex: "city_bakery_5a.png",        x: 1076, y: 1004, w: 204, h: 156, sign: "", spos: { x: 0, y: 0 } },
         { tex: "city_tavern_6a.png",        x: 1724, y: 1004, w: 160, h: 164, sign: "", spos: { x: 0, y: 0 } },
         { tex: "city_weavers_6b.png",       x: 1892, y: 996,  w: 150, h: 172, sign: "", spos: { x: 0, y: 0 } },
@@ -910,14 +1023,14 @@
         { tex: "city_house_4a.png",         x: 1504, y: 1560, w: 168, h: 138, sign: "", spos: { x: 0, y: 0 } },
         { tex: "city_cottage_4c.png",       x: 1674, y: 1560, w: 168, h: 134, sign: "", spos: { x: 0, y: 0 } },
         { tex: "city_house_4b.png",         x: 1844, y: 1560, w: 176, h: 140, sign: "", spos: { x: 0, y: 0 } },
-        { tex: "bldg_bruges_keep.png",      x: 1156, y: 1796, w: 168, h: 152, sign: "", spos: { x: 0, y: 0 } },
-        { tex: "bldg_bruges_keep.png",      x: 1556, y: 1796, w: 168, h: 152, sign: "", spos: { x: 0, y: 0 } },
+        { tex: "bldg_bruges_keep.png",      x: 1140, y: 1776, w: 196, h: 176, sign: "", spos: { x: 0, y: 0 } },
+        { tex: "bldg_bruges_keep.png",      x: 1544, y: 1776, w: 196, h: 176, sign: "", spos: { x: 0, y: 0 } },
         { tex: "city_tavern_6a.png",        x: 1780, y: 1796, w: 210, h: 154, sign: "", spos: { x: 0, y: 0 } },
-        { tex: "bldg_bruges_cathedral.png", x: 2112, y: 142,  w: 288, h: 252, sign: "", spos: { x: 0, y: 0 } },
+        { tex: "bldg_bruges_cathedral.png", x: 2074, y: 128,  w: 364, h: 340, sign: "", spos: { x: 0, y: 0 } },
         { tex: "city_manor_7a.png",         x: 1076, y: 172,  w: 248, h: 184, sign: "", spos: { x: 0, y: 0 } },
         { tex: "city_house_4a.png",         x: 1332, y: 196,  w: 168, h: 138, sign: "", spos: { x: 0, y: 0 } },
-        { tex: "city_house_4b.png",         x: 1748, y: 196,  w: 168, h: 138, sign: "", spos: { x: 0, y: 0 } },
-        { tex: "city_cottage_4c.png",       x: 1920, y: 200,  w: 164, h: 134, sign: "", spos: { x: 0, y: 0 } },
+        { tex: "city_house_4b.png",         x: 1720, y: 196,  w: 168, h: 138, sign: "", spos: { x: 0, y: 0 } },
+        { tex: "city_cottage_4c.png",       x: 1892, y: 200,  w: 164, h: 134, sign: "", spos: { x: 0, y: 0 } },
         { tex: "city_house_4b.png",         x: 1060, y: 580,  w: 172, h: 140, sign: "", spos: { x: 0, y: 0 } },
         { tex: "city_cottage_4c.png",       x: 1236, y: 584,  w: 168, h: 136, sign: "", spos: { x: 0, y: 0 } },
         { tex: "city_house_4a.png",         x: 1408, y: 580,  w: 168, h: 140, sign: "", spos: { x: 0, y: 0 } },
@@ -1075,10 +1188,10 @@
       ],
       winches: [], walls: [], cover: [],
       buildings: [
-        { tex: "building_warehouse.png", x: 348,  y: 36,  w: 336, h: 216, sign: "", spos: { x: 0, y: 0 } },
-        { tex: "building_ropewalk.png",  x: 936,  y: 28,  w: 548, h: 192, sign: "", spos: { x: 0, y: 0 } },
-        { tex: "building_baker.png",     x: 714,  y: 480, w: 162, h: 136, sign: "", spos: { x: 0, y: 0 } },
-        { tex: "building_house.png",     x: 1148, y: 616, w: 324, h: 244, sign: "", spos: { x: 0, y: 0 } },
+        { tex: "building_warehouse.png", x: 364,  y: 54,  w: 288, h: 180, sign: "", spos: { x: 0, y: 0 } },
+        { tex: "building_ropewalk.png",  x: 950,  y: 44,  w: 456, h: 154, sign: "", spos: { x: 0, y: 0 } },
+        { tex: "building_baker.png",     x: 718,  y: 504, w: 156, h: 104, sign: "", spos: { x: 0, y: 0 } },
+        { tex: "building_house.png",     x: 1214, y: 704, w: 196, h: 144, sign: "", spos: { x: 0, y: 0 } },
       ],
       props: [
         { tex: "prop_noticeboard.png",       x: 582,  y: 240, w: 44,  h: 52,  solid: true, cover: false },
@@ -1105,12 +1218,10 @@
         { tex: "prop_pine_tree.png",     x: 1069, y: 817, w: 72,  h: 96,  solid: true, cover: false },
         { tex: "prop_pine_tree.png",     x: 1466, y: 662, w: 72,  h: 96,  solid: true, cover: false },
         { tex: "prop_pine_tree.png",     x: 1474, y: 834, w: 72,  h: 96,  solid: true, cover: false },
-        { tex: "prop_gatehouse_pier_v.png", x: 648, y: 0,  w: 28,  h: 36,  solid: true, cover: false },
-        { tex: "prop_gatehouse_pier_v.png", x: 764, y: 0,  w: 28,  h: 36,  solid: true, cover: false },
-        { tex: "prop_milestone.png",     x: 632,  y: 48,  w: 30,  h: 38,  solid: true, cover: false },
-        { tex: "prop_gatehouse_pier_v.png", x: 1468, y: 0,  w: 28,  h: 36,  solid: true, cover: false },
-        { tex: "prop_gatehouse_pier_v.png", x: 1556, y: 0,  w: 28,  h: 36,  solid: true, cover: false },
-        { tex: "prop_milestone.png",     x: 1448, y: 250, w: 30,  h: 38,  solid: false, cover: false },
+        { tex: "prop_port_gatehouse.png", x: 606, y: -18, w: 228, h: 134, solid: false, cover: false },
+        { tex: "prop_milestone.png",      x: 624, y: 62,  w: 30,  h: 38,  solid: true, cover: false },
+        { tex: "prop_port_gatehouse.png", x: 1432, y: -12, w: 188, h: 118, solid: false, cover: false },
+        { tex: "prop_milestone.png",      x: 1448, y: 250, w: 30,  h: 38,  solid: false, cover: false },
       ],
       lanterns: [
         { x: 290, y: 380 }, { x: 680, y: 250 }, { x: 930, y: 255 },
@@ -1124,6 +1235,8 @@
         { id: "pob_piet",       tex: "npc_piet_0.png",       x: 575,  y: 595, name: "Old Piet",           bark: "Keep clear of Church halberds near the square." },
         { id: "pob_inquisitor", tex: "npc_inquisitor.png",   x: 800,  y: 372, name: "Church Inquisitor",  bark: "Every unlicenced beast or sympathy brings the crown's iron." },
         { id: "pob_baker",      tex: "npc_baker.png",        x: 795,  y: 628, name: "Baker Pieter",       bark: "Fresh hearth loaves before the evening bells." },
+        { id: "pob_maerten",    tex: "npc_city_guard_0.png", x: 720,  y: 92,  name: "Gatewarden Maerten", bark: "No lad crosses Steenstraat without a Captain's pass." },
+        { id: "pob_dirk",       tex: "npc_city_guard_1.png", x: 1526, y: 98,  name: "Customsman Dirk",    bark: "East towpath is cordoned until morning muster." },
       ],
       markers: [
         { key: "DRIFTED_CRATE_POS",    label: "Drifted Crate",    tex: "prop_crate.png",        x: 175,  y: 650 },
@@ -1132,8 +1245,8 @@
         { key: "TWINE_CACHE_POS",      label: "Twine Cache",      tex: "prop_twine_cache.png",  x: 1075, y: 535 },
         { key: "NOTICEBOARD_POS",      label: "Noticeboard",      tex: "prop_noticeboard.png",  x: 604,  y: 276 },
         { key: "AMBUSH_CENTER",        label: "Ambush Square",    tex: "npc_anna.png",          x: 960,  y: 485 },
-        { key: "NORTH_CITY_GATE_POS",  label: "North City Gate -> Bruges", tex: "prop_milestone.png", x: 720, y: 24 },
-        { key: "NE_OUTSKIRTS_GATE_POS", label: "NE Towpath -> Outskirts", tex: "prop_milestone.png", x: 1528, y: 24 },
+        { key: "NORTH_CITY_GATE_POS",  label: "Walled City of Bruges", tex: "prop_milestone.png", x: 720, y: 24 },
+        { key: "NE_OUTSKIRTS_GATE_POS", label: "Bruges Outskirts", tex: "prop_milestone.png", x: 1528, y: 24 },
       ],
       route: [],
       colliders: [],
@@ -1221,7 +1334,7 @@
         { id: "sanct_maren",      tex: "npc_maren_0.png",          x: 180,  y: 232, name: "Sister Maren",    bark: "Spring water and poultices keep wing joints supple." },
         { id: "sanct_matthijs",   tex: "npc_matthijs_0.png",       x: 980,  y: 470, name: "Matthijs",        bark: "Watch the ravine winds—they turn fast." },
         { id: "sanct_cook",       tex: "npc_villager_cook_0.png",  x: 528,  y: 822, name: "Cook Mieke",      bark: "Mutton stew boils till third bell!" },
-        { id: "sanct_bram",       tex: "npc_villager_herdsman_0.png", x: 1134, y: 816, name: "Stockman Bram",bark: "Keep the gates latched on the Brabant pasture!" },
+        { id: "sanct_joost",      tex: "npc_villager_herdsman_0.png", x: 1134, y: 816, name: "Stockman Joost",bark: "Keep the gates latched on the Brabant pasture!" },
         { id: "sanct_west_watch", tex: "npc_brotherhood_guard_0.png", x: 650, y: 788, name: "Bridge Scout",  bark: "All clear down to the lower scree." },
         { id: "sanct_virelai",    tex: "dragon_anna.png",          x: 365,  y: 455, name: "Virelai",         bark: "" },
         { id: "sanct_kestrel",    tex: "dragon_greyling.png",      x: 1180, y: 390, name: "Kestrel",         bark: "" },
@@ -1316,9 +1429,7 @@
       lanterns: [
         { x: 765, y: 1815 }, { x: 1185, y: 845 }, { x: 2110, y: 1315 }, { x: 2620, y: 255 },
       ],
-      townsfolk: [
-        { id: "fw_anna", tex: "npc_anna.png", x: 2578, y: 289, name: "Captain Anna", bark: "Bring the egg safely inside!" },
-      ],
+      townsfolk: [],
       markers: [
         { key: "SPAWN_CRASH",       label: "Crash Ravine",     tex: "prop_pine_tree.png",     x: 270,  y: 1890 },
         { key: "CLUE_TRACKS_POS",   label: "Hemlock Tracks",   tex: "prop_pixel_reticle.png", x: 305,  y: 1410 },
@@ -1345,33 +1456,41 @@
       fountain: null, boats: [], chimneys: [], cover: [], route: [],
       gardens: [], canals: [], bridges: [], winches: [], buildings: [],
       plazas: [
-        { x: 440, y: 220, w: 400, h: 280, style: "wood" },
+        { x: 346, y: 148, w: 588, h: 406, style: "wood" },
       ],
       roads: [
-        { x: 552, y: 316, w: 176, h: 98 },
+        { x: 552, y: 412, w: 176, h: 98 },
       ],
       walls: [
-        { kind: "wall", x: 424, y: 204, w: 432, h: 16, label: "COTTAGE INTERIOR" },
-        { kind: "wall", x: 424, y: 500, w: 192, h: 16, label: "" },
-        { kind: "wall", x: 664, y: 500, w: 192, h: 16, label: "" },
-        { kind: "wall", x: 424, y: 220, w: 16,  h: 280,label: "" },
-        { kind: "wall", x: 840, y: 220, w: 16,  h: 280,label: "" },
+        { kind: "wall", x: 328, y: 128, w: 624, h: 20,  label: "COTTAGE 4-ROOM INTERIOR" },
+        { kind: "wall", x: 328, y: 554, w: 282, h: 20,  label: "" },
+        { kind: "wall", x: 670, y: 554, w: 282, h: 20,  label: "" },
+        { kind: "wall", x: 328, y: 148, w: 18,  h: 406, label: "" },
+        { kind: "wall", x: 932, y: 148, w: 18,  h: 406, label: "" },
+        { kind: "wall", x: 344, y: 322, w: 74,  h: 22,  label: "" },
+        { kind: "wall", x: 470, y: 322, w: 142, h: 22,  label: "" },
+        { kind: "wall", x: 668, y: 322, w: 142, h: 22,  label: "" },
+        { kind: "wall", x: 866, y: 322, w: 70,  h: 22,  label: "" },
+        { kind: "wall", x: 524, y: 148, w: 18,  h: 178, label: "" },
+        { kind: "wall", x: 728, y: 148, w: 18,  h: 178, label: "" },
       ],
       props: [
-        { tex: "prop_hearth.png",       x: 444, y: 232, w: 64,  h: 96, solid: true, cover: false },
-        { tex: "prop_table_supper.png", x: 584, y: 329, w: 112, h: 64, solid: true, cover: false },
-        { tex: "prop_bed.png",          x: 744, y: 238, w: 80,  h: 56, solid: true, cover: false },
+        { tex: "prop_hearth.png",       x: 352, y: 376, w: 64,  h: 96, solid: true, cover: false },
+        { tex: "prop_table_supper.png", x: 584, y: 424, w: 112, h: 64, solid: true, cover: false },
+        { tex: "prop_bed.png",          x: 368, y: 168, w: 80,  h: 56, solid: true, cover: false },
+        { tex: "prop_bed.png",          x: 598, y: 168, w: 80,  h: 56, solid: true, cover: false },
+        { tex: "prop_bed.png",          x: 796, y: 168, w: 80,  h: 56, solid: true, cover: false },
       ],
       lanterns: [
-        { x: 476, y: 278 },
+        { x: 416, y: 444 },
       ],
       townsfolk: [
-        { id: "wh_willem", tex: "npc_uncle.png", x: 550, y: 360, name: "Uncle Willem", bark: "Sit down for warm bread before the bells ring out." },
-        { id: "wh_clara",  tex: "npc_clara.png", x: 715, y: 365, name: "Clara",        bark: "Promise you'll get straight to bed after supper, little brother." },
+        { id: "wh_willem", tex: "npc_uncle.png", x: 544, y: 456, name: "Uncle Willem", bark: "Sit down for warm bread before the bells ring out." },
+        { id: "wh_clara",  tex: "npc_clara.png", x: 718, y: 462, name: "Clara",        bark: "Promise you'll get straight to bed after supper, little brother." },
       ],
       markers: [
-        { key: "DOOR_POS",    label: "Front Door", tex: "prop_pixel_reticle.png", x: 640, y: 493 },
-        { key: "BOY_BED_POS", label: "Boy's Bed",  tex: "prop_bed.png",           x: 784, y: 266 },
+        { key: "DOOR_POS",    label: "Front Door", tex: "prop_pixel_reticle.png", x: 640, y: 534 },
+        { key: "BOY_BED_POS", label: "Boy's Bed",  tex: "prop_bed.png",           x: 836, y: 196 },
       ],
       colliders: [],
     };
@@ -1428,16 +1547,33 @@
       [1340, 210], [1485, 165], [1745, 225], [1940, 195], [2110, 255], [2260, 310],
       [165, 815], [250, 945], [560, 860], [740, 935], [935, 800], [1065, 920],
       [1340, 845], [1530, 910], [1740, 815], [1960, 865], [2140, 745], [2255, 665],
+      [215, 340], [490, 760], [685, 740], [855, 755], [1045, 710], [1290, 310],
+      [1425, 325], [1675, 715], [1890, 715], [2030, 695], [615, 160], [1245, 720],
+      [165, 650], [525, 420], [1705, 405], [2190, 200],
     ];
     const props = [
       { tex: "prop_crate.png",       x: 490,  y: 624, w: 56, h: 44, solid: true, cover: true },
       { tex: "prop_cloth_bales.png", x: 548,  y: 628, w: 48, h: 40, solid: true, cover: true },
+      { tex: "prop_wine_cask_cart.png", x: 268, y: 424, w: 62, h: 42, solid: true, cover: true },
+      { tex: "prop_hay_bale.png",    x: 258,  y: 728, w: 56, h: 42, solid: true, cover: true },
+      { tex: "prop_cloth_bales.png", x: 246,  y: 904, w: 48, h: 40, solid: true, cover: true },
+      { tex: "prop_crate.png",       x: 468,  y: 864, w: 52, h: 42, solid: true, cover: true },
+      { tex: "prop_hay_bale.png",    x: 742,  y: 626, w: 62, h: 42, solid: true, cover: true },
+      { tex: "prop_barrel.png",      x: 812,  y: 632, w: 38, h: 36, solid: true, cover: true },
       { tex: "prop_hay_bale.png",    x: 880,  y: 412, w: 64, h: 44, solid: true, cover: true },
       { tex: "prop_barrel.png",      x: 948,  y: 418, w: 36, h: 36, solid: true, cover: true },
+      { tex: "prop_cloth_bales.png", x: 1018, y: 624, w: 52, h: 42, solid: true, cover: true },
+      { tex: "prop_hay_bale.png",    x: 1292, y: 426, w: 56, h: 42, solid: true, cover: true },
       { tex: "prop_crate.png",       x: 1380, y: 616, w: 56, h: 44, solid: true, cover: true },
       { tex: "prop_cloth_bales.png", x: 1438, y: 620, w: 48, h: 40, solid: true, cover: true },
+      { tex: "prop_wine_cask_cart.png", x: 1596, y: 608, w: 62, h: 42, solid: true, cover: true },
+      { tex: "prop_barrel.png",      x: 1664, y: 616, w: 38, h: 36, solid: true, cover: true },
       { tex: "prop_hay_bale.png",    x: 1790, y: 398, w: 64, h: 44, solid: true, cover: true },
       { tex: "prop_crate.png",       x: 1858, y: 404, w: 48, h: 40, solid: true, cover: true },
+      { tex: "prop_hay_bale.png",    x: 1972, y: 594, w: 56, h: 42, solid: true, cover: true },
+      { tex: "prop_cloth_bales.png", x: 2042, y: 378, w: 52, h: 42, solid: true, cover: true },
+      { tex: "prop_crate.png",       x: 2116, y: 588, w: 52, h: 42, solid: true, cover: true },
+      { tex: "prop_barrel.png",      x: 2172, y: 592, w: 38, h: 36, solid: true, cover: true },
       { tex: "prop_cairn_stone.png", x: 1564, y: 314, w: 48, h: 48, solid: true, cover: true },
       { tex: "prop_milestone.png",   x: 136,  y: 456, w: 32, h: 40, solid: false, cover: false },
       { tex: "prop_milestone.png",   x: 442,  y: 600, w: 32, h: 40, solid: false, cover: false },
@@ -1484,13 +1620,16 @@
       ],
       townsfolk: [
         { id: "tollkeeper", tex: "npc_quartermaster.png", x: 634, y: 396, name: "Tollkeeper", bark: "Stay on the cobbles past dusk." },
+        { id: "warden_south_fork", tex: "npc_watchman_down_0.png", x: 382, y: 780, name: "South Fork Watcher", speed: 72, waypoints: [{ x: 382, y: 700 }, { x: 382, y: 955 }, { x: 490, y: 955 }, { x: 382, y: 820 }], bark: "Hold! Watch the towpath!" },
         { id: "warden_causeway", tex: "npc_watchman_down_0.png", x: 740, y: 558, name: "Causeway Warden", speed: 72, waypoints: [{ x: 690, y: 558 }, { x: 1070, y: 558 }, { x: 1070, y: 470 }, { x: 690, y: 470 }], bark: "Curfew sweep along the Zwin Bridge!" },
-        { id: "warden_ridge", tex: "npc_watchman_down_0.png", x: 1620, y: 540, name: "Ridge Searcher", speed: 72, waypoints: [{ x: 1340, y: 540 }, { x: 1980, y: 520 }, { x: 1740, y: 625 }, { x: 1340, y: 605 }], bark: "Hold! Inspection by Church decree!" },
+        { id: "warden_outrider", tex: "npc_watchman_down_0.png", x: 900, y: 628, name: "Tollhouse Outrider", speed: 72, waypoints: [{ x: 730, y: 625 }, { x: 1040, y: 625 }, { x: 1040, y: 540 }, { x: 730, y: 540 }], bark: "Check those hay carts!" },
+        { id: "warden_canal_sent", tex: "npc_watchman_down_0.png", x: 1380, y: 548, name: "Canal Bridge Sentinel", speed: 72, waypoints: [{ x: 1290, y: 548 }, { x: 1590, y: 548 }, { x: 1590, y: 456 }, { x: 1290, y: 456 }], bark: "Nobody crosses after dark!" },
+        { id: "warden_ridge", tex: "npc_watchman_down_0.png", x: 1820, y: 520, name: "Ridge Searcher", speed: 72, waypoints: [{ x: 1620, y: 540 }, { x: 2090, y: 510 }, { x: 1860, y: 625 }, { x: 1620, y: 605 }], bark: "Hold! Inspection by Church decree!" },
       ],
       markers: [
-        { key: "WEST_BRUGES_GATE", label: "< Bruges East Gate", tex: "prop_milestone.png", x: 42, y: 560 },
-        { key: "SOUTH_PORT_TOWPATH", label: "v Port NE Towpath", tex: "prop_milestone.png", x: 380, y: 1096 },
-        { key: "EAST_SANCTUARY_TRAIL", label: "Sanctuary Ridge >", tex: "prop_milestone.png", x: 2354, y: 520 },
+        { key: "WEST_BRUGES_GATE", label: "Bruges East Gate", tex: "prop_milestone.png", x: 42, y: 560 },
+        { key: "SOUTH_PORT_TOWPATH", label: "Port NE Towpath", tex: "prop_milestone.png", x: 380, y: 1096 },
+        { key: "EAST_SANCTUARY_TRAIL", label: "Sanctuary Ridge", tex: "prop_milestone.png", x: 2354, y: 520 },
       ],
       route: [],
       colliders: [],
@@ -1505,6 +1644,7 @@
     frontier_wilds: createDefaultFrontierWildsMap,
     willem_house: createDefaultWillemHouseMap,
     watchtower_hearth: createDefaultWatchtowerHearthMap,
+    ...(window.STUDIO_BOOK2_REGIONS ? window.STUDIO_BOOK2_REGIONS.builders : {}),
   };
 
   function createBlankMap() {
@@ -2886,6 +3026,7 @@
   document.getElementById("clearStampBtn").onclick = clearActiveStamp;
 
   window.addEventListener("keydown", e => {
+    if (window.activeCreatorTab && window.activeCreatorTab !== "map") return;
     if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA" || e.target.tagName === "SELECT") return;
     if (e.code === "Space") { spaceDown = true; canvas.style.cursor = "grab"; }
     if (e.key === "Escape") {
@@ -2907,6 +3048,7 @@
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "y") { e.preventDefault(); doRedo(); }
   });
   window.addEventListener("keyup", e => {
+    if (window.activeCreatorTab && window.activeCreatorTab !== "map") return;
     if (e.code === "Space") {
       spaceDown = false;
       canvas.style.cursor = activeMode === "smart" ? "default" : "crosshair";
@@ -3342,6 +3484,30 @@
     delBtn.onclick = deleteSelected;
     actions.append(dupBtn, delBtn);
     box.appendChild(actions);
+
+    // Cross-Studio Integration Links
+    const crossBox = document.createElement("div");
+    crossBox.style.cssText = "display:flex;flex-direction:column;gap:5px;margin-top:8px;";
+    if (item.tex && window.openSpriteInPixelStudio) {
+      const spName = item.tex.endsWith(".png") ? item.tex : `${item.tex}_0.png`;
+      const spBtn = document.createElement("button");
+      spBtn.textContent = `🎨 Edit ${spName} in Pixel Studio`;
+      spBtn.onclick = () => window.openSpriteInPixelStudio(spName);
+      crossBox.appendChild(spBtn);
+    }
+    if (selected.layer === "townsfolk" && window.openDialogueInStudio) {
+      const dlgBtn = document.createElement("button");
+      dlgBtn.textContent = `📜 Edit Bark / Dialogue in Studio`;
+      dlgBtn.onclick = () => window.openDialogueInStudio(item.name || item.bark || "");
+      crossBox.appendChild(dlgBtn);
+    }
+    if ((activeRegionId === "louvain_catacombs" || activeRegionId === "old_heverlee_shrine") && window.openPresetInDungeonStudio) {
+      const dnBtn = document.createElement("button");
+      dnBtn.textContent = `🏰 Open in Dungeon & Puzzle Maker`;
+      dnBtn.onclick = () => window.openPresetInDungeonStudio(activeRegionId);
+      crossBox.appendChild(dnBtn);
+    }
+    if (crossBox.children.length) box.appendChild(crossBox);
   }
 
   // GDScript Export Generator
@@ -3566,13 +3732,84 @@
     a.click();
   };
 
-  // Boot
+  document.getElementById("saveMapToDiskBtn").onclick = async () => {
+    const meta = REGION_META[activeRegionId] || REGION_META.bruges_city;
+    const fname = exportTab === "mapdata" ? meta.mapFile : meta.regFile;
+    try {
+      const resp = await fetch("/api/save_map_gd", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ filename: fname, content: exportTa.value }),
+      });
+      const js = await resp.json();
+      document.getElementById("copyConfirm").textContent = js.ok ? `Saved to ${js.path}!` : `Save failed: ${js.error}`;
+    } catch (_) {
+      document.getElementById("copyConfirm").textContent = "Start run_creator_studio.bat for direct disk write!";
+    }
+  };
+
+  // Boot Map Builder
   renderPalette();
   renderLayers();
   renderInspector();
   updateModeBadge();
   resizeCanvas();
   fitMapToView();
+
+  // Boot Creator Studio Tabs & Live Connection Badge
+  window.activeCreatorTab = "map";
+  const initializedTabs = { map: true, pixel: false, dialogue: false, dungeon: false };
+
+  window.switchCreatorTab = function (tabId) {
+    window.activeCreatorTab = tabId;
+    document.querySelectorAll(".studio-tab").forEach(b => b.classList.toggle("active", b.dataset.tab === tabId));
+    document.querySelectorAll(".studio-view").forEach(v => v.classList.toggle("active", v.id === `studio-${tabId}`));
+    if (tabId === "map") {
+      resizeCanvas();
+      requestDraw();
+    } else if (tabId === "dungeon" && window.onDungeonTabActivated) {
+      window.onDungeonTabActivated();
+    }
+    if (tabId === "pixel" && !initializedTabs.pixel && window.initPixelStudio) {
+      initializedTabs.pixel = true;
+      window.initPixelStudio(document.getElementById("studio-pixel"));
+    } else if (tabId === "dialogue" && !initializedTabs.dialogue && window.initDialogueStudio) {
+      initializedTabs.dialogue = true;
+      window.initDialogueStudio(document.getElementById("studio-dialogue"));
+    } else if (tabId === "dungeon" && !initializedTabs.dungeon && window.initDungeonStudio) {
+      initializedTabs.dungeon = true;
+      window.initDungeonStudio(document.getElementById("studio-dungeon"));
+    }
+  };
+
+  document.querySelectorAll(".studio-tab").forEach(btn => {
+    btn.onclick = () => window.switchCreatorTab(btn.dataset.tab);
+  });
+
+  // Pre-init sub-studios immediately so cross-links (window.openSpriteInPixelStudio etc.) work from turn 1
+  if (window.initPixelStudio && !initializedTabs.pixel) {
+    initializedTabs.pixel = true;
+    window.initPixelStudio(document.getElementById("studio-pixel"));
+  }
+  if (window.initDialogueStudio && !initializedTabs.dialogue) {
+    initializedTabs.dialogue = true;
+    window.initDialogueStudio(document.getElementById("studio-dialogue"));
+  }
+  if (window.initDungeonStudio && !initializedTabs.dungeon) {
+    initializedTabs.dungeon = true;
+    window.initDungeonStudio(document.getElementById("studio-dungeon"));
+  }
+
+  // Probe live companion HTTP server
+  fetch("/api/status").then(r => r.json()).then(js => {
+    if (js && js.ok) {
+      const b = document.getElementById("studio-conn-badge");
+      if (b) {
+        b.classList.add("live");
+        b.textContent = "🟢 Live Game Sync Connected (:8765)";
+      }
+    }
+  }).catch(() => {});
 })();
 </script>
 </body>

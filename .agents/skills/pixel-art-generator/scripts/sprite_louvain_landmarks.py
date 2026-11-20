@@ -22,6 +22,7 @@ from pixel_art_lib import PAL, PixelCanvas
 from sprite_world_buildings import _draw_brick_wall, _draw_shingles
 from sprite_bruges_landmarks import _draw_lancet_window, _draw_slate_spire
 from sprite_bruges_forts_water import _draw_stone_masonry_rect
+from sprite_louvain_props import make_louvain_props_and_walls
 
 
 def _draw_sandstone_wall(c: PixelCanvas, x: int, y: int, w: int, h: int, seed: int = 13):
@@ -176,78 +177,112 @@ def make_bldg_louvain_stadhuis(sprites_dir: str) -> None:
     c.pset(55, 2, "Y1")
 
     c.add_outline("K", selective_hue=True)
-    c.save_png(os.path.join(sprites_dir, "bldg_louvain_stadhuis.png"))
+    c.refine_epx_architecture().save_png(os.path.join(sprites_dir, "bldg_louvain_stadhuis.png"))
+
+
+def _paint_st_peters_base(c: PixelCanvas, y_off: int, with_scaffold_jib: bool = True) -> None:
+    """Shared St. Peter's Choir, Brabant Ashlar Nave, Triple Westwork, and Scaffolding."""
+    c.ellipse(64, 110 + y_off, 56, 5.0, (14, 12, 18, 125))
+    _draw_shingles(c, 20, 42 + y_off, 88, 22, "N", "S", "CS")
+    c.line(20, 42 + y_off, 107, 42 + y_off, "L1")
+    _draw_sandstone_wall(c, 12, 62 + y_off, 104, 48, seed=1425)
+    c.rect(12, 101 + y_off, 104, 9, "C1")
+
+    towers = [(14, 32 + y_off, 28), (44, 24 + y_off, 40), (86, 32 + y_off, 28)]
+    for idx, (tx, ty, tw) in enumerate(towers):
+        _draw_sandstone_wall(c, tx, ty, tw, (108 + y_off) - ty, seed=400 + idx)
+        c.rect(tx, ty, 3, (108 + y_off) - ty, "H2")
+        c.rect(tx + tw - 3, ty, 3, (108 + y_off) - ty, "C2")
+        if with_scaffold_jib or idx != 1:
+            for rx in range(tx, tx + tw - 2, 4):
+                rh = 2 + ((rx + idx * 3) % 4)
+                c.rect(rx, ty - rh, 3, rh, "L2" if (rx % 8 == 0) else "H2")
+        _draw_lancet_window(c, tx + tw // 2 - 4, ty + 10, 8, 16, "S", False)
+        if idx == 1:
+            c.ellipse(64, 58 + y_off, 8, 8, "C1")
+            c.ellipse(64, 58 + y_off, 6, 6, "Y0")
+            c.pset(64, 58 + y_off, "Y2")
+
+    c.rect(52, 78 + y_off, 24, 32, "C1")
+    c.rect(54, 80 + y_off, 20, 30, "C0")
+    c.rect(56, 82 + y_off, 16, 28, "T0")
+    c.rect(58, 84 + y_off, 12, 26, "T2")
+    c.line(64, 84 + y_off, 64, 109 + y_off, "T0")
+    for lx in (22, 31, 90, 99):
+        _draw_lancet_window(c, lx, 74 + y_off, 5, 16, "Y1", True)
+
+    if with_scaffold_jib:
+        for sx in (15, 29, 43, 56, 72, 85, 100):
+            c.line(sx, 20 + y_off, sx, 107 + y_off, "T2")
+            c.line(sx + 1, 20 + y_off, sx + 1, 107 + y_off, "T3")
+        for sy in (34 + y_off, 48 + y_off, 64 + y_off):
+            if sy == 34 + y_off:
+                c.rect(13, sy, 74, 3, "T1")
+                c.line(13, sy, 86, sy, "T4")
+            else:
+                c.rect(42, sy, 46, 3, "T1")
+                c.line(42, sy, 87, sy, "T4")
+        c.line(16, 34 + y_off, 29, 48 + y_off, "T1")
+        c.line(29, 34 + y_off, 16, 48 + y_off, "T1")
+        c.line(57, 34 + y_off, 72, 48 + y_off, "T1")
+        c.line(72, 34 + y_off, 57, 48 + y_off, "T1")
+        c.line(64, 24 + y_off, 64, 8 + y_off, "T2")
+        c.line(64, 10 + y_off, 96, 16 + y_off, "T3")
+        c.line(64, 18 + y_off, 78, 13 + y_off, "T1")
+        c.line(94, 16 + y_off, 94, 40 + y_off, "H1")
+        c.rect(90, 40 + y_off, 8, 6, "L0")
+        c.rect_outline(90, 40 + y_off, 8, 6, "C2")
 
 
 def make_bldg_louvain_st_peters(sprites_dir: str) -> None:
-    """128x116 Sint-Pieterskerk: Brabant sandstone gothic church + famously UNFINISHED stubby west towers & timber scaffold."""
+    """128x116 Sint-Pieterskerk unfinished state + 128x152 Crowned Gobertange Spire state."""
     c = PixelCanvas(128, 116)
-    c.ellipse(64, 110, 56, 5.0, (14, 12, 18, 125))
-
-    # Deep Choir & Transept Roof behind Westwork (clean ridge without fighting crane)
-    _draw_shingles(c, 20, 42, 88, 22, "N", "S", "CS")
-    c.line(20, 42, 107, 42, "L1")
-
-    # Broad Nave Facade (y=60..110)
-    _draw_sandstone_wall(c, 12, 62, 104, 48, seed=1425)
-    c.rect(12, 101, 104, 9, "C1")
-
-    # Iconic TRIPLE UNFINISHED FLAT-TOPPED TOWERS (stop abruptly at y=28/32 — NO spires!)
-    towers = [(14, 32, 28), (44, 24, 40), (86, 32, 28)]  # (x, top_y, width)
-    for idx, (tx, ty, tw) in enumerate(towers):
-        _draw_sandstone_wall(c, tx, ty, tw, 108 - ty, seed=400 + idx)
-        # Buttress ribs
-        c.rect(tx, ty, 3, 108 - ty, "H2")
-        c.rect(tx + tw - 3, ty, 3, 108 - ty, "C2")
-        # Jagged UNFINISHED crenellated / stepped rubble masonry crown (explicitly capped flat, NO roof!)
-        for rx in range(tx, tx + tw - 2, 4):
-            rh = 2 + ((rx + idx * 3) % 4)
-            c.rect(rx, ty - rh, 3, rh, "L2" if (rx % 8 == 0) else "H2")
-        # Tall unfinished gothic belfry lancets + subtle peat subsidence mortar crack on center tower
-        _draw_lancet_window(c, tx + tw // 2 - 4, ty + 10, 8, 16, "S", False)
-        # Rose traceries & subtle stone mortar joint
-        if idx == 1:
-            c.ellipse(64, 58, 8, 8, "C1")
-            c.ellipse(64, 58, 6, 6, "Y0")
-            c.pset(64, 58, "Y2")
-
-    # Grand West Portal beneath central tower
-    c.rect(52, 78, 24, 32, "C1")
-    c.rect(54, 80, 20, 30, "C0")
-    c.rect(56, 82, 16, 28, "T0")
-    c.rect(58, 84, 12, 26, "T2")
-    c.line(64, 84, 64, 109, "T0")
-    # Flank aisle lancets
-    for lx in (22, 31, 90, 99):
-        _draw_lancet_window(c, lx, 74, 5, 16, "Y1", True)
-
-    # TIMBER SCAFFOLDING, CATWALKS & QUARRY HOIST CRANE RIGGING across unfinished towers!
-    # Left & center scaffold poles + cross braces
-    for sx in (15, 29, 43, 56, 72, 85, 100):
-        c.line(sx, 20, sx, 107, "T2")
-        c.line(sx + 1, 20, sx + 1, 107, "T3")
-    for sy in (34, 48, 64):
-        if sy == 34:
-            c.rect(13, sy, 74, 3, "T1")
-            c.line(13, sy, 86, sy, "T4")
-        else:
-            c.rect(42, sy, 46, 3, "T1")
-            c.line(42, sy, 87, sy, "T4")
-    # Diagonal X-bracing
-    c.line(16, 34, 29, 48, "T1")
-    c.line(29, 34, 16, 48, "T1")
-    c.line(57, 34, 72, 48, "T1")
-    c.line(72, 34, 57, 48, "T1")
-    # Jutting Jib-Boom Quarry Crane atop center stubby tower hoisting a limestone block!
-    c.line(64, 24, 64, 8, "T2")
-    c.line(64, 10, 96, 16, "T3")
-    c.line(64, 18, 78, 13, "T1")
-    c.line(94, 16, 94, 40, "H1")  # Hemp hoist rope
-    c.rect(90, 40, 8, 6, "L0")     # Suspended Gobertange limestone ashlar block
-    c.rect_outline(90, 40, 8, 6, "C2")
-
+    _paint_st_peters_base(c, 0, with_scaffold_jib=True)
     c.add_outline("K", selective_hue=True)
-    c.save_png(os.path.join(sprites_dir, "bldg_louvain_st_peters.png"))
+    c.refine_epx_architecture().save_png(os.path.join(sprites_dir, "bldg_louvain_st_peters.png"))
+
+    cr = PixelCanvas(128, 152)
+    _paint_st_peters_base(cr, 36, with_scaffold_jib=False)
+    # Raised pale Gobertange ashlar belfry tiers & flanking pinnacles crowning center tower!
+    _draw_sandstone_wall(cr, 48, 34, 32, 26, seed=1432)
+    cr.rect(46, 58, 36, 3, "L0")
+    for wx in (54, 62, 70):
+        _draw_lancet_window(cr, wx, 40, 4, 14, "Y1", True)
+    _draw_pinnacle_turret(cr, 48, 36, 10, 8, w=4)
+    _draw_pinnacle_turret(cr, 80, 36, 10, 8, w=4)
+    # Soaring Louvain Gothic Slate Spire & Golden Weathercock Banner beating Brussels
+    _draw_slate_spire(cr, 64, 7, 13, 27)
+    cr.line(64, 1, 64, 7, "Y2")
+    cr.rect(65, 2, 7, 4, "R2")
+    cr.line(65, 3, 71, 3, "Y1")
+    cr.add_outline("K", selective_hue=True)
+    cr.refine_epx_architecture().save_png(os.path.join(sprites_dir, "bldg_louvain_st_peters_crowned.png"))
+
+
+def make_ui_mason_crane_sky(sprites_dir: str) -> None:
+    """270x140 crisp pixel-art Louvain twilight skyline backdrop for Mason Crane Minigame."""
+    bg = PixelCanvas(270, 140, PAL["S"])
+    # Dusk twilight gradient bands
+    sky_bands = [(0, 28, "N"), (28, 34, "S"), (62, 34, "C0"), (96, 44, "C1")]
+    for y0, h, col in sky_bands:
+        bg.rect(0, y0, 270, h, col)
+    # Subtle stars in high dusk
+    for sx, sy in [(26, 12), (62, 18), (108, 9), (168, 15), (218, 10), (246, 22)]:
+        bg.pset(sx, sy, "Y1")
+    # Distant Louvain gabled guildhalls silhouette
+    for bx, bw, bh in [(8, 28, 34), (40, 32, 26), (178, 30, 30), (212, 24, 24)]:
+        bg.rect(bx, 140 - bh, bw, bh, "C0")
+        bg.line(bx, 140 - bh, bx + bw // 2, 140 - bh - 10, "C0")
+        bg.line(bx + bw // 2, 140 - bh - 10, bx + bw - 1, 140 - bh, "C0")
+    # Far-right Brussels Belfry Benchmark Silhouette (marker height at y=46!)
+    _draw_sandstone_wall(bg, 232, 74, 22, 66, seed=901)
+    bg.rect(235, 58, 16, 16, "C1")
+    _draw_slate_spire(bg, 243, 44, 7, 14)
+    bg.line(243, 40, 243, 44, "Y2")
+    # St. Peter's stone westwork plinth base at bottom center (x=88..182, y=114..140)
+    _draw_sandstone_wall(bg, 86, 114, 98, 26, seed=1425)
+    bg.rect(84, 112, 102, 3, "L0")
+    bg.save_png(os.path.join(sprites_dir, "ui_mason_crane_sky.png"))
 
 
 def make_bldg_louvain_lakenhalle(sprites_dir: str) -> None:
@@ -303,7 +338,7 @@ def make_bldg_louvain_lakenhalle(sprites_dir: str) -> None:
         c.line(sx, sy, sx + 9, sy, "T4")
 
     c.add_outline("K", selective_hue=True)
-    c.save_png(os.path.join(sprites_dir, "bldg_louvain_lakenhalle.png"))
+    c.refine_epx_architecture().save_png(os.path.join(sprites_dir, "bldg_louvain_lakenhalle.png"))
 
 
 def make_louvain_gates_and_props(sprites_dir: str) -> None:
@@ -332,7 +367,7 @@ def make_louvain_gates_and_props(sprites_dir: str) -> None:
     for gx in range(24, 61, 5):
         ph.line(gx, 38, gx, 42, "C3")
     ph.add_outline("K", selective_hue=True)
-    ph.save_png(os.path.join(sprites_dir, "prop_louvain_poort_h.png"))
+    ph.refine_epx_architecture(False).save_png(os.path.join(sprites_dir, "prop_louvain_poort_h.png"))
 
     # 2. Vertical 3/4 Open-Road City Gatehouse (Brusselsepoort / Tiensepoort: 58x96)
     #    Wide transparent roadway passage (y=36..70 -> 70px clear cobble channel between flanking north/south towers!)
@@ -366,7 +401,7 @@ def make_louvain_gates_and_props(sprites_dir: str) -> None:
     for mx in (12, 21, 32, 41):
         pv.rect(mx, 70, 5, 4, "L1")
     pv.add_outline("K", selective_hue=True)
-    pv.save_png(os.path.join(sprites_dir, "prop_louvain_poort_v.png"))
+    pv.refine_epx_architecture(False).save_png(os.path.join(sprites_dir, "prop_louvain_poort_v.png"))
 
     # 3. Round Sint-Donatus Ring-Wall Bastion Tower (44x52)
     tw = PixelCanvas(44, 52)
@@ -558,6 +593,8 @@ def make_louvain_assets(sprites_dir: str) -> None:
     make_louvain_tiles(sprites_dir)
     make_bldg_louvain_stadhuis(sprites_dir)
     make_bldg_louvain_st_peters(sprites_dir)
+    make_ui_mason_crane_sky(sprites_dir)
     make_bldg_louvain_lakenhalle(sprites_dir)
     make_louvain_gates_and_props(sprites_dir)
     make_louvain_wall_corners(sprites_dir)
+    make_louvain_props_and_walls(sprites_dir)

@@ -361,6 +361,15 @@ func _get_carried_slot_list() -> Array:
 	return out
 
 
+func select_item_by_name(item_name: String) -> void:
+	var carried := _get_carried_slot_list()
+	for i in range(carried.size()):
+		if str(carried[i].get("name", "")) == item_name:
+			selected_inv_index = i
+			break
+	refresh()
+
+
 func refresh() -> void:
 	if inv_char_title_lbl == null:
 		return

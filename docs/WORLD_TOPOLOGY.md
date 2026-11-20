@@ -37,8 +37,8 @@ All connected Flemish coast regions sit in strict compass alignment: walking out
                                                                v                    +-----------+------------+
                                                 +--------------+------------+                   |
                                                 | WILLEM'S COTTAGE ("house")|                   v
-                                                |   Interior (400..880 x    |       +-----------+------------+
-                                                |    180..545 / 1280x720)   |       |  WATCHTOWER HEARTH     |
+                                                |   Interior (346..934 x    |       +-----------+------------+
+                                                |    148..554 / 1280x720)   |       |  WATCHTOWER HEARTH     |
                                                 +---------------------------+       | ("hearth", 1280x720)   |
                                                                                     +------------------------+
 ```
@@ -76,14 +76,14 @@ Every seamless border walk-portal uses `RegionBase.register_walk_portal(id, rect
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | **Port NW ↔ City South** | `bruges` | `north_city_gate` | `Rect2(676, 0, 88, 38)` | `Vector2.UP` | `bruges_city` | `(1440, 1960)` | `Vector2.UP` | `city_south_exit` | Between Warehouse & Ropewalk (`x=720`); Chapter 1 customs-locked by Gatewarden Maerten until `ACT2_SANCTUARY` |
 | **City South ↔ Port NW** | `bruges_city` | `city_south_exit` | `Rect2(1386, 1996, 108, 72)` | `Vector2.DOWN` | `bruges` | `(720, 68)` | `Vector2.DOWN` | `north_city_gate` | Steenstraat / South Bastion Gate |
-| **Port NE ↔ Outskirts SW** | `bruges` | `ne_outskirts_gate` | `Rect2(1484, 0, 88, 38)` | `Vector2.UP` | `outskirts` | `(380, 1018)` | `Vector2.UP` | `outskirts_south_port` | East of Ropewalk (`x=1484..1572`); Chapter 1 toll-locked by Customsman Dirk until `ACT2_SANCTUARY` |
+| **Port NE ↔ Outskirts SW** | `bruges` | `ne_outskirts_gate` | `Rect2(1482, 0, 88, 38)` | `Vector2.UP` | `outskirts` | `(380, 1018)` | `Vector2.UP` | `outskirts_south_port` | East of Ropewalk (`x=1482..1570`); Chapter 1 toll-locked by Customsman Dirk until `ACT2_SANCTUARY` |
 | **Outskirts SW ↔ Port NE** | `outskirts` | `outskirts_south_port` | `Rect2(320, 1056, 120, 84)` | `Vector2.DOWN` | `bruges` | `(1528, 68)` | `Vector2.DOWN` | `ne_outskirts_gate` | Dirt towpath south from Crossroads |
 | **City East ↔ Outskirts West** | `bruges_city` | `city_east_exit` | `Rect2(2768, 1258, 96, 92)` | `Vector2.RIGHT` | `outskirts` | `(96, 560)` | `Vector2.RIGHT` | `outskirts_west_city` | Crosses East Moat to Causeway |
 | **Outskirts West ↔ City East** | `outskirts` | `outskirts_west_city` | `Rect2(0, 504, 84, 112)` | `Vector2.LEFT` | `bruges_city` | `(2716, 1304)` | `Vector2.LEFT` | `city_east_exit` | Cobble approach west of Tollhouse |
 | **Outskirts East ↔ Sanctuary** | `outskirts` | `outskirts_east_sanctuary` | `Rect2(2308, 444, 92, 148)` | `Vector2.RIGHT` | `sanctuary` | `(132, 515)` | `Vector2.RIGHT` | `act4_west_gate` | Dune trail past Zwin Bridge |
 | **Sanctuary ↔ Outskirts East** | `sanctuary` | `act4_west_gate` | `Rect2(0, 416, 108, 208)` | `Vector2.LEFT` | `outskirts` | `(2272, 520)` | `Vector2.LEFT` | `outskirts_east_sanctuary` | Active in `sanctuary_phase == 4` prior to `city_bounty_overheard` |
-| **Port Cottage ↔ Inside** | `bruges` | `house_door` | `Rect2(1280, 846, 60, 40)` | `Vector2.UP` | `house` | `(640, 455)` | `Vector2.UP` | `house_exit` | Uncle Willem & Clara's cottage |
-| **Cottage Inside ↔ Port** | `house` | `house_exit` | `Rect2(610, 474, 60, 36)` | `Vector2.DOWN` | `bruges` | `(1310, 902)` | `Vector2.DOWN` | `house_door` | Threshold onto cottage cobblestone step |
+| **Port Cottage ↔ Inside** | `bruges` | `house_door` | `Rect2(1282, 842, 60, 36)` | `Vector2.UP` | `house` | `(640, 455)` | `Vector2.UP` | `house_exit` | Uncle Willem & Clara's cottage |
+| **Cottage Inside ↔ Port** | `house` | `house_exit` | `Rect2(610, 524, 60, 34)` | `Vector2.DOWN` | `bruges` | `(1310, 902)` | `Vector2.DOWN` | `house_door` | Threshold onto cottage cobblestone step |
 
 ### 2.2 Frontier Borderlands
 
@@ -106,7 +106,12 @@ Every seamless border walk-portal uses `RegionBase.register_walk_portal(id, rect
 | **Louvain West ↔ Brabant East** | `louvain` | `louvain_west_fens` | `Rect2(60, 976, 52, 128)` | `Vector2.LEFT` | `brabant_fens` | `(2040, 710)` | `Vector2.LEFT` | `brabant_to_louvain` | Exits through Brusselsepoort west onto the Dijle dike bridge |
 | **Louvain Cloister ↔ Cathedral** | `louvain` | `louvain_to_catacombs` | `Rect2(1382, 462, 56, 32)` | `Vector2.UP` | `louvain_catacombs` | `(480, 732)` | `Vector2.UP` | `NAVE_EXIT_RECT` | Cathedral sits enclosed inside the 4-walled Cloister; opens after Drain Vent Crawl (`louvain_vent_opened`) |
 | **Cathedral ↔ Louvain Cloister** | `louvain_catacombs` | `NAVE_EXIT_RECT` | `Rect2(444, 772, 72, 34)` | `Vector2.DOWN` | `louvain` | `(1410, 516)` | `Vector2.DOWN` | `louvain_to_catacombs` | Houses 3 floors: Nave candles -> Crypt push-graves & traps -> Hidden Library dated decrees (`louvain_archive_read`) |
-| **Louvain South → Old Heverlee** | `louvain` | `louvain_south_heverlee` | `Rect2(986, 1986, 128, 70)` | `Vector2.DOWN` | *(Milestone 3 checkpoint)* | `—` | `—` | `—` | Exits Naamsepoort south; unlocks upon winning Abbey Breakout & Golden Resonance burst (`louvain_breakout_won`) |
+| **Louvain South ↔ Old Heverlee North** | `louvain` | `louvain_south_heverlee` | `Rect2(986, 1986, 128, 70)` | `Vector2.DOWN` | `old_heverlee` | `(1100, 128)` | `Vector2.DOWN` | `hev_to_louvain` | Exits Naamsepoort south; unlocks upon winning Abbey Breakout & Golden Resonance burst (`louvain_breakout_won`) |
+| **Old Heverlee North ↔ Louvain South** | `old_heverlee` | `hev_to_louvain` | `Rect2(1036, 12, 128, 66)` | `Vector2.UP` | `louvain` | `(1050, 1924)` | `Vector2.UP` | `louvain_south_heverlee` | Trailhead leading north back into Louvain's Naamsepoort gate |
+| **Old Heverlee ↔ Golden Shrine** | `old_heverlee` | `hev_to_shrine` | `Rect2(1100, 1044, 80, 56)` | `Vector2.UP` | `old_heverlee_shrine` | `(328, 742)` | `Vector2.UP` | `shrine_exit_south` | Unlocks after burning dry shrine brambles with Hatchling Ember Puff (`heverlee_briar_burned`) |
+| **Golden Shrine ↔ Old Heverlee** | `old_heverlee_shrine` | `shrine_exit_south` | `Rect2(288, 768, 80, 44)` | `Vector2.DOWN` | `old_heverlee` | `(1140, 1166)` | `Vector2.DOWN` | `hev_to_shrine` | Returns south outside the Shrine archway |
+| **Golden Shrine Escape → Overlook** | `old_heverlee_shrine` | `shrine_escape_east` | `Rect2(1416, 444, 68, 72)` | `Vector2.RIGHT` | `old_heverlee` | `(1690, 1110)` | `Vector2.RIGHT` | `—` | Unlocks after claiming `Old Heverlee Shrine Key` (`boy_heverlee_relic_found`); emerges beside Kestrel cliffside roost |
+| **Overlook Kestrel → Anna Ch. 1** | `old_heverlee` | *(dispatch handoff)* | Cliff Fire / Kestrel Rock | `—` | `anna_ch1_sanctuary` | `(460, 470)` | `Vector2.UP` | `—` | Transitions perspective to Captain Anna -> `anna_ch1_raid` (*Virelai* Blood-Barge Convoy Raid) -> Act I Finale |
 
 ---
 

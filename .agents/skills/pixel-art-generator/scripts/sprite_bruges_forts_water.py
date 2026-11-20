@@ -267,67 +267,124 @@ def _make_bastions(sprites_dir: str) -> None:
 
 
 def _make_gatehouses_and_watergates(sprites_dir: str) -> None:
-    # 7) prop_gatehouse_pier_h.png (48x64) - Tall Flanking Stone Gate Pier (for H gate)
-    ph = PixelCanvas(48, 64)
-    ph.ellipse(24, 59, 20, 4, (14, 15, 22, 115))
-    _draw_stone_masonry_rect(ph, 6, 18, 36, 42, seed=301, row_h=4, blk_w=8, moss=True)
-    # Rusticated corner quoins
-    for qy in range(20, 58, 6):
-        ph.rect(6, qy, 4, 4, "C3")
-        ph.rect(38, qy, 4, 4, "CS2")
-    # Arrow slit + lit wall torch sconce
-    ph.rect(23, 30, 2, 8, "K")
-    ph.rect(22, 43, 4, 4, "S")
-    ph.rect(23, 40, 2, 4, "R2")
-    ph.pset(23, 39, "Y3")
-    ph.pset(24, 40, "Y2")
-    # Corbelled stone top parapet
-    ph.rect(4, 12, 40, 6, "C2")
-    ph.line(4, 12, 43, 12, "C3")
-    for cx in range(6, 42, 6):
-        ph.rect(cx, 17, 3, 2, "C0")
-    # Merlons
-    for mx in (4, 18, 32):
-        ph.rect(mx, 7, 10, 6, "C2")
-        ph.line(mx, 7, mx + 9, 7, "C3")
-    # Small conical slate turret cap peeking behind merlons
-    for py in range(2, 9):
-        hw = 2 + (py - 2) * 2
-        ph.rect(24 - hw, py, hw, 1, "C1")
-        ph.rect(24, py, hw, 1, "CS")
-    ph.pset(24, 1, "Y3")
+    # 7) prop_gatehouse_pier_h.png (56x96) - Monumental Tall Flanking Stone Gatehouse Bastion Pier (H gate)
+    ph = PixelCanvas(56, 96)
+    ph.ellipse(28, 90, 22, 4.5, (14, 15, 22, 120))
+    _draw_stone_masonry_rect(ph, 7, 28, 42, 62, seed=301, row_h=4, blk_w=8, moss=True)
+    # Battered stone plinth & rusticated corner quoins
+    ph.rect(6, 82, 44, 8, "C0")
+    for qy in range(30, 82, 6):
+        ph.rect(7, qy, 4, 4, "C3")
+        ph.rect(45, qy, 4, 4, "CS2")
+    # Upper and lower arrow-slit loopholes + wrought-iron torch sconce on lower cheek
+    for ay in (40, 58):
+        ph.rect(27, ay, 2, 10, "K")
+        ph.line(25, ay + 4, 30, ay + 4, "S")
+    ph.rect(26, 72, 4, 5, "S")
+    ph.rect(27, 68, 2, 4, "R2")
+    ph.pset(27, 67, "Y3")
+    ph.pset(28, 68, "Y2")
+    # Corbelled stone parapet collar & merlons (y=19..28)
+    ph.rect(4, 21, 48, 7, "C2")
+    ph.line(4, 21, 51, 21, "C3")
+    for cx in range(6, 50, 7):
+        ph.rect(cx, 27, 3, 3, "C0")
+    for mx in (5, 22, 39):
+        ph.rect(mx, 15, 11, 7, "C2")
+        ph.line(mx, 15, mx + 10, 15, "C3")
+    # Tall conical slate turret cap rising cleanly behind battlements (y=3..18)
+    for py in range(3, 19):
+        frac = (py - 3) / 16.0
+        hw = int(2 + frac * 19.0)
+        for px in range(28 - hw, 28 + hw + 1):
+            col = "C2" if px < 26 else ("C1" if px < 31 else "CS")
+            if py % 3 == 0:
+                col = "S"
+            ph.pset(px, py, col)
+    ph.line(28, 0, 28, 4, "Y2")
+    ph.pset(28, 0, "Y3")
     ph.add_outline("S", selective_hue=True)
     ph.save_png(os.path.join(sprites_dir, "prop_gatehouse_pier_h.png"))
 
-    # 8) prop_gatehouse_arch_h.png (80x36) - Overhead Gatehouse Portcullis Bridge H
-    ah = PixelCanvas(80, 36)
-    # Stone bridge body
-    _draw_stone_masonry_rect(ah, 2, 8, 76, 18, seed=312, row_h=4, blk_w=8, moss=False)
-    # Battlements & coping across top
-    for mx in range(4, 72, 12):
-        ah.rect(mx, 2, 9, 6, "C2")
-        ah.line(mx, 2, mx + 8, 2, "C3")
-    ah.line(2, 8, 77, 8, "C3")
-    # Arched stone voussoir underside + deep vault shadow
-    for px in range(8, 72):
-        dx = (px - 40) / 32.0
-        arch_y = int(28 - 9 * math.sqrt(max(0.0, 1.0 - dx * dx)))
-        ah.rect(px, arch_y, 1, 35 - arch_y, (18, 20, 28, 125))
+    # 8) prop_gatehouse_arch_h.png (96x46) - Grand Gatehouse Portcullis Vault Bridge H
+    ah = PixelCanvas(96, 46)
+    _draw_stone_masonry_rect(ah, 2, 10, 92, 22, seed=312, row_h=4, blk_w=8, moss=False)
+    for mx in range(4, 90, 13):
+        ah.rect(mx, 3, 10, 7, "C2")
+        ah.line(mx, 3, mx + 9, 3, "C3")
+    ah.line(2, 10, 93, 10, "C3")
+    # Deep arched stone voussoir underside + shadowed vault opening
+    for px in range(8, 88):
+        dx = (px - 48) / 40.0
+        arch_y = int(35 - 12 * math.sqrt(max(0.0, 1.0 - dx * dx)))
+        ah.rect(px, arch_y, 1, 45 - arch_y, (16, 18, 26, 135))
         ah.rect(px, arch_y - 3, 1, 3, "C3" if px % 4 != 0 else "C0")
-    # Raised forged iron portcullis tines tucked beneath the arch vault
-    for ix in range(14, 68, 7):
-        dx = (ix - 40) / 32.0
-        arch_y = int(28 - 9 * math.sqrt(max(0.0, 1.0 - dx * dx)))
-        ah.line(ix, arch_y + 1, ix, arch_y + 6, "S")
-        ah.pset(ix, arch_y + 6, "C3")
-    ah.line(12, 23, 67, 23, "C2")
-    # Central Flemish Church / City Escutcheon Crest Shield
-    ah.rect(36, 11, 8, 9, "Y2")
-    ah.rect(37, 12, 6, 7, "I1")
-    ah.line(40, 12, 40, 17, "Y3")
-    ah.line(38, 14, 42, 14, "Y3")
+    for ix in range(14, 83, 7):
+        dx = (ix - 48) / 40.0
+        arch_y = int(35 - 12 * math.sqrt(max(0.0, 1.0 - dx * dx)))
+        ah.line(ix, arch_y + 1, ix, arch_y + 7, "S")
+        ah.pset(ix, arch_y + 7, "C3")
+    ah.line(12, 28, 83, 28, "C2")
+    # Flemish City Escutcheon Crest Shield centered over keystone
+    ah.rect(43, 12, 10, 11, "Y2")
+    ah.rect(44, 13, 8, 9, "I1")
+    ah.line(48, 13, 48, 20, "Y3")
+    ah.line(45, 16, 50, 16, "Y3")
     ah.add_outline("S", selective_hue=True)
     ah.save_png(os.path.join(sprites_dir, "prop_gatehouse_arch_h.png"))
+
+    # 8b) prop_port_gatehouse.png (144x96) - Harbor Stone Gatehouse Barbican with Twin Turrets & Open Roadway
+    pg = PixelCanvas(144, 96)
+    for tx in (4, 102):
+        pg.ellipse(tx + 19, 90, 18, 4.0, (14, 15, 22, 115))
+        _draw_stone_masonry_rect(pg, tx, 28, 38, 62, seed=500 + tx, row_h=4, blk_w=8, moss=True)
+        pg.rect(tx - 1, 82, 40, 8, "C0")
+        for qy in range(30, 82, 6):
+            pg.rect(tx, qy, 3, 4, "C3")
+            pg.rect(tx + 35, qy, 3, 4, "CS2")
+        pg.rect(tx + 18, 42, 2, 10, "K")
+        pg.rect(tx - 2, 21, 42, 6, "C2")
+        pg.line(tx - 2, 21, tx + 39, 21, "C3")
+        for mx in range(tx, tx + 36, 12):
+            pg.rect(mx, 15, 9, 6, "C2")
+            pg.line(mx, 15, mx + 8, 15, "C3")
+        for py in range(3, 18):
+            frac = (py - 3) / 15.0
+            hw = int(2 + frac * 17.0)
+            for px in range(tx + 19 - hw, tx + 19 + hw + 1):
+                col = "C2" if px < tx + 17 else ("C1" if px < tx + 22 else "CS")
+                if py % 3 == 0:
+                    col = "S"
+                pg.pset(px, py, col)
+        pg.line(tx + 19, 0, tx + 19, 4, "Y2")
+        # Lantern sconce facing the inner roadway cheek
+        lx = tx + 32 if tx < 50 else tx + 3
+        pg.rect(lx, 62, 3, 6, "S")
+        pg.rect(lx, 58, 3, 4, "Y2")
+        pg.pset(lx + 1, 59, "Y3")
+    # Overhead vaulted bridge spanning clear central archway (x=42..101)
+    _draw_stone_masonry_rect(pg, 41, 22, 62, 20, seed=577, row_h=4, blk_w=8, moss=False)
+    for mx in range(44, 98, 11):
+        pg.rect(mx, 15, 8, 7, "C2")
+        pg.line(mx, 15, mx + 7, 15, "C3")
+    pg.line(41, 22, 102, 22, "C3")
+    for px in range(43, 101):
+        dx = (px - 72) / 29.0
+        arch_y = int(46 - 10 * math.sqrt(max(0.0, 1.0 - dx * dx)))
+        pg.rect(px, arch_y, 1, 5, (16, 18, 26, 125))
+        pg.rect(px, arch_y - 3, 1, 3, "C3" if px % 4 != 0 else "C0")
+    for ix in range(48, 97, 6):
+        dx = (ix - 72) / 29.0
+        arch_y = int(46 - 10 * math.sqrt(max(0.0, 1.0 - dx * dx)))
+        pg.line(ix, arch_y + 1, ix, arch_y + 5, "S")
+        pg.pset(ix, arch_y + 5, "C3")
+    # Central Flemish Shield Emblem
+    pg.rect(68, 24, 8, 9, "Y2")
+    pg.rect(69, 25, 6, 7, "I1")
+    pg.line(72, 25, 72, 30, "Y3")
+    pg.line(70, 28, 74, 28, "Y3")
+    pg.add_outline("S", selective_hue=True)
+    pg.save_png(os.path.join(sprites_dir, "prop_port_gatehouse.png"))
 
     # 9) prop_gatehouse_pier_v.png (64x48) - Flanking Stone Tower Pier (top/bottom of V gate)
     pv = PixelCanvas(64, 48)

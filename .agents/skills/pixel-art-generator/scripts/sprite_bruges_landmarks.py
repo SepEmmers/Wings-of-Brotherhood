@@ -147,7 +147,7 @@ def make_bldg_bruges_belfry(sprites_dir: str):
         _draw_lancet_window(c, wx, 64, 5, 9, glass="Y1", lit=True)
 
     c.add_outline("K", selective_hue=True)
-    c.save_png(os.path.join(sprites_dir, "bldg_bruges_belfry.png"))
+    c.refine_epx_architecture().save_png(os.path.join(sprites_dir, "bldg_bruges_belfry.png"))
 
 
 def make_bldg_bruges_cathedral(sprites_dir: str):
@@ -231,7 +231,7 @@ def make_bldg_bruges_cathedral(sprites_dir: str):
         c.pset(lx + 1, 84, "Y3")
 
     c.add_outline("K", selective_hue=True)
-    c.save_png(os.path.join(sprites_dir, "bldg_bruges_cathedral.png"))
+    c.refine_epx_architecture().save_png(os.path.join(sprites_dir, "bldg_bruges_cathedral.png"))
 
 
 def make_bldg_bruges_keep(sprites_dir: str):
@@ -312,7 +312,7 @@ def make_bldg_bruges_keep(sprites_dir: str):
     c.line(60, 56, 60, 62, "Y2")
 
     c.add_outline("K", selective_hue=True)
-    c.save_png(os.path.join(sprites_dir, "bldg_bruges_keep.png"))
+    c.refine_epx_architecture().save_png(os.path.join(sprites_dir, "bldg_bruges_keep.png"))
 
 
 def make_bldg_beguinage_court(sprites_dir: str):

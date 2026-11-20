@@ -25,3 +25,14 @@ def generate_all_characters(sprites_dir: str):
     for fname, (grid, legend) in ALL_NPCS.items():
         _assert_grounded(fname, grid)
         _build_canvas_from_ascii(grid, legend).save_png(os.path.join(sprites_dir, fname))
+        if "_" not in os.path.splitext(fname)[0].split("npc_", 1)[-1]:
+            stem = fname[:-4]
+            f0_name = f"{stem}_0.png"
+            f1_name = f"{stem}_1.png"
+            if f0_name not in ALL_NPCS:
+                _build_canvas_from_ascii(grid, legend).save_png(os.path.join(sprites_dir, f0_name))
+            if f1_name not in ALL_NPCS:
+                # Subtle 1px breathing frame keeping lower legs & grounded boots anchored at row 24!
+                breath_grid = ["." * 24] + list(grid[:18]) + [grid[18]] + list(grid[20:])
+                _assert_grounded(f1_name, breath_grid)
+                _build_canvas_from_ascii(breath_grid, legend).save_png(os.path.join(sprites_dir, f1_name))

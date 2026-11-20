@@ -13,15 +13,15 @@ static func intro_after_abduction(r) -> void:
 	r.ui.set_fade(0.0, false)
 	r.player.set_cutscene_pose("", false, true)
 	r.ui.show_dialogue([
-		{"speaker": "Captain Anna", "portrait": "portrait_anna.png", "text": "Pull the blindfold off him. Watch your boots along the drop, boy."}
+		{"speaker": "Hooded Captain", "portrait": "portrait_anna.png", "text": "Pull the blindfold off him. Watch your boots along the drop, boy."}
 	], func():
 		r.player.set_cutscene_pose("")
 		SoundManager.play_door()
 		r.ui.show_dialogue([
 			{"speaker": GameState.player_name, "portrait": "portrait_boy_angry.png", "text": "Keep that thing back! What did you do with my sister?!"},
-			{"speaker": "Captain Anna", "portrait": "portrait_anna.png", "text": "We don't abduct ropewalk girls. Church-backed slavers strip salvaged wyrm-hide straps off shot wild dragons to truss prisoners—and force Bruges's finest cordage weavers to braid heavy suppression harnesses inland."},
+			{"speaker": "Hooded Captain", "portrait": "portrait_anna.png", "text": "We don't abduct ropewalk girls. Church-backed slavers strip salvaged wyrm-hide straps off shot wild dragons to truss prisoners—and force Bruges's finest cordage weavers to braid heavy suppression harnesses inland."},
 			{"speaker": GameState.player_name, "portrait": "portrait_boy_angry.png", "text": "Liar! Then why knock me out on the cobbles?!"},
-			{"speaker": "Captain Anna", "portrait": "portrait_anna.png", "text": "Because three steps more would have brought an Inquisitor's torch down on everyone here. You want bread and answers? Start under Saddler Hendrick by the south rack."}
+			{"speaker": "Captain Anna", "portrait": "portrait_anna.png", "text": "Because three steps more would have brought an Inquisitor's torch down on everyone here. Name's Anna. You want bread and answers? Start under Saddler Hendrick by the south rack."}
 		])
 	)
 

@@ -114,10 +114,20 @@ static func _draw_static_ground(r, canvas: Node2D) -> void:
 	canvas.draw_circle(fpos, 44.0, Color(0.56, 0.49, 0.39))
 	canvas.draw_arc(fpos, 44.0, 0.0, TAU, 32, Color(0.30, 0.24, 0.19), 2.0)
 
-	for wr: Rect2 in MapData.get_water_rects():
-		canvas.draw_rect(wr.grow(7.0), Color(0.26, 0.22, 0.19))
-		canvas.draw_rect(wr.grow(3.0), Color(0.46, 0.40, 0.33))
-	canvas.draw_circle(MapData.CLAY_BANK_POS, 28.0, Color(0.38, 0.30, 0.22, 0.78))
+	# Intra-muros stone harbor quays vs open natural green earth riverbanks outside the walls
+	for wr: Rect2 in [
+		Rect2(456, 248, 84, 452),
+		Rect2(436, 784, 124, 202),
+		Rect2(456, 1094, 84, 166),
+		Rect2(456, 1348, 84, 504),
+	]:
+		canvas.draw_rect(wr.grow(7.0), Color(0.28, 0.24, 0.20))
+		canvas.draw_rect(wr.grow(3.0), Color(0.56, 0.50, 0.41))
+	for ext_wr: Rect2 in [Rect2(456, 0, 84, 248), Rect2(456, 1852, 84, 248)]:
+		canvas.draw_rect(Rect2(ext_wr.position.x - 5.0, ext_wr.position.y, 5.0, ext_wr.size.y), Color(0.20, 0.26, 0.16, 0.90))
+		canvas.draw_rect(Rect2(ext_wr.end.x, ext_wr.position.y, 5.0, ext_wr.size.y), Color(0.20, 0.26, 0.16, 0.90))
+	# Recessed earthen clay-dig slip along Dijle East quay beside Bell-Foundry
+	canvas.draw_rect(Rect2(MapData.CLAY_BANK_POS - Vector2(20, 14), Vector2(36, 28)), Color(0.24, 0.22, 0.18, 0.85))
 
 
 static func draw_region_entities(r, t_now: float) -> void:
@@ -193,33 +203,48 @@ static func draw_region_entities(r, t_now: float) -> void:
 
 
 static func _draw_city_ramparts(r, assets, cam_rect: Rect2) -> void:
-	var wall_h: Texture2D = assets.get_tex("prop_wall_h.png")
-	var wall_v: Texture2D = assets.get_tex("prop_wall_v.png")
+	var wall_h: Texture2D = assets.get_tex("prop_louvain_wall_h.png", "prop_wall_h.png")
+	var wall_v: Texture2D = assets.get_tex("prop_louvain_wall_v.png", "prop_wall_v.png")
 	for wr: Rect2 in MapData.get_cardinal_walls():
 		if cam_rect.intersects(wr.grow(28.0)):
 			_draw_wall_tiled(r, wr, wall_h, wall_v)
 
-	# Continuous bevelled stone ramparts across the 4 diagonal octagonal corners
+	# Seamless 45-deg Gobertange sandstone ramparts across the 4 diagonal corners (opening cleanly over Dijle Waterpoorts)
 	var oct := MapData.get_octagonal_vertices()
-	for pair in [[0, 7], [1, 2], [6, 5], [3, 4]]:
-		var a: Vector2 = oct[pair[0]]
-		var b: Vector2 = oct[pair[1]]
+	var diag_specs := [
+		{"a": oct[0], "b": oct[7], "step": Vector2(-16.0, 16.0), "tex": "prop_louvain_wall_diag_nw.png", "skip_dijle": true},
+		{"a": oct[1], "b": oct[2], "step": Vector2(16.0, 16.0),  "tex": "prop_louvain_wall_diag_ne.png", "skip_dijle": false},
+		{"a": oct[6], "b": oct[5], "step": Vector2(16.0, 16.0),  "tex": "prop_louvain_wall_diag_sw.png", "skip_dijle": true},
+		{"a": oct[3], "b": oct[4], "step": Vector2(-16.0, 16.0), "tex": "prop_louvain_wall_diag_se.png", "skip_dijle": false},
+	]
+	for spec: Dictionary in diag_specs:
+		var a: Vector2 = spec["a"]
+		var b: Vector2 = spec["b"]
 		var seg_rect := Rect2(minf(a.x, b.x), minf(a.y, b.y), absf(b.x - a.x), absf(b.y - a.y)).grow(48.0)
 		if not cam_rect.intersects(seg_rect):
 			continue
-		var dir := (b - a).normalized()
-		var nrm := Vector2(-dir.y, dir.x)
-		r.draw_line(a + nrm * 3.0, b + nrm * 3.0, Color(0.18, 0.16, 0.18), 38.0)
-		r.draw_line(a, b, Color(0.45, 0.41, 0.37), 32.0)
-		r.draw_line(a - nrm * 6.0, b - nrm * 6.0, Color(0.58, 0.52, 0.44), 12.0)
-		var seg_len := a.distance_to(b)
-		for d in range(28, int(seg_len) - 20, 26):
-			var mp := a + dir * float(d)
-			var mrect := PackedVector2Array([
-				mp + nrm * 11.0 - dir * 7.0, mp + nrm * 11.0 + dir * 7.0,
-				mp + nrm * 17.0 + dir * 7.0, mp + nrm * 17.0 - dir * 7.0,
-			])
-			r.draw_colored_polygon(mrect, Color(0.32, 0.29, 0.28))
+		var dtex: Texture2D = assets.get_tex(String(spec["tex"]))
+		if dtex == null:
+			continue
+		var step_v: Vector2 = spec["step"]
+		var skip_r: bool = bool(spec["skip_dijle"])
+		var steps := int(roundf(absf(b.y - a.y) / 16.0))
+		for k in range(steps + 1):
+			var p: Vector2 = a + step_v * float(k)
+			if skip_r and p.x >= 460.0 and p.x <= 536.0:
+				continue
+			var tile_r := Rect2(p - Vector2(24.0, 24.0), Vector2(48.0, 48.0))
+			if cam_rect.intersects(tile_r):
+				r.draw_texture_rect(dtex, tile_r, false)
+
+	# Chamfered Gobertange sandstone spur abutments linking NW & SW Waterpoorts cleanly into diagonal walls
+	if wall_v != null:
+		for abut: Rect2 in [
+			Rect2(432, 246, 28, 42), Rect2(534, 186, 28, 38),
+			Rect2(432, 1814, 28, 36), Rect2(534, 1860, 28, 42),
+		]:
+			if cam_rect.intersects(abut.grow(16.0)):
+				_draw_wall_tiled(r, abut, wall_h, wall_v)
 
 	_draw_cloister_enclosure(r, assets, wall_h, wall_v, cam_rect)
 
@@ -228,7 +253,7 @@ static func _draw_cloister_enclosure(r: Node2D, assets, wall_h: Texture2D, wall_
 	var cloister_bounds := Rect2(1240, 252, 340, 520).grow(32.0)
 	if not cam_rect.intersects(cloister_bounds):
 		return
-	# Straight wall spans strictly between the four 36x36 mitered stone corners
+	# Straight Gobertange sandstone wall spans strictly between the four 36x36 mitered stone corners
 	for hr: Rect2 in [
 		Rect2(1276, 252, 268, 36),
 		Rect2(1276, 736, 20, 36),
@@ -240,12 +265,12 @@ static func _draw_cloister_enclosure(r: Node2D, assets, wall_h: Texture2D, wall_
 		Rect2(1544, 288, 36, 448),
 	]:
 		_draw_wall_tiled(r, vr, wall_h, wall_v)
-	# Continuous 90-degree bending ashlar & parapet corners
+	# Continuous 90-degree bending Gobertange ashlar & parapet corners
 	for c_spec: Dictionary in [
-		{"tex": "prop_wall_corner_nw.png", "pos": Vector2(1240, 252)},
-		{"tex": "prop_wall_corner_ne.png", "pos": Vector2(1544, 252)},
-		{"tex": "prop_wall_corner_sw.png", "pos": Vector2(1240, 736)},
-		{"tex": "prop_wall_corner_se.png", "pos": Vector2(1544, 736)},
+		{"tex": "prop_louvain_wall_corner_nw.png", "pos": Vector2(1240, 252)},
+		{"tex": "prop_louvain_wall_corner_ne.png", "pos": Vector2(1544, 252)},
+		{"tex": "prop_louvain_wall_corner_sw.png", "pos": Vector2(1240, 736)},
+		{"tex": "prop_louvain_wall_corner_se.png", "pos": Vector2(1544, 736)},
 	]:
 		var ctex: Texture2D = assets.get_tex(String(c_spec["tex"]))
 		if ctex != null:
@@ -255,35 +280,36 @@ static func _draw_cloister_enclosure(r: Node2D, assets, wall_h: Texture2D, wall_
 static func _draw_abbey_gate_and_vent(r, assets, t_now: float, cam_rect: Rect2) -> void:
 	var ag: Rect2 = MapData.ABBEY_GATE_RECT
 	if cam_rect.intersects(ag.grow(76.0)):
-		var pier_h: Texture2D = assets.get_tex("prop_gatehouse_pier_h.png")
+		var pier_h: Texture2D = assets.get_tex("prop_louvain_gate_pier_h.png", "prop_gatehouse_pier_h.png")
 		if pier_h != null:
 			r.draw_texture_rect(pier_h, Rect2(ag.position.x - 32.0, ag.position.y - 6.0, 42.0, 48.0), false)
 			r.draw_texture_rect(pier_h, Rect2(ag.end.x - 10.0, ag.position.y - 6.0, 42.0, 48.0), false)
 		var open_k := clampf(float(r.abbey_gate_open_anim), 0.0, 1.0)
-		var curr_w := lerpf(ag.size.x, 10.0, open_k)
-		if open_k < 0.98:
-			r.draw_rect(Rect2(ag.position.x, ag.position.y, curr_w, ag.size.y), Color(0.14, 0.14, 0.18, 0.88))
-			for gx in range(int(ag.position.x + 10), int(ag.position.x + curr_w - 4), 14):
-				r.draw_line(Vector2(gx, ag.position.y), Vector2(gx, ag.end.y), Color(0.50, 0.52, 0.58), 3.0)
+		var ptex_h: Texture2D = assets.get_tex("prop_portcullis_h.png")
+		if open_k < 0.98 and ptex_h != null:
+			var curr_h := lerpf(ag.size.y, 4.0, open_k)
+			var src_y := float(ptex_h.get_height()) * (1.0 - (curr_h / ag.size.y))
+			r.draw_texture_rect_region(ptex_h, Rect2(ag.position.x, ag.position.y, ag.size.x, curr_h), Rect2(0.0, src_y, float(ptex_h.get_width()), float(ptex_h.get_height()) - src_y))
 		var lever_p: Vector2 = MapData.ABBEY_LEVER_POS
 		var tripped: bool = open_k > 0.25 or bool(r.get("_abbey_lever_tripped"))
-		r.draw_line(Vector2(ag.end.x - 4.0, ag.position.y + 8.0), lever_p, Color(0.38, 0.36, 0.34), 2.2)
-		r.draw_rect(Rect2(lever_p - Vector2(6, 6), Vector2(12, 12)), Color(0.24, 0.23, 0.26))
-		var tip := lever_p + (Vector2(12, -13) if tripped else Vector2(-12, -13))
-		r.draw_line(lever_p, tip, Color(0.56, 0.54, 0.52), 3.0)
-		r.draw_circle(tip, 4.0, Color(0.42, 0.78, 0.48) if tripped else Color(0.92, 0.36, 0.24))
+		r.draw_line(Vector2(ag.end.x - 4.0, ag.position.y + 8.0), lever_p + Vector2(-4, 4), Color(0.18, 0.19, 0.22), 2.8)
+		r.draw_line(Vector2(ag.end.x - 4.0, ag.position.y + 8.0), lever_p + Vector2(-4, 4), Color(0.48, 0.50, 0.56), 1.2)
+		var ltex: Texture2D = assets.get_tex("prop_medieval_lever_pulled.png" if tripped else "prop_medieval_lever_idle.png")
+		if ltex != null:
+			r.draw_texture_rect(ltex, Rect2(lever_p - Vector2(14, 14), Vector2(28, 28)), false)
 
 	if cam_rect.intersects(Rect2(MapData.ABBEY_VENT_POS - Vector2(48, 48), Vector2(96, 96))):
 		var vp: Vector2 = MapData.ABBEY_VENT_POS
-		r.draw_rect(Rect2(vp.x - 20.0, vp.y - 24.0, 40.0, 42.0), Color(0.26, 0.24, 0.26))
-		r.draw_rect(Rect2(vp.x - 12.0, vp.y - 22.0, 24.0, 38.0), Color(0.06, 0.08, 0.09, 0.94))
-		var vtex: Texture2D = assets.get_tex("prop_dragon_vent_grate.png")
-		if vtex != null:
-			r.draw_texture_rect(vtex, Rect2(vp + Vector2(-12, 4), Vector2(24, 18)), false)
-			r.draw_texture_rect(vtex, Rect2(vp + Vector2(-12, -22), Vector2(24, 16)), false, Color(0.76, 0.78, 0.80, 0.85))
+		var cv_tex: Texture2D = assets.get_tex("prop_culvert_tunnel_v.png")
+		if cv_tex != null:
+			r.draw_texture_rect(cv_tex, Rect2(vp + Vector2(-20, -18), Vector2(40, 36)), false)
+		else:
+			var vtex: Texture2D = assets.get_tex("prop_dragon_vent_grate.png")
+			if vtex != null:
+				r.draw_texture_rect(vtex, Rect2(vp + Vector2(-12, 4), Vector2(24, 18)), false)
 		if not GameState.louvain_vent_opened:
 			var sh := 0.5 + 0.5 * sin(t_now * 4.2)
-			r.draw_arc(vp + Vector2(0, 14), 14.0 + sh * 3.0, 0.0, TAU, 18, Color(0.96, 0.80, 0.34, 0.55), 1.6)
+			r.draw_circle(vp + Vector2(0, 12), 6.0 + sh * 2.5, Color(0.98, 0.80, 0.34, 0.22 + 0.14 * sh))
 
 	if float(r.get("abbey_vent_crawl_t")) > 0.0:
 		var prog := 1.0 - clampf(float(r.get("abbey_vent_crawl_t")) / ABBEY_VENT_CRAWL_DUR, 0.0, 1.0)
@@ -329,14 +355,17 @@ static func _collect_architecture_and_props(_r, _assets, _t_now: float, cam_rect
 	for po: Dictionary in MapData.get_poorts():
 		var pr: Rect2 = po["rect"]
 		var tex_s := String(po["tex"])
-		var dr := Rect2(pr.position.x, pr.end.y - 124.0, 168.0, 124.0) if tex_s == "prop_louvain_poort_h.png" else pr
-		if cam_rect.intersects(dr.grow(20.0)):
-			out.append({"kind": "tex", "tex": tex_s, "rect": dr, "y": dr.end.y})
+		if cam_rect.intersects(pr.grow(20.0)):
+			out.append({"kind": "tex", "tex": tex_s, "rect": pr, "y": pr.end.y})
 
 	for b: Dictionary in MapData.get_buildings():
 		var br: Rect2 = b["rect"]
+		var btex := String(b["tex"])
+		if btex == "bldg_louvain_st_peters.png" and GameState.louvain_mason_done:
+			btex = "bldg_louvain_st_peters_crowned.png"
+			br = Rect2(br.position.x, br.position.y - 74.0, br.size.x, br.size.y + 74.0)
 		if cam_rect.intersects(br.grow(32.0)):
-			out.append({"kind": "bldg", "tex": String(b["tex"]), "rect": br, "y": br.end.y})
+			out.append({"kind": "bldg", "tex": btex, "rect": br, "y": br.end.y})
 
 	for pr_d: Dictionary in MapData.get_prop_placements():
 		var rr: Rect2 = pr_d["rect"]
@@ -345,13 +374,23 @@ static func _collect_architecture_and_props(_r, _assets, _t_now: float, cam_rect
 		var tname := String(pr_d["tex"])
 		out.append({"kind": "oven" if tname == "prop_brick_bread_oven.png" else "tex", "tex": tname, "rect": rr, "y": rr.end.y})
 
-	var special_props := [
-		{"tex": "prop_bell_mould.png", "rect": Rect2(MapData.BELL_MOULD_POS - Vector2(22, 20), Vector2(44, 40))},
-		{"tex": "prop_winch_post.png", "rect": Rect2(MapData.FOUNDRY_WINCH_POS - Vector2(14, 24), Vector2(28, 34))},
+	for wp: Vector2 in MapData.get_watergates():
+		var wrect := Rect2(wp.x - 56.0, wp.y - 44.0, 112.0, 68.0)
+		if cam_rect.intersects(wrect.grow(16.0)):
+			out.append({"kind": "tex", "tex": "prop_louvain_watergate.png", "rect": wrect, "y": wrect.end.y})
+
+	var mould_tex := "prop_bell_mould_fixed.png" if GameState.louvain_bell_mould_fixed else "prop_bell_mould.png"
+	var special_props: Array[Dictionary] = [
+		{"tex": mould_tex, "rect": Rect2(MapData.BELL_MOULD_POS - Vector2(20, 18), Vector2(40, 36))},
+		{"tex": "prop_foundry_gantry.png", "rect": Rect2(MapData.FOUNDRY_WINCH_POS - Vector2(21, 32), Vector2(42, 46))},
+		{"tex": "prop_foundry_gantry.png", "rect": Rect2(MapData.MASON_CRANE_POS - Vector2(19, 32), Vector2(38, 42))},
+		{"tex": "prop_clay_bank.png", "rect": Rect2(MapData.CLAY_BANK_POS - Vector2(18, 15), Vector2(36, 30))},
 		{"tex": "prop_herb_cauldron.png", "rect": Rect2(MapData.HERBALIST_SLUICE_POS - Vector2(18, 18), Vector2(36, 36))},
 		{"tex": "prop_crate.png", "rect": Rect2(MapData.CONFISCATED_CHEST_POS - Vector2(16, 14), Vector2(32, 28))},
 		{"tex": "prop_milestone.png", "rect": Rect2(MapData.SOUTH_SIGN_POS - Vector2(14, 20), Vector2(28, 30))},
 	]
+	if not GameState.louvain_mason_stone_hauled and not GameState.louvain_mason_done:
+		special_props.append({"tex": "prop_gobertange_crate.png", "rect": Rect2(MapData.MASON_STONE_POS - Vector2(16, 12), Vector2(32, 24))})
 	for sp_d: Dictionary in special_props:
 		var sr: Rect2 = sp_d["rect"]
 		if cam_rect.intersects(sr.grow(16.0)):
@@ -435,7 +474,10 @@ static func _draw_patrols_and_combat(r, assets, font: Font, t_now: float, cam_re
 			var sh_p := ep + Vector2(e["dir"]).normalized() * 11.0 + Vector2(0, -6)
 			r.draw_rect(Rect2(sh_p - Vector2(5, 7), Vector2(10, 14)), Color(0.56, 0.48, 0.34))
 			r.draw_rect(Rect2(sh_p - Vector2(5, 7), Vector2(10, 14)), Color(0.86, 0.74, 0.42), false, 1.4)
-		if float(e.get("snared_t", 0.0)) > 0.0:
+		if bool(e.get("permanently_bound", false)):
+			r.draw_arc(ep + Vector2(0, -10), 12.5, 0.0, TAU, 16, Color(0.95, 0.72, 0.24), 3.0)
+			r.draw_arc(ep + Vector2(0, -3), 10.5, 0.0, TAU, 14, Color(0.72, 0.50, 0.22), 2.2)
+		elif float(e.get("snared_t", 0.0)) > 0.0:
 			r.draw_arc(ep + Vector2(0, -10), 12.0, 0.0, TAU, 16, Color(0.82, 0.68, 0.36), 2.8)
 			r.draw_arc(ep + Vector2(0, -4), 10.0, 0.0, TAU, 14, Color(0.45, 0.88, 0.66), 2.0)
 		if float(e.get("stun", 0.0)) > 0.0:
@@ -492,9 +534,8 @@ static func _draw_foreground(r, fg: Node2D) -> void:
 		if ptex == null:
 			continue
 		if tex_s == "prop_louvain_poort_h.png":
-			var dr := Rect2(pr.position.x, pr.end.y - 124.0, 168.0, 124.0)
-			if cam_rect.intersects(dr.grow(20.0)):
-				r.draw_building_roof_overhang(fg, dr, ptex, 0.56)
+			if cam_rect.intersects(pr.grow(20.0)):
+				r.draw_building_roof_overhang(fg, pr, ptex, 0.56)
 		elif cam_rect.intersects(pr.grow(20.0)):
 			r.draw_building_roof_overhang(fg, pr, ptex, 0.42)
 			# South flanking bastion crest when player walks just behind south turret

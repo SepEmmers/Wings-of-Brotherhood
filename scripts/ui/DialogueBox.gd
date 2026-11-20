@@ -4,6 +4,8 @@ extends PanelContainer
 
 signal dialogue_completed
 
+const DialogueOverridesScript := preload("res://scripts/data/DialogueOverrides.gd")
+
 const MIND_MOTES := [
 	{"x": 0.14, "y": 0.84, "ph": 0.07, "sp": 0.16, "col": 0},
 	{"x": 0.22, "y": 0.72, "ph": 0.31, "sp": 0.14, "col": 1},
@@ -331,7 +333,7 @@ func _draw_fx_layer() -> void:
 
 
 func _load_current_line() -> void:
-	var entry: Dictionary = dialogue_queue[dialogue_index]
+	var entry: Dictionary = DialogueOverridesScript.apply_line_override(dialogue_queue[dialogue_index])
 	var spk: String = entry.get("speaker", "")
 	_line_telepathic = bool(entry.get("telepathic", false)) or ("Hatchling" in spk) or ("Golden Dragon" in spk)
 	speaker_label.text = ("%s  ✦  Mind-Voice" % spk) if _line_telepathic else spk

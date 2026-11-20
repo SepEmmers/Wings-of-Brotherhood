@@ -21,7 +21,7 @@ static func get_item_info(item_name: String) -> Dictionary:
 		}
 	if "requisition" in n or "writ" in n:
 		return {
-			"icon": "icon_strap.png",
+			"icon": "prop_dropped_note.png",
 			"category": "Captured Ambush Note",
 			"desc": "Crumpled parchment dropped by Church Catchpoles beside the Counting-House iron-chain wagon: \"...the hollow nest was cold and the egg already taken. Meet Father Anselm at St. Donatian's by the eighth evening bell...\""
 		}
@@ -105,13 +105,13 @@ static func get_item_info(item_name: String) -> Dictionary:
 		}
 	if "decree" in n or "abbey" in n or "warrant" in n:
 		return {
-			"icon": "icon_strap.png",
+			"icon": "prop_dropped_note.png",
 			"category": "Abbey Scriptorium Evidence",
 			"desc": "Signed Church Decree ordering Inquisitors to bury the Old Heverlee Shrine Key affair—paired with a five-year requisition sending 'Clara of Bruges, rig-master' east to Namur's quarries."
 		}
 	if "river clay" in n or "clay" in n:
 		return {
-			"icon": "icon_hemp_bundle.png",
+			"icon": "icon_clay.png",
 			"category": "Dijle Foundry Clay",
 			"desc": "Fine grey alluvial clay dug along the Dijle bank to seal the hairline fracture in Master Pieter's cracked bell-mould."
 		}
@@ -132,6 +132,42 @@ static func get_item_info(item_name: String) -> Dictionary:
 			"icon": "prop_smoke_pellet.png",
 			"category": "Alchemical Cover",
 			"desc": "Beeswaxed ash-and-herb pellet steeped by Louvain's Dyers' Quarter herbalist; bursts into concealing soot-fog for five seconds."
+		}
+	if "reliquary" in n or "crimson" in n:
+		return {
+			"icon": "prop_treasure_chest_closed.png",
+			"category": "Catacombs Secret Relic",
+			"desc": "Ruby-sealed Brotherhood reliquary unearthed beneath the eastern Chalice tomb in St. Peter's Crypt—fortified your vitality (+1 Max Heart) and deepened your bond."
+		}
+	if "ashlar" in n or "gobertange" in n:
+		return {
+			"icon": "icon_mason_stone.png",
+			"category": "Sint-Pieterskerk Quarry Load",
+			"desc": "Heavy bundle of white Gobertange ashlar blocks unlashed from Vismarkt Stone Quay for Master Mason Matthijs's tower race against Brussels."
+		}
+	if "plumb" in n or "mason" in n:
+		return {
+			"icon": "icon_plumb_signet.png",
+			"category": "Guild Master Craft Signet",
+			"desc": "Gilded mason's plumb-bob awarded by Master Mason Matthijs once Sint-Pieterskerk's limestone spire rose higher than Brussels' belfry."
+		}
+	if "shrine key" in n or "heverlee" in n:
+		return {
+			"icon": "icon_heverlee_key.png",
+			"category": "Golden Shrine Key Relic",
+			"desc": "Ancient double-warded bronze and gold key your parents died hiding beneath Old Heverlee Woods to keep the Devildragon sealed."
+		}
+	if "cipher" in n or "scout" in n:
+		return {
+			"icon": "prop_dropped_note.png",
+			"category": "Inquisitor Field Dispatch",
+			"desc": "Wax-stamped Church hunting order recovered from the Old Heverlee scout ridge naming Namur's Quarry and the Meuse blood-barge convoy."
+		}
+	if "satchel" in n or "hesbaye supply" in n:
+		return {
+			"icon": "icon_hemp_bundle.png",
+			"category": "Brotherhood Courier Drop",
+			"desc": "Captain Anna's stitched leather dispatch pack filled with dried river rations, tarred hemp, and Ember-tallow for Hesbaye."
 		}
 	return {
 		"icon": "icon_knot.png",

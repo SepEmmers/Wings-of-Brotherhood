@@ -190,11 +190,29 @@ Each protagonist tier spans **51 `24x28` sprites** (`18` walk/idle + `15` action
 - [x] `prop_wanted_poster.png` (`14x18`) — Church Inquisitorial parchment notice pinned to stone walls with seal & dark dragon woodcut (`sprite_props.py`, `CityHeatHelper.gd`).
 - [x] `prop_resonance_chime.png` (`16x16`), `prop_smoke_pellet.png` (`16x16`) — Brass resonance chime stand and beeswaxed ash smoke pellet (`sprite_props.py`, `CityHeatHelper.gd`).
 
-### Queue 14 — Book II Act I: Brabant Fens & Louvain Interactables (`sprite_placeholders.py` `- [ ]`)
+### Queue 14 — Book II Act I: Brabant Fens & Louvain Interactables (`sprite_louvain_props.py` `[x]`)
 
-- [ ] `prop_dragon_vent_grate.png` (`22x18`) — Low stone drainage/crypt iron bar grate too narrow for the Boy, sized for the soot-black Stage 1 hatchling to crawl through (`BrabantFensRegion.gd`, `LouvainCityRegion.gd`).
-- [ ] `prop_bell_mould.png` (`36x32`) — Cracked loam-and-bronze Louvain foundry casting pit & bell core for the Deaf Bell-Founder's side story (`LouvainCityRegion.gd`).
-- [ ] `prop_archive_desk.png` (`42x30`) — Chained Abbey Scriptorium ledger lectern holding the Old Heverlee Church Decree & Clara's Namur requisition warrant (`LouvainCityRegion.gd`).
+- [x] `prop_dragon_vent_grate.png` (`22x18`) — Vaulted mossy stone drainage grating sized for Stage 1 Hatchling + `prop_culvert_tunnel_h.png` (`72x36`) & `prop_culvert_tunnel_v.png` (`40x42`) (`BrabantFensDraw.gd`, `LouvainCityDraw.gd`, `sprite_louvain_props.py`).
+- [x] `prop_bell_mould.png` (`36x32`) — Cracked loam-and-bronze Louvain foundry casting pit & `_fixed.png` clay-sealed bell core + `prop_foundry_gantry.png` (`38x42`), `prop_clay_bank.png` (`32x28`), `icon_clay.png` (`16x16`) (`LouvainCityDraw.gd`, `sprite_louvain_props.py`).
+- [x] `prop_archive_desk.png` (`42x30`) — Chained Abbey Scriptorium ledger lectern holding the Old Heverlee Church Decree & Clara's Namur requisition warrant (`LouvainCatacombsDraw.gd`, `sprite_louvain_props.py`).
+
+---
+
+### Queue 15 — Hand-Drawn & Animated Dramatic Hatching Cutscene Diorama (`sprite_hatching_cutscene.py`)
+
+- [x] `cs_hatch_bg.png` (`320x180`) — Brabant ruined mill arch backdrop, midnight reed fen mist, Louvain watchtower silhouette, creek-stone fire pit & folded cloak cradle (`sprite_hatching_cutscene.py`, `BrabantHatchingCutscene.gd`).
+- [x] `cs_hatch_fire_0.png`..`cs_hatch_fire_3.png` (`64x72`, 4 frames) — Animated campfire flame tongues & sparks flickering across hearth stones (`sprite_hatching_cutscene.py`).
+- [x] `cs_hatch_egg_0.png`..`cs_hatch_egg_4.png` (`104x116`, 5 frames) — Sculpted close-up Black-and-Gold Egg pulsing -> jagged fracture -> glowing web fissures -> furnace crown shatter with peeking snout & amber eyes -> shattered lower shell bowl (`sprite_hatching_cutscene.py`).
+- [x] `cs_hatch_dragon_0.png`..`cs_hatch_dragon_7.png` (`128x112`, 8 frames) — Hand-drawn soot-black & royal-gold dragonet clambering over broken rim -> wet shake -> full wide wing unfurl -> skyward golden-ember cry -> curious tilt -> cautious step -> soft palm imprinting nuzzle (`sprite_hatching_cutscene.py`).
+- [x] `cs_hatch_boy_watch_0.png`..`cs_hatch_boy_watch_2.png` (`96x104`, 3 frames) — Close-up kneeling 17yo Boy watching -> recoiling in molten-gold burst -> extending bare palm forward in quiet awe (`sprite_hatching_cutscene.py`).
+
+### Queue 16 — Hand-Drawn Midnight Sanctuary Heist & Kestrel Escape Diorama (`sprite_heist_cutscene.py`)
+
+- [x] `cs_heist_bg.png` (`320x180`), `cs_heist_sky_bg.png` (`320x180`) — Sanctuary cliffside stone arch, courtyard brazier apron & abyss parapet at midnight + moonlit storm-cloud escape vista (`sprite_heist_cutscene.py`, `SanctuaryHeistCutscene.gd`).
+- [x] `cs_heist_pedestal_0.png`..`cs_heist_pedestal_1.png` (`56x64`), `cs_heist_torch_0.png`..`cs_heist_torch_3.png` (`28x44`) — Glowing obsidian-egg brass brazier -> smoking empty cradle and 4-frame gale-whipped wall torches (`sprite_heist_cutscene.py`).
+- [x] `cs_heist_sentry_0.png`..`cs_heist_sentry_1.png` (`60x80`), `cs_heist_boy_0.png`..`cs_heist_boy_2.png` (`80x96`) — Two Brotherhood Night-Watchmen bursting from arch with storm-lanterns & halberd + 17yo Boy lifting egg -> bundling satchel -> leaping onto Kestrel (`sprite_heist_cutscene.py`).
+- [x] `cs_heist_kestrel_0.png`..`cs_heist_kestrel_2.png` (`140x120`), `cs_heist_fly_0.png`..`cs_heist_fly_3.png` (`128x88`) — Mute silver-slate Kestrel wing-ramp perch -> mounted wing brace -> chasm leap -> 4-frame eastward flight carrying Boy & wrapped golden egg (`sprite_heist_cutscene.py`).
+- [x] `dragon_gold_s1_eat_0.png`, `dragon_gold_s1_eat_1.png` (`24x22`), `prop_meat_cut.png` (`12x12`) — Hatchling open-jaw biting/ember-spew frame, joyful gulping squint-eye frame, and carved campfire meat morsel (`sprite_dragons.py`, `HatchlingCompanion.gd`).
 
 ---
 

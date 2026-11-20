@@ -45,7 +45,6 @@ func _ready() -> void:
 	interactables = [
 		{"id": "hearth_anna", "name": "Ride Back to Bruges Sanctuary", "pos": ANNA_STAND_POS, "radius": 68.0, "callback": _on_talk_anna},
 		{"id": "hearth_hatchling", "name": "Inspect Obsidian-Gold Egg", "pos": EGG_NEST_POS, "radius": 66.0, "callback": _on_inspect_hatchling},
-		{"id": "hearth_door", "name": "Step Out to Watchtower Trail", "pos": Vector2(640, 486), "radius": 64.0, "callback": _on_exit_to_wilds},
 	]
 	register_walk_portal("hearth_door", Rect2(610, 470, 60, 38), Vector2.DOWN, _on_exit_to_wilds, "v Whispering Pines", "WHISPERING PINES", "Watchtower Trail")
 
@@ -106,9 +105,9 @@ func _start_hatching_cutscene() -> void:
 	ui.set_cinematic_mode(true, _skip_to_finale)
 	SoundManager.play_campfire_warm()
 	ui.show_dialogue([
-		{"speaker": "Watchtower Lookout", "portrait": "portrait_watchman.png", "text": "By the Saints—is that Captain Anna's forward rigman? We fired pine-pitch flares two nights running after Virelai came in torn up!"},
+		{"speaker": "Watchtower Lookout", "portrait": "portrait_outpost_scout.png", "text": "By the Saints—is that Captain Anna's forward rigman? We fired pine-pitch flares two nights running after Virelai came in torn up!"},
 		{"speaker": GameState.player_name, "portrait": GameState.get_boy_portrait(false), "text": "Wait—Anna made it back from the storm? Quick, make room beside the stove—this black egg's mother died shielding it in the hollow, and it went cold in the frost!"},
-		{"speaker": "Watchtower Lookout", "portrait": "portrait_watchman.png", "text": "Down onto the wool blanket, right against the iron grate! I'll rake fresh spruce coals underneath."}
+		{"speaker": "Watchtower Lookout", "portrait": "portrait_outpost_scout.png", "text": "Down onto the wool blanket, right against the iron grate! I'll rake fresh spruce coals underneath."}
 	], func():
 		waiting_for_dialogue = false
 		stage_timer = 0.0
@@ -213,7 +212,7 @@ func _process_cutscene(delta: float) -> void:
 				ui.show_dialogue([
 					{"speaker": "Captain Anna", "portrait": "portrait_anna.png", "text": "There you are, %s! Virelai and I have been sweeping the pine ridges since the storm broke—thought that black dragon dragged you into the ravine!" % GameState.player_name},
 					{"speaker": GameState.player_name, "portrait": GameState.get_boy_portrait(false), "text": "Wait—she wasn't hunting us! Hunter ballista bolts had torn her flank open. She died shielding this egg beneath her wing, and I followed your Border Chart straight here to the fire."},
-					{"speaker": "Watchtower Lookout", "portrait": "portrait_watchman.png", "text": "Look at the heat coming off it now, Captain—pitch-black shell with gold seams warming right through, completely unbroken."},
+					{"speaker": "Watchtower Lookout", "portrait": "portrait_outpost_scout.png", "text": "Look at the heat coming off it now, Captain—pitch-black shell with gold seams warming right through, completely unbroken."},
 					{"speaker": "Captain Anna", "portrait": "portrait_anna.png", "text": "An unrecorded black breed... And Church hounds are already combing the border woods below us. Wrap it in my wool cloak and climb onto Virelai's shoulder-rig—we're flying you straight back to the main Sanctuary outpost near Bruges!"}
 				], _finish_hatching_cutscene)
 

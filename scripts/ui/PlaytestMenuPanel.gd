@@ -252,7 +252,7 @@ func _build_right_inspector_and_tools(parent: HBoxContainer) -> void:
 	preview_kit_lbl = _make_lbl(pv, "", 12, Color(0.92, 0.78, 0.46), true)
 
 	preview_jump_btn = Button.new()
-	preview_jump_btn.text = "Jump to Selected Beat ->"
+	preview_jump_btn.text = "Jump to Selected Beat"
 	preview_jump_btn.custom_minimum_size = Vector2(0, 30)
 	preview_jump_btn.add_theme_font_size_override("font_size", 12)
 	preview_jump_btn.pressed.connect(func(): _trigger_jump(previewed_preset_id))
@@ -498,7 +498,7 @@ func _show_empty_tab_preview(ch_info: Dictionary) -> void:
 	preview_kind_lbl.add_theme_color_override("font_color", Color(0.95, 0.80, 0.42))
 	preview_now_lbl.text = ""
 	preview_title_lbl.text = ch_info.get("title", "Book II — The Golden Heir")
-	preview_location_lbl.text = "Theater: Brabant -> Louvain -> Namur -> Ardennes"
+	preview_location_lbl.text = "Theater: Brabant • Louvain • Namur • Ardennes"
 	preview_summary_lbl.text = "Shared Book II QuestSteps, Kingdom of Belgium [M] Chart, Golden Mind-Voice Telepathy & [R]/[X]/[T] Companion bindings are live. Region scenes unlock next!"
 	preview_kit_lbl.text = "Tip: Open [M] and pick 'Kingdom Charter' to preview the eastern realm."
 	if preview_jump_btn != null:
@@ -547,7 +547,7 @@ func _update_preview(preset: Dictionary) -> void:
 	preview_kit_lbl.text = "Loads with: %s" % preset.get("kit", "")
 	if preview_jump_btn != null:
 		preview_jump_btn.disabled = false
-		preview_jump_btn.text = "Jump to %s ->" % preset.get("tag", "Beat")
+		preview_jump_btn.text = "Jump to %s" % preset.get("tag", "Beat")
 
 
 func _refresh_tool_buttons() -> void:

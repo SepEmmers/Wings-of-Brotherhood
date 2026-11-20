@@ -2,6 +2,7 @@ extends "res://scripts/regions/RegionBase.gd"
 
 const PortOfBrugesDrawScript := preload("res://scripts/regions/PortOfBrugesDraw.gd")
 const PortOfBrugesAmbushScript := preload("res://scripts/regions/PortOfBrugesAmbush.gd")
+const PortOfBrugesHD2DStageScript := preload("res://scripts/hd2d/PortOfBrugesHD2DStage.gd")
 
 ## Port of Bruges & Merchant Cog 'De Zwaan' (Book I — Chapter 1).
 ## Features sailing arrival, Clove Hitch mooring, canal knot-grapple salvage,
@@ -47,6 +48,7 @@ var rigging_ripple_timer: float = 0.0
 var errand_hint_timer: float = 0.0
 var dawn_peek_timer: float = 0.0
 var oven_crackle_cooldown: float = 0.0
+var hd2d_stage = null
 
 
 func _ready() -> void:
@@ -62,31 +64,35 @@ func _ready() -> void:
 	PortOfBrugesAmbushScript.setup_watchmen(self)
 	PortOfBrugesDrawScript.setup_layers(self)
 	_register_interactables()
+	hd2d_stage = PortOfBrugesHD2DStageScript.new()
+	add_child(hd2d_stage)
+	hd2d_stage.setup(self, assets)
 
 
 func _setup_collisions() -> void:
 	add_box_collider(colliders, Rect2(204, -140, 50, 588))
 	add_box_collider(colliders, Rect2(204, 510, 50, 530))
-	add_box_collider(colliders, Rect2(0, 0, 656, 28))
-	add_box_collider(colliders, Rect2(784, 0, 700, 28))
+	add_box_collider(colliders, Rect2(0, -18, 1600, 18))
+	add_box_collider(colliders, Rect2(0, 0, 668, 28))
+	add_box_collider(colliders, Rect2(772, 0, 696, 28))
 	add_box_collider(colliders, Rect2(0, 1012, 1600, 28))
 	add_box_collider(colliders, Rect2(1572, 0, 28, 1040))
-	add_box_collider(colliders, Rect2(360, 104, 312, 142))
-	add_box_collider(colliders, Rect2(948, 92, 524, 124))
-	add_box_collider(colliders, Rect2(952, 218, 42, 26))
-	add_box_collider(colliders, Rect2(1384, 218, 42, 26))
+	add_box_collider(colliders, Rect2(364, 112, 288, 122))
+	add_box_collider(colliders, Rect2(950, 96, 456, 102))
+	add_box_collider(colliders, Rect2(952, 206, 42, 26))
+	add_box_collider(colliders, Rect2(1366, 206, 42, 26))
 	add_box_collider(colliders, Rect2(745, 295, 110, 55))
-	add_box_collider(colliders, Rect2(722, 524, 146, 88))
+	add_box_collider(colliders, Rect2(722, 536, 148, 72))
 	add_box_collider(colliders, Rect2(878, 562, 50, 32))
-	add_box_collider(colliders, Rect2(1162, 696, 296, 160))
-	add_box_collider(colliders, Rect2(1124, 782, 32, 64))
+	add_box_collider(colliders, Rect2(1216, 756, 192, 92))
+	add_box_collider(colliders, Rect2(1176, 782, 32, 64))
 	add_box_collider(colliders, Rect2(335, 620, 75, 115))
 	sight_blockers = [
-		Rect2(360, 104, 312, 136), Rect2(948, 92, 524, 120),
-		Rect2(952, 218, 42, 22), Rect2(1384, 218, 42, 22),
-		Rect2(745, 295, 110, 50), Rect2(722, 524, 146, 84),
-		Rect2(878, 562, 50, 28), Rect2(1162, 696, 296, 152),
-		Rect2(1124, 782, 32, 60), Rect2(335, 620, 75, 110),
+		Rect2(364, 112, 288, 118), Rect2(950, 96, 456, 98),
+		Rect2(952, 206, 42, 22), Rect2(1366, 206, 42, 22),
+		Rect2(745, 295, 110, 50), Rect2(722, 536, 148, 68),
+		Rect2(878, 562, 50, 28), Rect2(1216, 756, 192, 88),
+		Rect2(1176, 782, 32, 60), Rect2(335, 620, 75, 110),
 		Rect2(586, 250, 36, 36),
 	]
 
@@ -95,7 +101,7 @@ func _setup_lights() -> void:
 	for lpos in [
 		Vector2(290, 360), Vector2(680, 230), Vector2(930, 235),
 		Vector2(705, 580), Vector2(1260, 896), Vector2(1360, 896),
-		Vector2(1310, 840)
+		Vector2(1312, 836)
 	]:
 		var pl: PointLight2D = assets.make_point_light(lpos, 2.4, Color(1.0, 0.78, 0.42), 0.85)
 		add_child(pl)
@@ -138,6 +144,7 @@ func enter_region(opts: Dictionary = {}) -> void:
 			player.on_ship = false
 			cam.position = Vector2(500, 210)
 			step_water_layer()
+			_sync_hd2d_on_enter(opts)
 			return
 		GameState.current_step = GameState.QuestStep.ON_THE_SHIP
 		player.position = ship_pos + Vector2(0, 26)
@@ -151,6 +158,7 @@ func enter_region(opts: Dictionary = {}) -> void:
 		ui.set_flight_hud_mode(false)
 		ui.set_cinematic_mode(true, _skip_ship_intro)
 		ui.show_time_stamp("PORT OF BRUGES", "De Zwaan Coming Alongside", 2.1)
+		_sync_hd2d_on_enter(opts)
 		return
 
 	if mode == "docked":
@@ -187,9 +195,17 @@ func enter_region(opts: Dictionary = {}) -> void:
 	if bool(opts.get("cutscene_abduction", false)):
 		ambush_triggered_auto = true
 		_trigger_brotherhood_ambush()
+	_sync_hd2d_on_enter(opts)
+
+
+func _sync_hd2d_on_enter(opts: Dictionary) -> void:
+	if hd2d_stage != null:
+		hd2d_stage.on_region_enter(opts)
 
 
 func exit_region() -> void:
+	if hd2d_stage != null:
+		hd2d_stage.on_region_exit()
 	if (ship_intro_active or ambush_cutscene_active) and ui != null:
 		ui.hide_time_stamp()
 		ui.set_cinematic_mode(false)
@@ -218,6 +234,10 @@ func _skip_ship_intro() -> void:
 
 
 func get_ambience_track() -> String:
+	if ambush_cutscene_active:
+		return "combat"
+	if GameState.current_step == GameState.QuestStep.SNITCH_TO_CHURCH:
+		return "stealth"
 	return "dawn_tension" if GameState.current_step >= GameState.QuestStep.DAWN_MISSING_CLARA else "harbor"
 
 
@@ -292,6 +312,8 @@ func step_region(delta: float) -> void:
 			PortOfBrugesAmbushScript.process_abduction(self, delta)
 		director.camera.position = amb_anchor
 		_redraw_world()
+		if hd2d_stage != null:
+			hd2d_stage.step(delta, Time.get_ticks_msec() * 0.001)
 		return
 
 	_process_ship_arrival(delta)
@@ -318,13 +340,21 @@ func step_region(delta: float) -> void:
 		_trigger_brotherhood_ambush()
 
 	_redraw_world()
+	if hd2d_stage != null:
+		hd2d_stage.step(delta, Time.get_ticks_msec() * 0.001)
+
+
+func handle_region_input(event: InputEvent) -> bool:
+	if hd2d_stage != null and hd2d_stage.handle_input(event):
+		return true
+	return false
 
 
 func _process_ship_arrival(delta: float) -> void:
 	if GameState.ship_docked:
 		return
 	var prev_y := ship_pos.y
-	var spd := 205.0 if ship_intro_active else 92.0
+	var spd := 285.0 if ship_intro_active else 135.0
 	ship_pos = ship_pos.move_toward(ship_target_pos, delta * spd)
 	var dy := ship_pos.y - prev_y
 	if player.position.x < 224.0:
@@ -428,14 +458,22 @@ func _register_interactables() -> void:
 		{"id": "baker", "name": "Baker Pieter", "pos": Vector2(795, 635), "radius": 68.0, "callback": _on_interact_baker},
 		{"id": "north_gate_sign", "name": "Read Gatehouse Sign", "pos": Vector2(648, 76), "radius": 58.0, "callback": _on_read_north_gate_sign},
 		{"id": "ne_outskirts_sign", "name": "Read Towpath Signpost", "pos": Vector2(1463, 258), "radius": 58.0, "callback": _on_read_ne_outskirts_sign},
-		{"id": "ch1_gate_city", "name": "Gatewarden Maerten", "pos": Vector2(692, 62), "radius": 60.0, "callback": func(): PortOfBrugesAmbushScript.talk_gatekeeper(self, "city")},
-		{"id": "ch1_gate_outskirts", "name": "Customsman Dirk", "pos": Vector2(1504, 62), "radius": 60.0, "callback": func(): PortOfBrugesAmbushScript.talk_gatekeeper(self, "outskirts")},
+		{"id": "ch1_gate_city", "name": "Gatewarden Maerten", "pos": Vector2(720, 92), "radius": 60.0, "callback": func(): PortOfBrugesAmbushScript.talk_gatekeeper(self, "city")},
+		{"id": "ch1_gate_outskirts", "name": "Customsman Dirk", "pos": Vector2(1526, 98), "radius": 60.0, "callback": func(): PortOfBrugesAmbushScript.talk_gatekeeper(self, "outskirts")},
 		{"id": "brotherhood_ambush", "name": "Hooded Riders", "pos": AMBUSH_CENTER, "radius": 85.0, "callback": _trigger_brotherhood_ambush}
 	]
 	clear_walk_portals()
-	register_walk_portal("house_door", Rect2(1280, 846, 60, 40), Vector2.UP, _on_enter_house_door, "^ Uncle Willem's Cottage", "WILLEM'S COTTAGE", "Portside Hearth")
+	register_walk_portal("house_door", Rect2(1282, 842, 60, 36), Vector2.UP, _on_enter_house_door, "^ Uncle Willem's Cottage", "WILLEM'S COTTAGE", "Portside Hearth")
 	register_walk_portal("north_city_gate", Rect2(676, 0, 88, 38), Vector2.UP, _on_enter_north_city_gate, "^ Walled City of Bruges", "WALLED CITY OF BRUGES", "South Gate — Steenstraat")
-	register_walk_portal("ne_outskirts_gate", Rect2(1484, 0, 88, 38), Vector2.UP, _on_enter_ne_outskirts_gate, "^ Coastal Outskirts", "BRUGES OUTSKIRTS", "Southern Port Towpath")
+	register_walk_portal("ne_outskirts_gate", Rect2(1482, 0, 88, 38), Vector2.UP, _on_enter_ne_outskirts_gate, "^ Coastal Outskirts", "BRUGES OUTSKIRTS", "Southern Port Towpath")
+
+
+func get_interact_bubble_offset(id: String) -> Vector2:
+	if id == "ch1_gate_city":
+		return Vector2(118, -14)
+	if id == "ch1_gate_outskirts":
+		return Vector2(-118, -14)
+	return Vector2(0, -44)
 
 
 func get_interactable_pos(item: Dictionary) -> Vector2:
@@ -545,10 +583,16 @@ func _on_interact_warehouse() -> void:
 func _on_read_noticeboard() -> void:
 	GameState.bruges_noticeboard_read = true
 	SoundManager.play_journal()
-	ui.show_dialogue([
-		{"speaker": "Harbor Decree", "portrait": "portrait_watchman.png", "text": "'BY ORDER OF THE HOLY INQUISITION: Five silver groats for a slain wyrm-hide; TWENTY gold florins for any dragon delivered ALIVE in iron chains! Severe penalties for Ropewalk spinners supplying greased hemp to outlawed riders.'"},
-		{"speaker": "Faded Brabant Notice", "portrait": "portrait_watchman.png", "text": "'Missing near Old Heverlee, four winters past — two Hunter Guilders of Louvain.'"}
-	])
+	ui.show_parchment_note(
+		"Bruges Harbor Ordinance & Bounties",
+		"[b]BY ORDER OF THE HOLY INQUISITION[/b]\n\n"
+		+ "• Five silver groats for any slain wyrm-hide brought to Steenstraat.\n"
+		+ "• [b]TWENTY gold florins[/b] for any living dragon delivered in iron chains.\n"
+		+ "• Severe penalties for Ropewalk spinners supplying greased hemp to outlawed riders.\n\n"
+		+ "[i]Tacked beside the decree on faded grey paper:[/i]\n"
+		+ "\"Missing near Old Heverlee, four winters past — two Hunter Guilders of Louvain.\"",
+		"Magistrate's Wax Seal — Port of Bruges"
+	)
 
 
 func _on_talk_dockhand_jan() -> void:
@@ -665,7 +709,7 @@ func _on_interact_baker() -> void:
 
 func _on_enter_house_door() -> void:
 	if GameState.current_step >= GameState.QuestStep.DAWN_MISSING_CLARA:
-		director.load_region("house", {"spawn": Vector2(640, 455), "step": GameState.current_step})
+		director.load_region("house", {"spawn": Vector2(640, 504), "step": GameState.current_step})
 		return
 	if not GameState.all_evening_errands_done():
 		SoundManager.play_door()
@@ -677,11 +721,11 @@ func _on_enter_house_door() -> void:
 		spawn_fx_burst(Vector2(1310, 868), 6, Color(0.92, 0.80, 0.44), 22.0, 52.0, 0.40, 2.2)
 		return
 	GameState.remove_item("Evening Rye Bread")
-	director.load_region("house", {"spawn": Vector2(640, 455), "step": GameState.QuestStep.EVENING_HOME, "first_entry": true})
+	director.load_region("house", {"spawn": Vector2(640, 504), "step": GameState.QuestStep.EVENING_HOME, "first_entry": true})
 
 
 func _on_read_north_gate_sign() -> void:
-	ui.show_dialogue([{"speaker": "Harbor Gatehouse Post", "text": "NORTH: Steenstraat & Walled City of Bruges  |  EAST PAST ROPEWALK: Coastal Outskirts Towpath", "portrait": ""}])
+	ui.show_parchment_note("Harbor Gatehouse Post", "NORTH: Steenstraat & Walled City of Bruges\n\nEAST PAST ROPEWALK: Coastal Outskirts Towpath", "Port of Bruges Bailiff")
 
 
 func _on_enter_north_city_gate() -> void:
@@ -693,7 +737,7 @@ func _on_enter_north_city_gate() -> void:
 
 
 func _on_read_ne_outskirts_sign() -> void:
-	ui.show_dialogue([{"speaker": "Towpath Milestone", "text": "NORTH: Coastal Outskirts, Zwin Bridge & Sanctuary Dunes  |  WEST: Harbour Quay & City Gate", "portrait": ""}])
+	ui.show_parchment_note("Towpath Milestone", "NORTH: Coastal Outskirts, Zwin Bridge & Sanctuary Dunes\n\nWEST: Harbour Quay & City Gate", "Zwin Harbor Post")
 
 
 func _on_enter_ne_outskirts_gate() -> void:
@@ -727,8 +771,8 @@ func get_active_npc_colliders() -> Array:
 		list.append({"pos": Vector2(308, 608), "yield_key": "pob_jan"})
 		list.append({"pos": Vector2(575, 595), "yield_key": "pob_piet"})
 	if GameState.current_step < GameState.QuestStep.ACT2_SANCTUARY:
-		list.append({"pos": Vector2(692, 62), "radius": 13.0})
-		list.append({"pos": Vector2(1504, 62), "radius": 13.0})
+		list.append({"pos": Vector2(720, 92), "radius": 13.0})
+		list.append({"pos": Vector2(1526, 98), "radius": 13.0})
 	if GameState.current_step == GameState.QuestStep.SNITCH_TO_CHURCH:
 		for wp: Dictionary in watchman_patrols:
 			list.append(Vector2(wp["pos"]))

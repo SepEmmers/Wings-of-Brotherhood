@@ -278,6 +278,38 @@ class PixelCanvas:
         for x, y, oc in to_mark:
             self.pset(x, y, oc)
 
+    def refine_epx_architecture(self, add_mortar_micro: bool = True) -> "PixelCanvas":
+        """Upscale 2x using Eric's Pixel Expansion (EPX / Scale2x) so Gothic arches,
+        spires, and rose windows stay razor-sharp at ~1.5x world texel density."""
+        out = PixelCanvas(self.w * 2, self.h * 2)
+        for y in range(self.h):
+            for x in range(self.w):
+                P = self.pget(x, y)
+                A = self.pget(x, y - 1)
+                B = self.pget(x + 1, y)
+                C = self.pget(x - 1, y)
+                D = self.pget(x, y + 1)
+                p1, p2, p3, p4 = P, P, P, P
+                if C == A and C != D and A != B:
+                    p1 = A
+                if A == B and A != C and B != D:
+                    p2 = B
+                if D == C and D != B and C != A:
+                    p3 = C
+                if B == D and B != A and D != C:
+                    p4 = D
+                if add_mortar_micro and P[3] == 255 and p1 == P and p2 == P and p3 == P and p4 == P:
+                    # Subtle micro-relief seam on broad masonry/shingle runs while keeping silhouettes untouched
+                    if ((x + y) % 5 == 0) and (A == P and B == P and C == P and D == P):
+                        r, g, b, a = P
+                        p4 = (max(0, r - 6), max(0, g - 6), max(0, b - 5), a)
+                ox, oy = x * 2, y * 2
+                out.pset_raw(ox, oy, p1)
+                out.pset_raw(ox + 1, oy, p2)
+                out.pset_raw(ox, oy + 1, p3)
+                out.pset_raw(ox + 1, oy + 1, p4)
+        return out
+
     def save_png(self, path: str):
         raw = bytearray()
         for y in range(self.h):

@@ -151,11 +151,15 @@ func _on_feed_pressed() -> void:
 			GameState.raw_rations = maxi(0, GameState.raw_rations - 1)
 			GameState.hatchling_fed_count += 1
 			GameState.add_dragon_bond(12)
-			SoundManager.play_dragon_purr()
-			visible = true
-			status_lbl.text = "%s devours every warm cut cleanly. Bond strengthened!" % GameState.gold_dragon_name
-			refresh()
+			visible = false
+			if ui != null:
+				ui.emit_signal("modal_state_changed")
 			emit_signal("fed_hatchling", GameState.dragon_bond)
+			if ui != null and ui.has_method("trigger_companion_eat"):
+				ui.trigger_companion_eat(_fire_pos, func(): emit_signal("closed"))
+			else:
+				SoundManager.play_dragon_purr()
+				emit_signal("closed")
 		, func():
 			visible = true
 			refresh()

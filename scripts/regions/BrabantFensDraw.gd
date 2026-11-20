@@ -127,10 +127,14 @@ static func draw_region_entities(r, t_now: float) -> void:
 		r.draw_circle(fpos + Vector2(0, -4), 28.0 + sin(t_now * 5.0) * 3.0, Color(1.0, 0.64, 0.22, 0.14))
 		if r.hatch_anim_active:
 			_draw_hatching_egg_seq(r, fpos + Vector2(38, 8), assets, t_now)
-		elif not GameState.brabant_hatched:
+		elif GameState.brabant_hatched:
+			var stex: Texture2D = assets.get_tex("prop_dragon_egg_shards.png")
+			if stex != null:
+				r.draw_texture_rect(stex, Rect2(fpos + Vector2(38, 8) - Vector2(14, 16), Vector2(28, 28)), false)
+		if not r.hatch_anim_active and not GameState.brabant_hatched:
 			var pulse := 0.5 + 0.5 * sin(t_now * 3.6)
 			r.draw_arc(fpos, 26.0 + pulse * 4.0, 0.0, TAU, 24, Color(0.96, 0.80, 0.34, 0.55), 1.8)
-		elif GameState.hatchling_fed_count == 0 and r.director != null and r.director.companion != null:
+		elif not r.hatch_anim_active and GameState.brabant_hatched and GameState.hatchling_fed_count == 0 and r.director != null and r.director.companion != null:
 			var cp_pos: Vector2 = Vector2(r.director.companion.global_position) + Vector2(0, -34)
 			var h_bob := sin(t_now * 4.5) * 2.2
 			r.draw_circle(cp_pos + Vector2(0, h_bob), 9.0, Color(0.14, 0.10, 0.08, 0.82))
@@ -232,24 +236,14 @@ static func draw_region_entities(r, t_now: float) -> void:
 
 
 static func _draw_hatching_egg_seq(r, pos: Vector2, assets, t_now: float) -> void:
-	var st: int = r.hatch_anim_stage
-	var wobble := Vector2(sin(t_now * 28.0) * 2.5, 0.0) if st < 3 else Vector2.ZERO
-	var etex_name := "prop_dragon_egg.png"
-	if st == 1:
-		etex_name = "prop_dragon_egg_crack1.png"
-	elif st == 2:
-		etex_name = "prop_dragon_egg_crack2.png"
-	elif st >= 3:
-		etex_name = "prop_dragon_egg_shards.png"
+	var ht: float = float(r.hatch_anim_t)
+	var wobble := Vector2(sin(t_now * 26.0) * (1.5 if ht > 0.4 else 0.4), 0.0)
+	var etex_name := "prop_dragon_egg_crack1.png" if ht >= 0.45 else "prop_dragon_egg.png"
 	var etex: Texture2D = assets.get_tex(etex_name, "prop_dragon_egg.png")
 	if etex != null:
 		r.draw_texture_rect(etex, Rect2(pos + wobble - Vector2(16, 20), Vector2(32, 32)), false)
-	if st >= 2:
-		r.draw_circle(pos + Vector2(0, -6), 24.0 + sin(t_now * 10.0) * 4.0, Color(1.0, 0.84, 0.34, 0.36))
-	if st >= 3:
-		var htex: Texture2D = assets.get_tex("dragon_gold_s1_down_0.png")
-		if htex != null:
-			r.draw_texture_rect(htex, Rect2(pos + Vector2(-18, -32), Vector2(36, 33)), false)
+	if ht >= 0.42:
+		r.draw_circle(pos + Vector2(0, -6), 24.0 + sin(t_now * 10.0) * 4.0, Color(1.0, 0.84, 0.34, 0.42))
 
 
 static func _draw_foreground(r, fg: Node2D) -> void:
@@ -279,46 +273,47 @@ static func _draw_sluice_gate_and_vent(r, assets, cam_rect: Rect2, t_now: float)
 	var vent_pos: Vector2 = r.VENT_POS
 	var lever_pos: Vector2 = r.LEVER_POS
 	if cam_rect.intersects(gate_r.grow(96.0)):
-		# Stone gatehouse sill + piers framing the iron portcullis
-		r.draw_rect(Rect2(gate_r.position.x - 4.0, gate_r.position.y, gate_r.size.x + 8.0, gate_r.size.y), Color(0.24, 0.23, 0.25, 0.88))
+		# Stone gatehouse threshold & piers framing the sliding forged-iron portcullis
+		r.draw_rect(Rect2(gate_r.position.x - 4.0, gate_r.position.y, gate_r.size.x + 8.0, gate_r.size.y), Color(0.22, 0.21, 0.24, 0.86))
 		var pier_v: Texture2D = assets.get_tex("prop_gatehouse_pier_v.png")
 		if pier_v != null:
 			r.draw_texture_rect(pier_v, Rect2(gate_r.position.x - 6.0, gate_r.position.y - 42.0, 64.0, 48.0), false)
 			r.draw_texture_rect(pier_v, Rect2(gate_r.position.x - 6.0, gate_r.end.y - 6.0, 64.0, 48.0), false)
-		# Raising portcullis gate bars (slides smoothly upward under arch once east latch releases)
+		# Raising pixel-art iron portcullis sprite sliding upward beneath archway
 		var open_k := clampf(float(r.gate_open_anim), 0.0, 1.0)
-		var bar_h := lerpf(gate_r.size.y, 18.0, open_k)
+		var bar_h := lerpf(gate_r.size.y, 12.0, open_k)
 		var curr_gate := Rect2(gate_r.position.x, gate_r.position.y, gate_r.size.x, bar_h)
-		r.draw_rect(curr_gate, Color(0.08, 0.09, 0.11, 0.45 * (1.0 - open_k)))
-		for bx in range(int(gate_r.position.x + 8), int(gate_r.end.x - 4), 11):
-			r.draw_line(Vector2(bx, curr_gate.position.y), Vector2(bx, curr_gate.end.y), Color(0.54, 0.56, 0.62), 3.0)
-			r.draw_line(Vector2(bx + 1, curr_gate.end.y - 3.0), Vector2(bx + 1, curr_gate.end.y + 3.0), Color(0.24, 0.26, 0.30), 2.0)
-		for row_y in [curr_gate.position.y + bar_h * 0.35, curr_gate.end.y - 6.0]:
-			if row_y > curr_gate.position.y + 4.0:
-				r.draw_line(Vector2(curr_gate.position.x + 2, row_y), Vector2(curr_gate.end.x - 2, row_y), Color(0.38, 0.36, 0.32), 4.0)
+		var port_tex: Texture2D = assets.get_tex("prop_portcullis_v.png")
+		if port_tex != null and bar_h > 4.0:
+			# Upper grate body stretched/tiled cleanly without duplicate mid-door spikes + spiked bottom edge
+			var bottom_h := minf(64.0, bar_h)
+			var body_h := bar_h - bottom_h
+			if body_h > 1.0:
+				r.draw_texture_rect_region(port_tex, Rect2(curr_gate.position.x, curr_gate.position.y, curr_gate.size.x, body_h), Rect2(0.0, 2.0, float(port_tex.get_width()), 52.0))
+			var src_y := maxf(0.0, 64.0 - bottom_h)
+			r.draw_texture_rect_region(port_tex, Rect2(curr_gate.position.x, curr_gate.position.y + body_h, curr_gate.size.x, bottom_h), Rect2(0.0, src_y, float(port_tex.get_width()), bottom_h))
 
-		# Visible inside gate latch lever bolted on the EAST (far) masonry face
+		# Grounded iron linkage chain & Medieval Ratchet Windlass Lever bolted on East masonry face
 		var tripped: bool = open_k > 0.25 or bool(r.get("_vent_lever_tripped"))
-		r.draw_line(Vector2(gate_r.end.x - 8, gate_r.position.y + 6), lever_pos, Color(0.38, 0.36, 0.34), 2.5)
-		r.draw_rect(Rect2(lever_pos - Vector2(6, 6), Vector2(12, 12)), Color(0.24, 0.23, 0.26))
-		var arm_tip := lever_pos + (Vector2(14, 13) if tripped else Vector2(14, -15))
-		r.draw_line(lever_pos, arm_tip, Color(0.56, 0.54, 0.52), 3.2)
-		var knob_col := Color(0.42, 0.78, 0.48) if tripped else Color(0.92, 0.36, 0.24)
-		r.draw_circle(arm_tip, 4.2, knob_col)
+		r.draw_line(Vector2(gate_r.end.x - 6, gate_r.position.y + 8), lever_pos + Vector2(-6, 4), Color(0.18, 0.19, 0.22), 3.0)
+		r.draw_line(Vector2(gate_r.end.x - 6, gate_r.position.y + 8), lever_pos + Vector2(-6, 4), Color(0.46, 0.48, 0.54), 1.4)
+		var ltex: Texture2D = assets.get_tex("prop_medieval_lever_pulled.png" if tripped else "prop_medieval_lever_idle.png")
+		if ltex != null:
+			r.draw_texture_rect(ltex, Rect2(lever_pos - Vector2(14, 14), Vector2(28, 28)), false)
 
-	# Stone Drainage Culvert running under the northern weir wall (West intake -> East outlet)
+	# Vaulted Stone Drainage Culvert running east-west under the weir wall
 	if cam_rect.intersects(Rect2(vent_pos - Vector2(56, 40), Vector2(112, 80))):
-		r.draw_rect(Rect2(1344, vent_pos.y - 16, 68, 32), Color(0.26, 0.25, 0.28))
-		r.draw_rect(Rect2(1346, vent_pos.y - 8, 64, 16), Color(0.06, 0.08, 0.09, 0.94))
-		r.draw_circle(Vector2(1340, vent_pos.y + 10), 10.0, Color(0.14, 0.24, 0.20, 0.42))
-		r.draw_circle(Vector2(1414, vent_pos.y + 10), 10.0, Color(0.14, 0.24, 0.20, 0.42))
-		var vtex: Texture2D = assets.get_tex("prop_dragon_vent_grate.png")
-		if vtex != null:
-			r.draw_texture_rect(vtex, Rect2(Vector2(1340, vent_pos.y - 10), Vector2(24, 20)), false)
-			r.draw_texture_rect(vtex, Rect2(Vector2(1394, vent_pos.y - 10), Vector2(22, 20)), false, Color(0.76, 0.78, 0.80, 0.86))
+		var ctex: Texture2D = assets.get_tex("prop_culvert_tunnel_h.png")
+		if ctex != null:
+			r.draw_texture_rect(ctex, Rect2(Vector2(1342, vent_pos.y - 18), Vector2(72, 36)), false)
+		else:
+			var vtex: Texture2D = assets.get_tex("prop_dragon_vent_grate.png")
+			if vtex != null:
+				r.draw_texture_rect(vtex, Rect2(Vector2(1340, vent_pos.y - 10), Vector2(24, 20)), false)
+				r.draw_texture_rect(vtex, Rect2(Vector2(1394, vent_pos.y - 10), Vector2(22, 20)), false)
 		if not GameState.brabant_vent_unlocked and GameState.brabant_hatched:
 			var shimmer := 0.5 + 0.5 * sin(t_now * 4.4)
-			r.draw_arc(Vector2(1352, vent_pos.y), 14.0 + shimmer * 3.0, 0.0, TAU, 18, Color(0.96, 0.80, 0.32, 0.48 + 0.28 * shimmer), 1.6)
+			r.draw_circle(Vector2(1346, vent_pos.y), 6.0 + shimmer * 2.5, Color(0.98, 0.80, 0.34, 0.22 + 0.16 * shimmer))
 
 	# Animated soot-black Hatchling sneaking through culvert -> flipping inside lever -> darting back
 	if float(r.get("vent_crawl_t")) > 0.0:
@@ -374,11 +369,11 @@ static func _draw_integrated_prompts(r, fg: Node2D) -> void:
 		if ppos.distance_to(r.VENT_POS) <= 84.0:
 			r.assets.draw_interact_bubble(fg, Vector2(1352, r.VENT_POS.y - 34), "[%s] Send Through Drain" % cmd_k, font)
 		elif ppos.distance_to(r.GATE_RECT.get_center()) <= 92.0:
-			# Subtle BotW visual eye-line cue linking locked gate -> inside lever -> stone culvert drain
-			var pulse := 0.5 + 0.5 * sin(Time.get_ticks_msec() * 0.005)
-			fg.draw_arc(r.LEVER_POS + Vector2(10, -8), 11.0 + pulse * 3.0, 0.0, TAU, 16, Color(0.98, 0.78, 0.30, 0.55 + 0.3 * pulse), 1.8)
-			fg.draw_dashed_line(Vector2(1344, r.VENT_POS.y), Vector2(1416, r.VENT_POS.y), Color(0.98, 0.84, 0.36, 0.45), 1.8, 5.0)
-			fg.draw_dashed_line(Vector2(1416, r.VENT_POS.y), r.LEVER_POS, Color(0.98, 0.84, 0.36, 0.45), 1.8, 5.0)
+			# Subtle diegetic gold-dust glint drifting near intake culvert (no debug dashed lines)
+			var t_s := Time.get_ticks_msec() * 0.004
+			for mi in range(3):
+				var off := Vector2(sin(t_s + float(mi) * 2.1) * 4.0, -4.0 - fmod(t_s * 0.5 + float(mi) * 0.33, 1.0) * 10.0)
+				fg.draw_circle(Vector2(1348, r.VENT_POS.y) + off, 2.0, Color(0.98, 0.84, 0.38, 0.68))
 	elif GameState.hatchling_fed_count > 0:
 		for b: Dictionary in r.brazier_states:
 			if not bool(b.get("lit", false)) and ppos.distance_to(Vector2(b["pos"])) <= 105.0:

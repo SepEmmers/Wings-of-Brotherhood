@@ -8,6 +8,7 @@ extends "res://scripts/regions/RegionBase.gd"
 
 const BrugesCityMapDataScript := preload("res://scripts/regions/BrugesCityMapData.gd")
 const BrugesCityDrawScript := preload("res://scripts/regions/BrugesCityDraw.gd")
+const PlayerCombatHelperScript := preload("res://scripts/systems/PlayerCombatHelper.gd")
 
 const NPC_JORIS_POS := Vector2(1448, 1210)
 const NPC_BEATRIJS_POS := Vector2(2288, 1360)
@@ -82,7 +83,7 @@ func _ready() -> void:
 		{"id": "city_joris", "name": "Cloth-Factor Joris", "pos": NPC_JORIS_POS, "radius": 74.0, "callback": _on_interact_joris},
 		{"id": "city_beatrijs", "name": "Sister Beatrijs (Apothecary)", "pos": NPC_BEATRIJS_POS, "radius": 74.0, "callback": _on_interact_beatrijs},
 		{"id": "city_wagon_recon", "name": "Inspect Church Iron-Chain Wagon", "pos": WAGON_CLUE_POS, "radius": 84.0, "callback": _on_interact_wagon},
-		{"id": "city_dropped_note", "name": "Dropped Ambush Paper", "pos": DROPPED_NOTE_POS, "radius": 72.0, "callback": _on_interact_dropped_note},
+		{"id": "city_dropped_note", "name": "Dropped Note", "pos": DROPPED_NOTE_POS, "radius": 72.0, "callback": _on_interact_dropped_note},
 		{"id": "city_church_wait", "name": "Sit Behind Pulpit & Wait Until Eighth Bell", "pos": CHURCH_HIDING_POS, "radius": 86.0, "callback": _on_interact_church_wait},
 		{"id": "city_south_sign", "name": "Read South Gate Sign", "pos": Vector2(1352, 1986), "radius": 62.0, "callback": _on_read_south_gate_sign},
 		{"id": "city_east_sign", "name": "Read East Gate Sign", "pos": Vector2(2644, 1236), "radius": 62.0, "callback": _on_read_east_gate_sign},
@@ -161,7 +162,16 @@ func exit_region() -> void:
 	eavesdrop_scrape_t = 0.0
 	if director != null and director.camera != null: director.camera.zoom = Vector2(1.5, 1.5)
 
-func get_ambience_track() -> String: return "harbor"
+
+func get_default_camera_zoom() -> Vector2:
+	return Vector2(1.4, 1.4)
+
+func get_ambience_track() -> String:
+	if _has_living_enemies():
+		return "combat"
+	if priest_tail_active:
+		return "stealth"
+	return "harbor"
 func get_surface_at(_pos: Vector2) -> String: return "wood" if BrugesCityBoatsScript.get_boarded_idx(self) >= 0 else "cobble"
 func get_lighting_tint() -> Color: return Color(0.68, 0.70, 0.84) if (city_evening_time or priest_tail_active or GameState.city_bounty_overheard) else Color(0.84, 0.80, 0.78)
 
@@ -292,23 +302,41 @@ func _try_winch_pair(idx: int, from_west: bool) -> void:
 	SoundManager.play_knot_cinch()
 
 
-func on_rope_cast_hit(tip_pos: Vector2, _knot_id: String) -> void:
-	# 1. Tactical Rope Snare against Church Catchpoles & Arbalesters
-	var hit_any := false
-	for e: Dictionary in enemies:
-		if int(e["hp"]) <= 0:
-			continue
-		var ep: Vector2 = Vector2(e["pos"])
-		var closest := Geometry2D.get_closest_point_to_segment(ep, player.position, tip_pos)
-		if ep.distance_to(closest) <= 44.0 or ep.distance_to(tip_pos) <= 68.0:
-			e["stun"] = 2.8
-			e["state"] = "snared"
-			e["timer"] = 0.0
-			e["hurt_flash"] = 0.16
-			_spawn_sparks(ep + Vector2(0, -10), Color(0.96, 0.82, 0.36), 8)
-			hit_any = true
-	if hit_any:
+func on_rope_cast_hit(tip_pos: Vector2, knot_id: String) -> void:
+	# 1. Tactical Rope Abilities against Church Catchpoles & Arbalesters
+	var res := PlayerCombatHelperScript.resolve_knot_targets(knot_id, player.position, tip_pos, enemies)
+	if bool(res.get("hit", false)):
+		for e: Dictionary in enemies:
+			if not bool(e.get("permanently_bound", false)) and float(e.get("snared_t", 0.0)) <= 0.0 and float(e.get("stun", 0.0)) > 10.0:
+				e["stun"] = 0.0
+				e["state"] = "chase" if String(e["kind"]) == "shield" else "reload"
+		for b: Dictionary in res.get("bound", []):
+			b["stun"] = 9999.0
+			b["state"] = "bound"
+			b["timer"] = 0.0
+			b["hurt_flash"] = 0.14
+			_spawn_sparks(Vector2(b["pos"]) + Vector2(0, -10), Color(0.96, 0.76, 0.28), 12)
+		for y: Dictionary in res.get("yanked", []):
+			y["state"] = "snared"
+			y["timer"] = 0.0
+			y["hurt_flash"] = 0.24
+			_spawn_sparks(Vector2(y["pos"]) + Vector2(0, -10), Color(0.98, 0.44, 0.30), 12)
+			SoundManager.play_cage_break()
+		for sn: Dictionary in res.get("snared", []):
+			sn["state"] = "snared"
+			sn["timer"] = 0.0
+			sn["hurt_flash"] = 0.16
+			_spawn_sparks(Vector2(sn["pos"]) + Vector2(0, -10), Color(0.45, 0.90, 0.72), 10)
+		var zipped = res.get("zipped_target", null)
+		if zipped != null:
+			player.position = Vector2(zipped["pos"]) + (player.position - Vector2(zipped["pos"])).normalized() * 24.0
+			zipped["hp"] = maxi(0, int(zipped["hp"]) - 2)
+			zipped["alive"] = int(zipped["hp"]) > 0
+			zipped["hurt_flash"] = 0.25
+			_spawn_sparks(Vector2(zipped["pos"]) + Vector2(0, -10), Color(1.0, 0.84, 0.32), 16)
 		SoundManager.play_knot_cinch()
+		if not _has_living_enemies():
+			_on_encounter_victory()
 		queue_redraw()
 		return
 
@@ -379,6 +407,8 @@ func _step_enemies(delta: float) -> void:
 		if int(e["hp"]) <= 0:
 			continue
 		e["hurt_flash"] = maxf(0.0, float(e["hurt_flash"]) - delta)
+		if bool(e.get("permanently_bound", false)):
+			continue
 		if float(e["stun"]) > 0.0:
 			e["stun"] = maxf(0.0, float(e["stun"]) - delta)
 			if float(e["stun"]) <= 0.0:
@@ -529,10 +559,14 @@ func _on_interact_dropped_note() -> void:
 	GameState.city_clue_counting_house = true
 	GameState.add_item("Church Requisition Writ")
 	SoundManager.play_chime()
-	player.show_held_item(assets.get_tex("prop_knot_clue.png"), 1.2)
+	player.show_held_item(assets.get_tex("prop_dropped_note.png"), 1.2)
 	ui.pulse_hud_icon("bag")
 	ui.refresh_hud()
-	ui.show_dialogue([{"speaker": "Dropped Ambush Note", "portrait": "portrait_inquisitor.png", "text": "\"...the hollow nest was cold and the egg already taken. Meet Father Anselm at St. Donatian's by the eighth evening bell...\""}])
+	ui.show_parchment_note(
+		"Crumpled Field Order",
+		"\"...the hollow nest was cold and the egg already taken. Meet Father Anselm at St. Donatian's by the eighth evening bell. Carry iron gaffs in case the outlaw rider still guards it...\"",
+		"Church Catchpole Seal — Bruges Watergate"
+	)
 
 func _on_interact_joris() -> void:
 	if GameState.city_clue_cloth_hall:
@@ -709,11 +743,11 @@ func _on_enter_east_outskirts() -> void:
 
 
 func _on_read_south_gate_sign() -> void:
-	ui.show_dialogue([{"speaker": "South Gatehouse Post", "text": "v PORT OF BRUGES — Outer Docks, Warehouse & Ropewalk Quarter", "portrait": ""}])
+	ui.show_parchment_note("South Gatehouse Post", "SOUTH: Port of Bruges — Outer Docks, Warehouse & Ropewalk Quarter.", "Bruges City Bailiff Seal")
 
 
 func _on_read_east_gate_sign() -> void:
-	ui.show_dialogue([{"speaker": "East Gatehouse Post", "text": "-> COASTAL OUTSKIRTS & SANCTUARY TRAIL across the East Moat", "portrait": ""}])
+	ui.show_parchment_note("East Gatehouse Post", "EAST ACROSS THE MOAT: Coastal Outskirts, Zwin Bridge & Sanctuary Dunes.", "Bruges City Bailiff Seal")
 
 func _spawn_sparks(pos: Vector2, col: Color, count: int) -> void:
 	for _i in range(count):

@@ -26,6 +26,9 @@ static func init_state(r) -> void:
 	r.act4_escape_stage = 0
 	r.act4_escape_t = 0.0
 	r.act4_escape_wait_dlg = false
+	if r.heist_cutscene != null:
+		r.heist_cutscene.active = false
+		r.heist_cutscene.visible = false
 
 
 static func setup_guards(r) -> void:
@@ -206,7 +209,7 @@ static func process_phase4_intro(r, delta: float) -> void:
 				r.act4_intro_stage = 3
 				r.act4_intro_wait_dlg = true
 				r.ui.show_dialogue([
-					{"speaker": "Outpost Scout", "portrait": "portrait_watchman.png", "text": "Captain Anna! Urgent word off the western canal road—the Church is setting up for a huge action inside the Walled City of Bruges! Armed Catchpoles, Inquisitors, and search teams are pouring through the city gates right now!"},
+					{"speaker": "Outpost Scout", "portrait": "portrait_outpost_scout.png", "text": "Captain Anna! Urgent word off the western canal road—the Church is setting up for a huge action inside the Walled City of Bruges! Armed Catchpoles, Inquisitors, and search teams are pouring through the city gates right now!"},
 					{"speaker": "Bellman Matthijs", "portrait": "portrait_matthijs.png", "text": "A full Church muster inside Bruges's walls?! They're stopping every barge and cart at the gates—what stirred the Bishop's hounds into such a frenzy?"},
 					{"speaker": "Captain Anna", "portrait": "portrait_anna.png", "text": "Then the Council debate waits until we know what they're searching for! Settle down, Hendrick—nobody takes %s's egg tonight." % GameState.player_name},
 					{"speaker": "Captain Anna", "portrait": "portrait_anna.png", "text": "Set the black egg on the warm brazier cradle beside Virelai right here—Sister Maren and I will guard its heat personally. %s, you know Bruges's alleys and canal bridges better than any border rider. Take the West Cliff Trail into the Walled City and find out what the Church's big action is all about!" % GameState.player_name},
@@ -257,6 +260,9 @@ static func _run_return_lie_dialogue(r) -> void:
 
 
 static func step_phase5(r, delta: float) -> void:
+	if r.heist_cutscene != null and bool(r.heist_cutscene.active):
+		r.heist_cutscene.step(delta)
+		return
 	if r.act4_escape_active:
 		_process_kestrel_escape(r, delta)
 		return
@@ -396,14 +402,28 @@ static func interact_pedestal(r) -> void:
 		GameState.act4_egg_stolen_back = true
 		GameState.carrying_egg = true
 		GameState.egg_warmth = 100.0
-		r.player.show_held_item(r.assets.get_tex("prop_dragon_egg_held.png"), 1.25)
-		SoundManager.play_dragon_purr()
-		SoundManager.play_chime()
-		r.spawn_fx_burst(PEDESTAL_POS + Vector2(0, -10), 16, Color(0.98, 0.84, 0.34), 28.0, 82.0, 0.75, 3.0)
-		r.kestrel_greet_kind = "wing_ramp"
-		r.kestrel_greet_timer = 1.60
-		r.ui.pulse_hud_icon("bag")
-		r.ui.refresh_hud()
+		r.player.can_move = false
+		if r.heist_cutscene != null:
+			r.heist_cutscene.start_pedestal_theft(r, func():
+				r.player.can_move = true
+				r.player.facing = Vector2.RIGHT
+				r.spawn_fx_burst(PEDESTAL_POS + Vector2(0, -10), 16, Color(0.98, 0.84, 0.34), 28.0, 82.0, 0.75, 3.0)
+				r.kestrel_greet_kind = "wing_ramp"
+				r.kestrel_greet_timer = 1.60
+				r.ui.pulse_hud_icon("bag")
+				r.ui.refresh_hud()
+				r.queue_redraw()
+			)
+		else:
+			r.player.can_move = true
+			r.player.show_held_item(r.assets.get_tex("prop_dragon_egg_held.png"), 1.25)
+			SoundManager.play_dragon_purr()
+			SoundManager.play_chime()
+			r.spawn_fx_burst(PEDESTAL_POS + Vector2(0, -10), 16, Color(0.98, 0.84, 0.34), 28.0, 82.0, 0.75, 3.0)
+			r.kestrel_greet_kind = "wing_ramp"
+			r.kestrel_greet_timer = 1.60
+			r.ui.pulse_hud_icon("bag")
+			r.ui.refresh_hud()
 
 
 static func interact_to_bruges_city(r) -> void:
@@ -430,9 +450,16 @@ static func interact_kestrel_escape(r) -> bool:
 
 
 static func _finish_kestrel_escape(r) -> void:
+	if r.heist_cutscene != null:
+		r.heist_cutscene.active = false
+		r.heist_cutscene.visible = false
 	r.act4_escape_active = false
 	r.act4_escape_stage = 3
+	r.player.cutscene_hidden = false
+	r.player.set_cutscene_pose("")
+	r.director.camera.zoom = Vector2(1.5, 1.5)
 	r.ui.set_cinematic_mode(false)
+	r.ui.set_hud_visible(true)
 	GameState.reset_book2_state(true)
 	r.director.load_region("brabant_fens", {"book2_intro": true, "from_escape": true})
 	r.ui.play_border_transition("BOOK II: THE GOLDEN HEIR", "Brabant Reed-Fens — Before Dawn")
@@ -445,7 +472,6 @@ static func start_kestrel_escape(r) -> void:
 	r.act4_escape_t = 0.0
 	r.act4_escape_wait_dlg = false
 	_clear_guard_lights(r)
-	r.ui.set_cinematic_mode(true, func(): _finish_kestrel_escape(r))
 	r.player.can_move = false
 	r.player.facing = Vector2.RIGHT
 	r.player.set_cutscene_pose("boy_kneel.png")
@@ -454,6 +480,10 @@ static func start_kestrel_escape(r) -> void:
 	r.spawn_fx_burst(r.ACT2_CAGE_POS + r.greyling_offset, 10, Color(0.84, 0.92, 0.98), 28.0, 68.0, 0.55, 2.5)
 	SoundManager.play_hatch_chirp()
 	SoundManager.play_dragon_purr()
+	if r.heist_cutscene != null:
+		r.heist_cutscene.start_kestrel_escape(r, func(): _finish_kestrel_escape(r))
+	else:
+		r.ui.set_cinematic_mode(true, func(): _finish_kestrel_escape(r))
 
 
 static func _process_kestrel_escape(r, delta: float) -> void:
@@ -544,13 +574,16 @@ static func draw_act4_overlays(r, t_now: float, cam_rect: Rect2) -> void:
 		var g_pulse: float = 0.5 + 0.5 * sin(t_now * 4.0)
 		r.draw_arc(WEST_GATE_POS, 20.0 + g_pulse * 4.0, 0.0, TAU, 18, Color(0.96, 0.84, 0.42, 0.80), 2.0)
 		var sp := WEST_GATE_POS + Vector2(6, -34)
-		var sign_txt := "<- Walled City of Bruges"
+		var sign_txt := "Walled City of Bruges"
 		var tsz: Vector2 = font.get_string_size(sign_txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 10)
-		var plaque := Rect2(sp.x - (tsz.x + 14.0) * 0.5, sp.y - 11.0, tsz.x + 14.0, 15.0)
-		r.draw_rect(Rect2(plaque.position.x + tsz.x * 0.5 + 4.0, plaque.end.y, 4.0, 14.0), Color(0.32, 0.20, 0.12))
+		var plaque := Rect2(sp.x - (tsz.x + 28.0) * 0.5, sp.y - 12.0, tsz.x + 28.0, 18.0)
+		r.draw_rect(Rect2(plaque.position.x + tsz.x * 0.5 + 10.0, plaque.end.y, 4.0, 14.0), Color(0.32, 0.20, 0.12))
 		r.draw_rect(plaque, Color(0.20, 0.13, 0.08, 0.95))
 		r.draw_rect(plaque, Color(0.66, 0.50, 0.26, 0.90), false, 1.0)
-		assets.draw_label_shadowed(r, sp, sign_txt, font, 10, Color(0.95, 0.86, 0.62), true)
+		var arr_l: Texture2D = assets.get_tex("ui_wayboard_arrow_l.png")
+		if arr_l != null:
+			r.draw_texture_rect(arr_l, Rect2(plaque.position.x + 5.0, plaque.position.y + 3.0, 11.0, 11.0), false)
+		assets.draw_label_shadowed(r, sp + Vector2(7.0, 2.0), sign_txt, font, 10, Color(0.95, 0.86, 0.62), true)
 
 	# Phase 5 Midnight Guards & Tripwires
 	if ph == 5 and not r.act4_escape_active:

@@ -72,8 +72,9 @@
 
 ---
 
-### Queue 5 — Dramatic Cutscene & Hand-Drawn Upgrade Pass (Awaiting Bespoke Animation Art)
-- [ ] **Dramatic Multi-Beat Brabant Egg Lead-Up & Hand-Drawn Hatching Cutscene** (`scripts/regions/BrabantFensRegion.gd`, `scripts/regions/BrabantFensDraw.gd`, `.agents/skills/pixel-art-generator/scripts/sprite_dragons.py`): Upgrade the placeholder campfire wobble & 4-step crack timer into an extended, hand-drawn cinematic hatching sequence and fuller pre-hatch lead-up—including chilled frost vapor rising off the shell on arrival, tending dry mill kindling to build heat over time, dramatic close-up lighting as molten royal-gold veins widen along obsidian cracks, bespoke shell-peel frames revealing wet obsidian-and-gold scales steaming in firelight, and intimate Boy-kneeling-to-Hatchling imprinting framing.
+### Queue 5 — Dramatic Cutscene & Hand-Drawn Upgrade Pass
+- [x] **Dramatic Multi-Beat Brabant Egg Lead-Up & Hand-Drawn Hatching Cutscene** (`scripts/regions/BrabantFensRegion.gd`, `scripts/regions/BrabantHatchingCutscene.gd`, `.agents/skills/pixel-art-generator/scripts/sprite_hatching_cutscene.py`, `mus_hatch_awakening.wav`): Replaced the brief overworld egg-swap with a full-screen 320×180 hand-drawn campfire push-in -> 5-stage multi-frame hatching & palm-imprint diorama underscored by `mus_hatch_awakening.wav`.
+- [x] **Dialogue-Free Sanctuary Midnight Heist & Kestrel Escape Diorama** (`scripts/regions/SanctuaryHeistCutscene.gd`, `scripts/regions/SanctuaryAct4.gd`, `.agents/skills/pixel-art-generator/scripts/sprite_heist_cutscene.py`): Built a 320×180 dialogue-free close-up diorama for stealing the egg from the torchlit brazier cradle and mounting Kestrel off the Sanctuary cliff edge into the moonlit eastern storm.
 
 ---
 

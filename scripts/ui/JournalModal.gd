@@ -75,6 +75,14 @@ func apply_post_theme_fixes() -> void:
 		inv_screen.apply_slot_button_styles()
 
 
+func open_to_item(item_name: String) -> void:
+	tab_idx = 0
+	visible = true
+	refresh()
+	if inv_screen != null and inv_screen.has_method("select_item_by_name"):
+		inv_screen.select_item_by_name(item_name)
+
+
 func refresh() -> void:
 	for ti in range(tab_btns.size()):
 		tab_btns[ti].modulate = Color(1.18, 1.05, 0.78) if ti == tab_idx else Color(0.84, 0.80, 0.76)

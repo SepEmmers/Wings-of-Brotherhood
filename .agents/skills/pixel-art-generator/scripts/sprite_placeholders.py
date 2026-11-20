@@ -1,4 +1,4 @@
-"""
+﻿"""
 Simple-box placeholder generator for uncompleted sprites listed in docs/SPRITE_TRACKER.md.
 
 Feature-building agents register new visuals here AND in docs/SPRITE_TRACKER.md (`- [ ]`).
@@ -163,13 +163,12 @@ _PROP_AND_ICON_BOXES = {
     "prop_hay_bale.png": (24, 20, [(3, 5, 18, 12, "H1"), (5, 6, 14, 5, "H2"), (8, 5, 2, 12, "T1"), (14, 5, 2, 12, "T1")]),
     "prop_fence_h.png": (32, 16, [(2, 3, 5, 11, "T1"), (25, 3, 5, 11, "T1"), (0, 6, 32, 3, "T2"), (0, 11, 32, 3, "T2")]),
     "prop_fence_v.png": (12, 32, [(3, 1, 6, 30, "T2"), (2, 2, 8, 5, "T1"), (2, 14, 8, 5, "T1"), (2, 25, 8, 5, "T1")]),
-    # Queue 14 Book II Act I prop geometric placeholders (Brabant Fens & Louvain)
-    "prop_dragon_vent_grate.png": (22, 18, [(0, 2, 22, 14, "SG0"), (2, 4, 18, 10, "C3"), (4, 4, 2, 10, "SG2"), (9, 4, 2, 10, "SG2"), (14, 4, 2, 10, "SG2"), (3, 1, 16, 2, "Y1")]),
-    "prop_bell_mould.png": (36, 32, [(4, 10, 28, 20, "T0"), (8, 6, 20, 18, "SG1"), (10, 8, 16, 14, "Y1"), (13, 4, 10, 4, "Y2"), (15, 11, 2, 10, "C3")]),
-    "prop_archive_desk.png": (42, 30, [(3, 10, 36, 18, "T0"), (5, 4, 32, 12, "T2"), (7, 5, 13, 9, "L0"), (22, 5, 13, 9, "L0"), (16, 16, 10, 5, "R1")]),
-    # Trim & ration items use sprite_sanctuary.py; Queue 6 capture shackles use sprite_sanctuary.py too.
-    # Queue 13 companion, campfire & stealth sprites now generated in sprite_dragons.py / sprite_portraits.py / sprite_props.py.
+    # Queue 13/14 companion, campfire, stealth & Book II Louvain sprites now finished in sprite_dragons.py / sprite_props.py / sprite_louvain_props.py.
 }
+
+
+from sprite_dungeon_kit_boxes import DUNGEON_KIT_BOXES
+_PROP_AND_ICON_BOXES.update(DUNGEON_KIT_BOXES)
 
 
 def _make_box_campfire(frame: int) -> PixelCanvas:
@@ -349,7 +348,7 @@ def generate_placeholder_sprites(sprites_dir: str) -> int:
         _make_box_portrait(*spec).save_png(os.path.join(sprites_dir, fname))
         written += 1
 
-    # Exclude per-item carry duplicates (`boy_carry_*`) — future Boy wardrobe tiers use
+    # Exclude per-item carry duplicates (`boy_carry_*`) â€” future Boy wardrobe tiers use
     # reusable `carry_hands` + `cradle_hands` empty carrier poses paired with shared props!
     base_walk_keys = [k for k in BOY_WALK_FRAMES.keys() if not k.startswith("boy_carry")]
     carry_hand_keys = list(build_modular_carry_frames().keys())

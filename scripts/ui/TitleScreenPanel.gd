@@ -23,7 +23,9 @@ var _assets
 var _backdrop: Control
 var _title_block: VBoxContainer
 var _crest_rect: TextureRect
+var _menu_anchor: Control
 var _menu_box: VBoxContainer
+var _charter_anchor: Control
 var _name_wrap: CenterContainer
 var _name_panel: PanelContainer
 var _menu_btns: Array[Button] = []
@@ -148,17 +150,20 @@ func _build_title_crest() -> void:
 
 
 func _build_main_menu() -> void:
-	var menu_anchor := Control.new()
-	menu_anchor.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
-	menu_anchor.offset_top = -220
-	menu_anchor.offset_bottom = -28
-	add_child(menu_anchor)
+	_menu_anchor = Control.new()
+	_menu_anchor.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
+	_menu_anchor.offset_top = -220
+	_menu_anchor.offset_bottom = -28
+	_menu_anchor.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_menu_anchor)
 
 	var center := CenterContainer.new()
 	center.set_anchors_preset(Control.PRESET_FULL_RECT)
-	menu_anchor.add_child(center)
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_menu_anchor.add_child(center)
 
 	_menu_box = VBoxContainer.new()
+	_menu_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_menu_box.alignment = BoxContainer.ALIGNMENT_CENTER
 	_menu_box.add_theme_constant_override("separation", 6)
 	center.add_child(_menu_box)
@@ -174,6 +179,7 @@ func _add_zelda_menu_row(txt: String, fsize: int, on_pressed: Callable) -> Butto
 	var row := HBoxContainer.new()
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
 	row.add_theme_constant_override("separation", 10)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_menu_box.add_child(row)
 
 	var l_cur := TextureRect.new()
@@ -182,6 +188,7 @@ func _add_zelda_menu_row(txt: String, fsize: int, on_pressed: Callable) -> Butto
 	l_cur.custom_minimum_size = Vector2(20, 14)
 	l_cur.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	l_cur.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	l_cur.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(l_cur)
 
 	var btn := Button.new()
@@ -189,6 +196,8 @@ func _add_zelda_menu_row(txt: String, fsize: int, on_pressed: Callable) -> Butto
 	btn.text = txt
 	btn.custom_minimum_size = Vector2(270, 34 if fsize >= 20 else 30)
 	btn.add_theme_font_size_override("font_size", fsize)
+	btn.mouse_filter = Control.MOUSE_FILTER_STOP
+	btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	btn.pressed.connect(func():
 		SoundManager.play_ui_click()
 		on_pressed.call()
@@ -204,6 +213,7 @@ func _add_zelda_menu_row(txt: String, fsize: int, on_pressed: Callable) -> Butto
 	r_cur.custom_minimum_size = Vector2(20, 14)
 	r_cur.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	r_cur.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	r_cur.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(r_cur)
 
 	_menu_btns.append(btn)
@@ -212,16 +222,19 @@ func _add_zelda_menu_row(txt: String, fsize: int, on_pressed: Callable) -> Butto
 
 
 func _build_name_charter() -> void:
-	var charter_anchor := Control.new()
-	charter_anchor.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
-	charter_anchor.offset_top = -238
-	charter_anchor.offset_bottom = -26
-	add_child(charter_anchor)
+	_charter_anchor = Control.new()
+	_charter_anchor.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
+	_charter_anchor.offset_top = -238
+	_charter_anchor.offset_bottom = -26
+	_charter_anchor.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_charter_anchor.visible = false
+	add_child(_charter_anchor)
 
 	_name_wrap = CenterContainer.new()
 	_name_wrap.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_name_wrap.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_name_wrap.visible = false
-	charter_anchor.add_child(_name_wrap)
+	_charter_anchor.add_child(_name_wrap)
 
 	_name_panel = PanelContainer.new()
 	_name_panel.custom_minimum_size = Vector2(468, 0)
@@ -447,11 +460,15 @@ func apply_post_theme_fixes() -> void:
 
 
 func show_main_menu() -> void:
+	if _menu_anchor != null:
+		_menu_anchor.visible = true
 	if _menu_box != null:
 		_menu_box.visible = true
+	if _charter_anchor != null:
+		_charter_anchor.visible = false
 	if _name_wrap != null:
 		_name_wrap.visible = false
-	_reveal_t = 0.0
+	_reveal_t = 0.52
 	_selected_idx = 0
 	_sync_cursor_visuals()
 	if _start_btn != null and is_inside_tree():
@@ -459,8 +476,12 @@ func show_main_menu() -> void:
 
 
 func show_name_entry() -> void:
+	if _menu_anchor != null:
+		_menu_anchor.visible = false
 	if _menu_box != null:
 		_menu_box.visible = false
+	if _charter_anchor != null:
+		_charter_anchor.visible = true
 	if _name_wrap != null:
 		_name_wrap.visible = true
 	if name_input != null and is_inside_tree():

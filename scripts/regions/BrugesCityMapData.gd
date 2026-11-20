@@ -137,13 +137,13 @@ static func get_castle_walls() -> Array[Dictionary]:
 static func get_city_buildings() -> Array[Dictionary]:
 	return [
 		# 1. De Burg Castle Citadel (NW)
-		{"tex": "bldg_bruges_keep.png",      "rect": Rect2(214, 194, 256, 218),  "sign": "", "spos": Vector2.ZERO},
+		{"tex": "bldg_bruges_keep.png",      "rect": Rect2(196, 152, 304, 260),  "sign": "", "spos": Vector2.ZERO},
 		{"tex": "city_manor_7a.png",         "rect": Rect2(506, 192, 274, 194),  "sign": "", "spos": Vector2.ZERO},
 		{"tex": "city_garrison_7c.png",      "rect": Rect2(204, 550, 240, 174),  "sign": "", "spos": Vector2.ZERO},
 		{"tex": "city_house_4b.png",         "rect": Rect2(648, 572, 164, 136),  "sign": "", "spos": Vector2.ZERO},
 
 		# 2. Grote Markt & Dense Flemish Gable Blocks (Center)
-		{"tex": "bldg_bruges_belfry.png",    "rect": Rect2(1332, 922, 224, 256), "sign": "", "spos": Vector2.ZERO},
+		{"tex": "bldg_bruges_belfry.png",    "rect": Rect2(1292, 918, 304, 296), "sign": "", "spos": Vector2.ZERO},
 		{"tex": "city_bakery_5a.png",        "rect": Rect2(1076, 1004, 204, 156),"sign": "", "spos": Vector2.ZERO},
 		{"tex": "city_tavern_6a.png",        "rect": Rect2(1724, 1004, 160, 164),"sign": "", "spos": Vector2.ZERO},
 		{"tex": "city_weavers_6b.png",       "rect": Rect2(1892, 996, 150, 172), "sign": "", "spos": Vector2.ZERO},
@@ -159,16 +159,16 @@ static func get_city_buildings() -> Array[Dictionary]:
 		{"tex": "city_cottage_4c.png",       "rect": Rect2(1674, 1560, 168, 134),"sign": "", "spos": Vector2.ZERO},
 		{"tex": "city_house_4b.png",         "rect": Rect2(1844, 1560, 176, 140),"sign": "", "spos": Vector2.ZERO},
 		# South Port Gate Barbican Keeps & Tavern
-		{"tex": "bldg_bruges_keep.png",      "rect": Rect2(1156, 1796, 168, 152),"sign": "", "spos": Vector2.ZERO},
-		{"tex": "bldg_bruges_keep.png",      "rect": Rect2(1556, 1796, 168, 152),"sign": "", "spos": Vector2.ZERO},
+		{"tex": "bldg_bruges_keep.png",      "rect": Rect2(1140, 1776, 196, 176),"sign": "", "spos": Vector2.ZERO},
+		{"tex": "bldg_bruges_keep.png",      "rect": Rect2(1544, 1776, 196, 176),"sign": "", "spos": Vector2.ZERO},
 		{"tex": "city_tavern_6a.png",        "rect": Rect2(1780, 1796, 210, 154),"sign": "", "spos": Vector2.ZERO},
 
 		# 3. St. Donatian's Cathedral & North Canon Quarter (NE)
-		{"tex": "bldg_bruges_cathedral.png", "rect": Rect2(2112, 142, 288, 252), "sign": "", "spos": Vector2.ZERO},
+		{"tex": "bldg_bruges_cathedral.png", "rect": Rect2(2074, 128, 364, 340),  "sign": "", "spos": Vector2.ZERO},
 		{"tex": "city_manor_7a.png",         "rect": Rect2(1076, 172, 248, 184), "sign": "", "spos": Vector2.ZERO},
 		{"tex": "city_house_4a.png",         "rect": Rect2(1332, 196, 168, 138), "sign": "", "spos": Vector2.ZERO},
-		{"tex": "city_house_4b.png",         "rect": Rect2(1748, 196, 168, 138), "sign": "", "spos": Vector2.ZERO},
-		{"tex": "city_cottage_4c.png",       "rect": Rect2(1920, 200, 164, 134), "sign": "", "spos": Vector2.ZERO},
+		{"tex": "city_house_4b.png",         "rect": Rect2(1720, 196, 168, 138), "sign": "", "spos": Vector2.ZERO},
+		{"tex": "city_cottage_4c.png",       "rect": Rect2(1892, 200, 164, 134), "sign": "", "spos": Vector2.ZERO},
 		# Spiegelrei North Canal Gable Row
 		{"tex": "city_house_4b.png",         "rect": Rect2(1060, 580, 172, 140), "sign": "", "spos": Vector2.ZERO},
 		{"tex": "city_cottage_4c.png",       "rect": Rect2(1236, 584, 168, 136), "sign": "", "spos": Vector2.ZERO},

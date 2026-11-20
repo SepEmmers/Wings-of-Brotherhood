@@ -115,7 +115,7 @@ static func get_diary_summary() -> String:
 		s += "• [b]Walled City of Bruges:[/b] Uncover what the Church is staging across the canals.\n"
 		s += "• Town Rumors (Optional): Factor Joris at Cloth Hall " + ("[color=#9fd4a3](Asked)[/color]" if GameState.city_clue_cloth_hall else "(Grote Markt)") + " & Sister Beatrijs " + ("[color=#9fd4a3](Asked)[/color]\n" if GameState.city_clue_beguinage else "(Beguinage)\n")
 		s += "• Counting-House Wharf Wagon: " + ("[color=#9fd4a3]Dropped Note Found ('St. Donatian\'s at 8th bell')[/color]\n" if GameState.city_clue_counting_house else ("Pick up the note dropped beside the wagon!\n" if GameState.city_watergate_skirmish_won else "Inspect the Church iron-chain wagon west across the canal\n"))
-		s += "• St. Donatian's Church -> Main Keep: " + ("[color=#9fd4a3]Bounty Overheard![/color]\n" if GameState.city_bounty_overheard else ("Wait behind the cathedral pulpit until the eighth bell, then tail the priest!\n" if GameState.all_city_clues_found() else "Follow town whispers to find where the Church wagon unloaded"))
+		s += "• St. Donatian's Church to Main Keep: " + ("[color=#9fd4a3]Bounty Overheard![/color]\n" if GameState.city_bounty_overheard else ("Wait behind the cathedral pulpit until the eighth bell, then tail the priest!\n" if GameState.all_city_clues_found() else "Follow town whispers to find where the Church wagon unloaded"))
 	elif GameState.current_step == GameState.QuestStep.ACT4_NIGHT_HEIST:
 		s += "• [b]Midnight Sanctuary Heist:[/b] Tonight the egg stays with me—the Council won't take it.\n"
 		s += "• Slip past Night-Watch lanterns, cut alarm tripwires with `[V]`, bind threats with `[F]`, grab the Egg from the center pedestal, and reach Kestrel on the east perch!"

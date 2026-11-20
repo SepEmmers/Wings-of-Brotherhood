@@ -49,8 +49,12 @@ var slash_trail: Array[Dictionary] = []
 var title_lbl: Label
 var desc_lbl: Label
 var hint_lbl: Label
+var feedback_lbl: Label
 var board: Control
 var cancel_btn: Button
+var _block_tex: Texture2D
+var _cleaver_tex: Texture2D
+var _meat_texs: Array[Texture2D] = []
 
 
 func _ready() -> void:
@@ -100,7 +104,7 @@ func _ready() -> void:
 	vbox.add_child(desc_lbl)
 
 	board = Control.new()
-	board.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	board.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	board.custom_minimum_size = Vector2(540, 250)
 	board.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	board.mouse_filter = Control.MOUSE_FILTER_STOP
@@ -109,12 +113,41 @@ func _ready() -> void:
 	board.gui_input.connect(_on_board_gui_input)
 	vbox.add_child(board)
 
+	feedback_lbl = Label.new()
+	feedback_lbl.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	feedback_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	feedback_lbl.position = Vector2(18, 12)
+	feedback_lbl.custom_minimum_size = Vector2(504, 24)
+	feedback_lbl.add_theme_font_size_override("font_size", 14)
+	feedback_lbl.add_theme_color_override("font_color", Color(0.98, 0.88, 0.56))
+	feedback_lbl.add_theme_color_override("font_shadow_color", Color(0.04, 0.03, 0.05, 0.92))
+	feedback_lbl.add_theme_constant_override("shadow_offset_x", 1)
+	feedback_lbl.add_theme_constant_override("shadow_offset_y", 2)
+	board.add_child(feedback_lbl)
+	_load_butcher_textures()
+
 	hint_lbl = Label.new()
 	hint_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	hint_lbl.text = "Steer around hard white bone knuckles so Virelai eats clean un-splintered meat!"
 	hint_lbl.add_theme_font_size_override("font_size", 13)
 	hint_lbl.add_theme_color_override("font_color", Color(0.75, 0.88, 0.75))
 	vbox.add_child(hint_lbl)
+
+
+func _load_tex(fname: String) -> Texture2D:
+	var path := ProjectSettings.globalize_path("res://assets/sprites/" + fname)
+	if not FileAccess.file_exists(path):
+		return null
+	var img := Image.load_from_file(path)
+	return ImageTexture.create_from_image(img) if img != null else null
+
+
+func _load_butcher_textures() -> void:
+	_block_tex = _load_tex("ui_butcher_block.png")
+	_cleaver_tex = _load_tex("ui_butcher_cleaver.png")
+	_meat_texs.clear()
+	for i in range(5):
+		_meat_texs.append(_load_tex("ui_butcher_meat_%d.png" % i))
 
 
 func apply_medieval_ui_theme(panel_style: StyleBox, btn_normal: StyleBox, btn_hover: StyleBox, btn_pressed: StyleBox) -> void:
@@ -353,6 +386,8 @@ func _process(delta: float) -> void:
 			is_slicing = false
 			visible = false
 			emit_signal("chop_completed")
+	if feedback_lbl != null and feedback_lbl.text != feedback_msg:
+		feedback_lbl.text = feedback_msg
 	board.queue_redraw()
 
 
@@ -371,54 +406,30 @@ func _seam_x_at_y(seam_idx: int, y_norm: float) -> float:
 
 
 func _draw_board() -> void:
-	var font := board.get_theme_default_font()
 	var sz := board.size
-	# Heavy Oak Butcher Block surface with wood grain & old chopping scars
-	board.draw_rect(Rect2(Vector2.ZERO, sz), Color(0.18, 0.12, 0.08))
-	board.draw_rect(Rect2(Vector2(12, 16), sz - Vector2(24, 32)), Color(0.32, 0.21, 0.14))
-	for row_y in [62.0, 118.0, 174.0, 218.0]:
-		board.draw_line(Vector2(14, row_y), Vector2(sz.x - 14, row_y), Color(0.22, 0.14, 0.09), 2.0)
+	# Heavy Pixel-Art Oak Butcher Block surface (2x NEAREST)
+	if _block_tex != null:
+		board.draw_texture_rect(_block_tex, Rect2(Vector2.ZERO, sz), false)
+	else:
+		board.draw_rect(Rect2(Vector2.ZERO, sz), Color(0.18, 0.12, 0.08))
+		board.draw_rect(Rect2(Vector2(12, 16), sz - Vector2(24, 32)), Color(0.32, 0.21, 0.14))
 	if miss_flash > 0.05:
 		board.draw_rect(Rect2(Vector2.ZERO, sz), Color(0.88, 0.22, 0.20, miss_flash * 0.24))
 
-	# Draw 5 anatomical roast segments that physically slide apart once each seam separates
+	# Draw 5 Pixel-Art Anatomical Mutton Roast Pieces sliding physically apart per cut seam
 	for p in range(5):
 		var ox := _piece_offset_x(p)
-		var top_pad := 0.34 if p == 0 else (0.31 if p <= 2 else (0.35 if p == 3 else 0.44))
-		var bot_pad := 0.77 if p == 0 else (0.81 if p <= 2 else (0.77 if p == 3 else 0.67))
-		var tl_x := (_seam_x_at_y(p - 1, top_pad) if p > 0 else 0.135) * sz.x + ox
-		var tr_x := (_seam_x_at_y(p, top_pad) if p < 4 else 0.875) * sz.x + ox
-		var br_x := (_seam_x_at_y(p, bot_pad) if p < 4 else 0.875) * sz.x + ox
-		var bl_x := (_seam_x_at_y(p - 1, bot_pad) if p > 0 else 0.135) * sz.x + ox
-		var poly := PackedVector2Array([
-			Vector2(tl_x, top_pad * sz.y),
-			Vector2(tr_x, top_pad * sz.y),
-			Vector2(br_x, bot_pad * sz.y),
-			Vector2(bl_x, bot_pad * sz.y),
-		])
-		var shadow_poly := PackedVector2Array()
-		for pt in poly:
-			shadow_poly.append(pt + Vector2(3, 4))
-		board.draw_colored_polygon(shadow_poly, Color(0.08, 0.05, 0.05, 0.45))
+		var mtex: Texture2D = _meat_texs[p] if p < _meat_texs.size() else null
+		if mtex != null:
+			board.draw_texture_rect(mtex, Rect2(Vector2(ox + 3.0, 4.0), sz), false, Color(0.05, 0.03, 0.03, 0.36))
+			board.draw_texture_rect(mtex, Rect2(Vector2(ox, 0.0), sz), false)
 
-		var fill := Color(0.84, 0.78, 0.70) if p == 4 else (Color(0.75, 0.32, 0.28) if p > 0 and cut_flags[p - 1] else Color(0.66, 0.24, 0.22))
-		board.draw_colored_polygon(poly, fill)
-		# Dark roasted outer skin rim along top and bottom + rich crimson marbling
-		board.draw_line(poly[0], poly[1], Color(0.36, 0.16, 0.12), 5.0)
-		board.draw_line(poly[3], poly[2], Color(0.36, 0.16, 0.12), 5.0)
-		if p < 4:
-			var center_p := (poly[0] + poly[1] + poly[2] + poly[3]) * 0.25
-			board.draw_circle(center_p + Vector2(-4, -5), 11.0, Color(0.82, 0.38, 0.34, 0.60))
-			board.draw_circle(center_p + Vector2(6, 7), 8.0, Color(0.90, 0.76, 0.56, 0.42))
-
-	# Draw Exposed Ivory Bone Knuckles between seams
-	for bk in BONE_KNUCKLES:
-		var ox := _piece_offset_x(int(bk["piece"]))
-		var bpos := Vector2(Vector2(bk["uv"]).x * sz.x + ox, Vector2(bk["uv"]).y * sz.y)
-		var r_bone := float(bk["r"])
-		board.draw_circle(bpos + Vector2(1, 2), r_bone * 0.85, Color(0.14, 0.09, 0.08, 0.55))
-		board.draw_circle(bpos, r_bone * 0.78, Color(0.88, 0.84, 0.74))
-		board.draw_circle(bpos + Vector2(-2, -2), r_bone * 0.38, Color(0.96, 0.94, 0.88))
+	# Draw Exposed Bone Knuckle warning glints on bone strike
+	if miss_flash > 0.1:
+		for bk in BONE_KNUCKLES:
+			var ox := _piece_offset_x(int(bk["piece"]))
+			var bpos := Vector2(Vector2(bk["uv"]).x * sz.x + ox, Vector2(bk["uv"]).y * sz.y)
+			board.draw_arc(bpos, float(bk["r"]) + 2.0, 0.0, TAU, 18, Color(1.0, 0.36, 0.28, miss_flash * 0.85), 2.0)
 
 	# Draw 4 Anatomical Tallow Cut-Seams + Live Carved Furrow
 	for i in range(SEAMS.size()):
@@ -429,11 +440,10 @@ func _draw_board() -> void:
 			var sep_shift := seam_sep[i] * 5.0
 			board.draw_line(a + Vector2(-sep_shift, 0), b + Vector2(-sep_shift, 0), Color(0.45, 0.94, 0.62, 0.72), 2.5)
 		else:
-			board.draw_line(a, b, Color(0.98, 0.85, 0.42, 0.42), 10.0)
-			board.draw_line(a, b, Color(0.98, 0.88, 0.46), 3.0)
-			# Start/end rim notch circles to subtly invite edge-to-edge drag
-			board.draw_circle(a, 5.5, Color(0.98, 0.86, 0.38, 0.85))
-			board.draw_circle(b, 5.5, Color(0.98, 0.86, 0.38, 0.85))
+			board.draw_line(a, b, Color(0.98, 0.85, 0.42, 0.36), 8.0)
+			board.draw_line(a, b, Color(0.98, 0.88, 0.46, 0.92), 2.5)
+			board.draw_circle(a, 4.5, Color(0.98, 0.86, 0.38, 0.85))
+			board.draw_circle(b, 4.5, Color(0.98, 0.86, 0.38, 0.85))
 			if furrow_min_t[i] <= furrow_max_t[i]:
 				var g0 := a.lerp(b, furrow_min_t[i])
 				var g1 := a.lerp(b, furrow_max_t[i])
@@ -445,13 +455,14 @@ func _draw_board() -> void:
 		var a_tr := clampf(float(st["life"]) / 0.20, 0.0, 1.0)
 		board.draw_line(Vector2(st["a"]), Vector2(st["b"]), Color(0.96, 0.98, 1.0, a_tr * 0.72), 3.5)
 
-	# Physical Steel Butcher Cleaver Following Cursor inside Board Local Space
+	# Pixel-Art Steel Butcher Cleaver Following Cursor inside Board Local Space
 	if Rect2(Vector2.ZERO, sz).has_point(board.get_local_mouse_position()) or is_slicing:
 		board.draw_set_transform(knife_pos, knife_angle, Vector2.ONE)
-		board.draw_rect(Rect2(-4, -34, 8, 18), Color(0.42, 0.24, 0.12)) # hardwood grip
-		board.draw_circle(Vector2(0, -28), 1.6, Color(0.86, 0.74, 0.38)) # brass rivet
-		board.draw_rect(Rect2(-9, -16, 18, 28), Color(0.76, 0.82, 0.88)) # broad cleaver steel
-		board.draw_rect(Rect2(-9, 8, 18, 4), Color(0.96, 0.98, 1.0))    # honed edge
+		if _cleaver_tex != null:
+			board.draw_texture_rect(_cleaver_tex, Rect2(-26.0, -64.0, 52.0, 96.0), false)
+		else:
+			board.draw_rect(Rect2(-4, -34, 8, 18), Color(0.42, 0.24, 0.12))
+			board.draw_rect(Rect2(-9, -16, 18, 28), Color(0.76, 0.82, 0.88))
 		board.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 	for sp in particles:
@@ -459,5 +470,4 @@ func _draw_board() -> void:
 		var c: Color = sp["col"]
 		board.draw_circle(Vector2(sp["pos"]), 3.5, Color(c.r, c.g, c.b, a))
 
-	board.draw_string(font, Vector2(18, 30), feedback_msg, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(0.98, 0.88, 0.56))
 	board.draw_rect(Rect2(Vector2.ZERO, sz), Color(0.65, 0.50, 0.28), false, 2.0)

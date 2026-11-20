@@ -411,24 +411,104 @@ def make_props(sprites_dir: str):
         cf.save_png(os.path.join(sprites_dir, f"prop_campfire_{frame}.png"))
 
     # Queue 13 Book II Companion & City Stealth Props
-    # 1. Hooded Leather Hatchling Travel-Sling (16x16)
+    # 1. Hooded Leather Hatchling Travel-Sling (16x16 inventory/tooltip badge + 5 directional 24x28 worn Boy overlays)
     sl = PixelCanvas(16, 16)
-    sl.ellipse(8, 10, 6.2, 4.5, "T0")
+    sl.ellipse(8, 10, 6.0, 4.5, "T0")
     sl.ellipse(8, 9, 5.2, 3.8, "E0")
-    sl.ellipse(8, 8, 4.0, 2.8, "E1")
-    # Leather shoulder sling strap & brass D-buckle
+    sl.ellipse(8, 8, 4.2, 3.0, "E1")
     sl.line(2, 4, 13, 12, "T1")
     sl.line(3, 3, 14, 11, "T2")
     sl.rect(10, 5, 3, 3, "Y0")
     sl.pset(11, 6, "Y3")
-    # Hood flap folded over a tiny tucked soot dragon snout & golden eye glint!
-    sl.ellipse(8, 10, 2.8, 2.0, "O1")
-    sl.pset(7, 9, "O2")
-    sl.rect(8, 10, 2, 1, "Y2")
-    sl.pset(8, 10, "Y3")
-    sl.line(5, 7, 11, 7, "E2")
+    # Snug tucked obsidian hatchling face peeking out of emerald hood fold
+    sl.ellipse(8, 9, 2.8, 2.2, "O1")
+    sl.pset(6, 7, "Y2")
+    sl.pset(10, 7, "Y2")
+    sl.pset(7, 9, "Y2")
+    sl.pset(9, 9, "Y2")
+    sl.line(5, 11, 11, 11, "E2")
     sl.add_outline("K", selective_hue=True)
     sl.save_png(os.path.join(sprites_dir, "prop_hatchling_sling.png"))
+
+    def _draw_sling_dragon_head(c: PixelCanvas, hx: int, hy: int, side_look: bool = False) -> None:
+        # Cozy soot-black dragonet head with gold horn tips & warm ember eye
+        c.ellipse(hx, hy, 2.3, 1.9, "O0")
+        c.ellipse(hx, hy, 1.6, 1.3, "O1")
+        c.pset(hx - 1, hy - 2, "O2")
+        c.pset(hx + 1, hy - 2, "Y2")
+        c.pset(hx - 2 if not side_look else hx - 1, hy - 2, "Y1")
+        if side_look:
+            c.pset(hx + 1, hy, "Y3")
+            c.pset(hx, hy, "Y1")
+        else:
+            c.pset(hx - 1, hy, "Y2")
+            c.pset(hx + 1, hy, "Y3")
+
+    # (a) Down (front): snug diagonal emerald sling & bright tucked soot dragonet head + tiny gold wing-edge across left chest
+    sd = PixelCanvas(24, 28)
+    sd.line(15, 11, 7, 19, "T0", 2)
+    sd.line(15, 11, 8, 18, "T2")
+    sd.pset(14, 12, "Y2")
+    sd.ellipse(10, 17, 4.2, 3.0, "E0")
+    sd.ellipse(10, 17, 3.4, 2.3, "E1")
+    sd.line(7, 17, 13, 17, "E2")
+    sd.line(8, 18, 12, 18, "E2")
+    _draw_sling_dragon_head(sd, 10, 15, False)
+    sd.pset(12, 16, "Y1")
+    sd.add_outline("K", selective_hue=True)
+    sd.save_png(os.path.join(sprites_dir, "prop_hatchling_sling_down.png"))
+
+    # (b) Diag-Down (3/4 front-right): strap across chest, pocket shifted slightly right toward viewer
+    sdd = PixelCanvas(24, 28)
+    sdd.line(9, 12, 16, 18, "T0", 2)
+    sdd.line(9, 12, 15, 17, "T2")
+    sdd.pset(10, 13, "Y2")
+    sdd.ellipse(13, 16, 3.5, 2.7, "E0")
+    sdd.ellipse(13, 16, 2.8, 2.0, "E1")
+    sdd.line(10, 16, 16, 16, "E2")
+    _draw_sling_dragon_head(sdd, 14, 14, True)
+    sdd.add_outline("K", selective_hue=True)
+    sdd.save_png(os.path.join(sprites_dir, "prop_hatchling_sling_diag_down.png"))
+
+    # (c) Side (facing right; flipped horizontally by PlayerBoy when facing left)
+    ss = PixelCanvas(24, 28)
+    ss.line(9, 12, 14, 18, "T0", 2)
+    ss.line(9, 12, 13, 17, "T2")
+    ss.pset(10, 14, "Y2")
+    ss.ellipse(14, 16, 3.3, 2.7, "E0")
+    ss.ellipse(14, 16, 2.6, 2.0, "E1")
+    ss.line(12, 16, 16, 16, "E2")
+    _draw_sling_dragon_head(ss, 15, 14, True)
+    ss.add_outline("K", selective_hue=True)
+    ss.save_png(os.path.join(sprites_dir, "prop_hatchling_sling_side.png"))
+
+    # (d) Up (back): snug leather shoulder sling & wrapped emerald wool hood across upper back (never floats detached)
+    su = PixelCanvas(24, 28)
+    su.line(8, 12, 16, 18, "T0", 2)
+    su.line(8, 12, 15, 17, "T2")
+    su.pset(9, 13, "Y2")
+    su.ellipse(12, 16, 3.8, 2.9, "E0")
+    su.ellipse(12, 15, 3.0, 2.1, "E1")
+    su.line(9, 14, 15, 14, "E2")
+    # Tiny curled soot tail-tip & golden ear-crest peeking from back hood fold
+    su.ellipse(13, 14, 1.8, 1.3, "O1")
+    su.pset(14, 13, "Y2")
+    su.pset(12, 13, "O2")
+    su.add_outline("K", selective_hue=True)
+    su.save_png(os.path.join(sprites_dir, "prop_hatchling_sling_up.png"))
+
+    # (e) Diag-Up (3/4 back-right)
+    sdu = PixelCanvas(24, 28)
+    sdu.line(9, 12, 16, 17, "T0", 2)
+    sdu.line(9, 12, 15, 16, "T2")
+    sdu.pset(10, 13, "Y2")
+    sdu.ellipse(13, 16, 3.5, 2.7, "E0")
+    sdu.ellipse(13, 15, 2.8, 2.0, "E1")
+    sdu.line(10, 14, 16, 14, "E2")
+    sdu.ellipse(14, 14, 1.9, 1.4, "O1")
+    sdu.pset(15, 13, "Y2")
+    sdu.add_outline("K", selective_hue=True)
+    sdu.save_png(os.path.join(sprites_dir, "prop_hatchling_sling_diag_up.png"))
 
     # 2. Church Inquisitor Wanted Bounty Poster (14x18)
     wp = PixelCanvas(14, 18)
@@ -582,4 +662,43 @@ def make_props(sprites_dir: str):
     bn.pset(11, 15, "Y3")
     bn.add_outline("K", selective_hue=True)
     bn.save_png(os.path.join(sprites_dir, "prop_brotherhood_banner.png"))
+
+    # Folded Dropped Parchment Writ / Note with Ink Script & Crimson Wax Seal (24x24)
+    dn = PixelCanvas(24, 24)
+    dn.ellipse(12, 18, 9, 3, (14, 15, 22, 105))
+    # Slightly diamond-angled parchment folio resting on cobbles
+    for y in range(6, 19):
+        x0 = 4 + max(0, (10 - y) // 2)
+        x1 = 19 - max(0, (y - 14) // 2)
+        for x in range(x0, x1 + 1):
+            col = "L1" if (x >= x1 - 1 or y >= 17) else "L0"
+            dn.pset(x, y, col)
+    dn.rect_outline(5, 7, 13, 10, "T2")
+    # Dark ink calligraphy lines + creased fold
+    dn.line(6, 9, 15, 9, "C0")
+    dn.line(6, 11, 16, 11, "T0")
+    dn.line(6, 13, 13, 13, "C0")
+    dn.line(5, 12, 17, 12, "L2")
+    # Bright crimson Inquisition wax seal stamped on lower-right corner
+    dn.circle(15, 15, 2.4, "I0")
+    dn.circle(15, 15, 1.5, "I2")
+    dn.pset(15, 14, "Y2")
+    dn.add_outline("K", selective_hue=True)
+    dn.save_png(os.path.join(sprites_dir, "prop_dropped_note.png"))
+
+    # Pokemon Emerald-style NPC Exclamation Alert Badge (16x18)
+    eb = PixelCanvas(16, 18)
+    eb.rect(2, 2, 12, 11, "L0")
+    eb.rect(3, 3, 10, 9, "L1")
+    eb.rect_outline(2, 2, 12, 11, "K")
+    # Speech tail
+    eb.rect(6, 13, 4, 2, "L0")
+    eb.rect(7, 15, 2, 2, "K")
+    eb.pset(7, 14, "L1")
+    # Bold crimson exclamation mark with warm highlight
+    eb.rect(7, 4, 2, 5, "I1")
+    eb.pset(7, 4, "I2")
+    eb.rect(7, 10, 2, 2, "I1")
+    eb.add_outline("K", selective_hue=True)
+    eb.save_png(os.path.join(sprites_dir, "ui_exclamation_badge.png"))
 

@@ -1098,6 +1098,14 @@ def generate_all_portraits(sprites_dir: str):
         hair_dark="S", hair_mid="C0", hair_light="C1",
         eye_col="Y1", cloak_col="E0", hood=True, angry=True,
     )
+    _paint_human_bust(
+        "portrait_outpost_scout.png", sprites_dir,
+        bg_top=(32, 62, 48, 255), bg_bot=(16, 28, 24, 255),
+        tunic_dark="E0", tunic_mid="E1", tunic_light="E2",
+        hair_dark="B0", hair_mid="B1", hair_light="B2",
+        eye_col="G2", beard_style="trimmed_dark", cloak_col="E1",
+        hood=True, shoulder_strap=True, stern=True,
+    )
 
     # Queue 2 & Queue 4 Sanctuary / Village Portraits
     _paint_human_bust(

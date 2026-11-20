@@ -279,50 +279,56 @@ def _make_title_diorama_art(sprites_dir: str) -> None:
             sky.pset(sx + 1, sy, (186, 194, 214, 110))
             sky.pset(sx - 1, sy, (186, 194, 214, 110))
 
-    # Rising sunlit dawn halo peeking above far horizon ridge (x=198, y=108)
+    # Rising sunlit dawn halo peeking symmetrically above estuary horizon saddle (x=198, y=108)
     for y in range(96, 113):
         for x in range(184, 213):
             if math.hypot(x - 198, y - 109) <= 9.5:
                 sky.pset(x, y, blend_color((242, 196, 116, 255), (255, 236, 174, 255), (112 - y) / 16.0))
 
-    # Distant muted Flanders pine-hills along horizon (y=102..113)
+    # Distant muted Flanders pine-hills along horizon (symmetrical saddle dip around sun center x=198!)
     for x in range(320):
         hill_h = 3 + int(3.0 * math.sin(x * 0.025) + 2.0 * math.cos(x * 0.068))
-        if 175 <= x <= 268:
+        if abs(x - 198) <= 13:
+            hill_h = 1  # Calm flat estuary saddle centered symmetrically under solar disk x=198
+        elif 175 <= x <= 268:
             hill_h += 1
         ridge_y = 111 - max(1, hill_h)
         h_col = (24, 30, 44, 255)
         for y in range(ridge_y, 113):
             sky.pset(x, y, h_col if y > ridge_y else (38, 46, 64, 255))
 
-    # Distant sculpted Bruges Belfry & Gothic Stepped-Gable Hall across right water (x=218..268)
+    # Distant sculpted Bruges Belfry & Gothic Stepped-Gable Hall across right water (centered cleanly on cx=241)
     sil_dark = (21, 25, 38, 255)
     sil_mid = (28, 34, 52, 255)
-    sil_rim = (84, 74, 82, 255)
-    # Side stepped gables flanking central Belfry Hall (y=99..112)
-    sky.rect(222, 102, 38, 10, sil_dark)
-    # Left & Right Flemish stepped gable wings + corner pinnacle spirelets
-    for gx, dir_s in ((222, 1), (259, -1)):
-        for st in range(5):
-            sky.rect(gx if dir_s > 0 else gx - 6 + st, 102 - st, 7 - st, 1, sil_dark)
-        sky.line(gx, 96, gx, 103, sil_dark)
-        sky.pset(gx, 95, sil_rim)
-    # Rooftop ridge glint along main hall
-    sky.line(224, 102, 257, 102, sil_rim)
-    # Belfry base tower (x=236..246) & octagonal lantern crown (y=75..88) + needle spire (y=67..75)
-    sky.rect(236, 86, 10, 17, sil_dark)
-    sky.line(236, 86, 236, 101, sil_rim)
-    sky.rect(237, 81, 8, 6, sil_mid)
-    sky.rect(238, 76, 6, 6, sil_dark)
-    sky.line(238, 76, 238, 84, sil_rim)
-    for sy in range(67, 77):
+    sil_rim = (76, 68, 78, 255)
+    # Side stepped gables flanking central Belfry Hall (x=222..260, y=99..112, symmetric around cx=241)
+    sky.rect(222, 102, 39, 10, sil_dark)
+    for st in range(5):
+        sky.rect(222, 102 - st, 7 - st, 1, sil_dark)
+        sky.rect(254 + st, 102 - st, 7 - st, 1, sil_dark)
+    sky.line(222, 96, 222, 103, sil_dark)
+    sky.pset(222, 95, sil_rim)
+    sky.line(260, 96, 260, 103, sil_dark)
+    sky.pset(260, 95, sil_rim)
+    # Symmetrical roofline trim on left & right wings
+    sky.line(223, 102, 235, 102, sil_rim)
+    sky.line(247, 102, 259, 102, sil_rim)
+    # Symmetrical Belfry tiers centered cleanly at cx=241:
+    # Lower square tower (11px wide: x=236..246) -> Mid stage (9px: x=237..245) -> Octagonal lantern crown (7px: x=238..244) -> Tapered spire
+    sky.rect(236, 86, 11, 17, sil_dark)
+    sky.rect(237, 81, 9, 6, sil_mid)
+    sky.rect(238, 76, 7, 6, sil_dark)
+    sky.line(236, 86, 246, 86, sil_rim)
+    sky.line(238, 76, 244, 76, sil_rim)
+    for sy in range(67, 76):
         hw = max(0, (sy - 68) // 3)
-        sky.rect(240 - hw, sy, hw * 2 + 1, 1, sil_dark)
-    sky.pset(240, 66, sil_rim)
+        sky.rect(241 - hw, sy, hw * 2 + 1, 1, sil_dark)
+    sky.pset(241, 66, sil_rim)
+    # Symmetrical warm distant tower lights
     sky.pset(241, 89, "Y2")
     sky.pset(241, 95, "Y1")
     sky.pset(230, 106, "Y0")
-    sky.pset(251, 106, "Y0")
+    sky.pset(252, 106, "Y0")
 
     # Subtle mirrored reflection of the dark Belfry & water horizon shimmer
     for y in range(114, 168):
@@ -419,38 +425,57 @@ def _make_title_diorama_art(sprites_dir: str) -> None:
                 a = max(0, int(92 - math.hypot(dx, dy * 2) * 10))
                 fg.pset(43 + dx, 122 + dy, (244, 188, 94, a))
 
-    # Organic Sculpted Hooded Traveler Boy Silhouette (aged ~17) seated calmly at (50..69, y=97..122)
-    # Softly draped cloak shoulder, trailing back hem over moss, folded seated knees forward right!
-    for y in range(103, 123):
-        frac = (y - 103) / 19.0
-        # Back curves gracefully leftward; chest tapers cleanly from neck down to knee fold (x=68..70)
-        x0 = int(53 - (frac ** 0.85) * 6)
-        x1 = int(63 + math.sin(min(1.0, frac * 1.45) * math.pi * 0.5) * 6)
-        if y >= 117:
-            x1 += 1  # tucked boot / hem resting forward on grass
-        for x in range(x0, x1):
-            col = "E1"
-            if x >= x1 - 2 and y < 118:
-                col = blend_color(PAL["E2"], (236, 184, 104, 255), 0.36)  # warm dawn chest rim
-            elif x <= x0 + 2:
-                col = "DE" if x == x0 else "E0"
-            elif y >= 112 and x == x0 + 6:
-                col = "E0"  # natural vertical cloak fold crease
-            elif y == 104 and x <= 62:
-                col = "E0"  # draped hood collar fold
+    # Slender Sculpted Traveler Boy Silhouette (aged ~17) seated calmly looking toward dawn & dragonet
+    # 1. Trailing emerald traveler cloak sweeping gracefully behind back (clear silhouette separation from slender torso!)
+    for y in range(105, 122):
+        frac = (y - 105) / 16.0
+        cx0 = int(56 - frac * 7.0)
+        cx1 = int(58 - frac * 1.5)
+        for x in range(cx0, cx1 + 1):
+            col = "DE" if (x == cx0 or x == cx1) else "E0"
+            if y < 112 and x == cx0 + 1:
+                col = "E1"
             fg.pset(x, y, col)
-    # Thrown-back hood collar around nape + wind-ruffled chestnut head + warm profile face
-    fg.ellipse(57, 103, 4.0, 2.2, "E0")
-    fg.ellipse(60, 99, 3.8, 3.8, "B0")
-    fg.ellipse(59, 98, 3.0, 2.8, "B1")
-    fg.line(58, 96, 62, 96, "B2")     # sunlit chestnut hair lock
-    fg.rect(62, 98, 2, 3, "P2")       # warm profile nose/cheek toward dawn & dragon
-    fg.pset(63, 99, "P3")
-    fg.line(61, 101, 63, 102, "P0")   # chin neck shadow
+    # Thrown-back hood collar around shoulders
+    fg.rect(55, 103, 5, 3, "E0")
+    fg.line(56, 103, 59, 103, "E2")
 
-    # Resting hand & Cracked Black-and-Gold Eggshell Fragment between Boy and Dragon (x=72..78, y=117..122)
-    fg.line(64, 111, 69, 115, "E2")
-    fg.rect(68, 115, 2, 2, "P1")
+    # 2. Seated dark trousers, bent knees & boots perched on moss edge (x=59..68, y=114..122)
+    fg.rect(59, 114, 6, 5, "S")
+    fg.rect(60, 114, 4, 4, "C0")
+    # Shin & leather traveler boot resting forward on moss
+    fg.rect(63, 116, 3, 5, "C0")
+    fg.rect(63, 120, 5, 2, "T0")
+    fg.line(64, 120, 67, 120, "T2")
+
+    # 3. Slender upright traveler tunic torso (x=57..62, y=103..115 -> only 6px chest depth, natural human waist!)
+    rim_tunic = blend_color(PAL["E2"], (236, 184, 104, 255), 0.36)
+    for y in range(104, 115):
+        x_end = 63 if y < 110 else 62
+        for x in range(57, x_end):
+            col = "E1"
+            if x == x_end - 1:
+                col = rim_tunic
+            elif x == 57:
+                col = "E0"
+            fg.pset(x, y, col)
+    # Slender leather harness belt across tunic waist
+    fg.rect(57, 112, 5, 2, "T0")
+    fg.pset(60, 112, "Y2")
+
+    # 4. Crisp neck, jawline, warm face profile & tousled chestnut hair (facing right)
+    fg.rect(59, 101, 2, 3, "P1")
+    fg.ellipse(60, 98, 3.0, 3.2, "B0")
+    fg.ellipse(59, 97, 2.4, 2.2, "B1")
+    fg.line(58, 95, 61, 95, "B2")
+    fg.rect(61, 97, 2, 3, "P2")
+    fg.pset(62, 98, "P3")
+    fg.pset(61, 100, "P0")
+
+    # 5. Slender outstretched arm resting hand near Cracked Black-and-Gold Eggshell Fragment (x=68..78, y=117..122)
+    fg.line(61, 107, 67, 113, "E2")
+    fg.line(61, 108, 66, 114, "E1")
+    fg.rect(66, 114, 2, 2, "P2")
     fg.ellipse(76, 119, 3.2, 2.6, "O0")
     fg.ellipse(76, 119, 2.3, 1.8, "O1")
     fg.line(74, 118, 78, 119, "Y2")
@@ -693,9 +718,117 @@ def _make_zelda_hud_art(sprites_dir: str) -> None:
     )
 
 
+def _make_wayboards_parchment_and_oot(sprites_dir: str) -> None:
+    # 1. Carved Oak & Iron-Bound Wooden Wayboard Plank 9-slice (32x24, margin=8px)
+    wb = PixelCanvas(32, 24)
+    for y in range(2, 22):
+        col = "T2" if (y % 4 != 0) else "T1"
+        if y <= 3:
+            col = "T3"
+        elif y >= 19:
+            col = "T0"
+        for x in range(2, 30):
+            # Subtle woodgrain knots
+            if (x * 7 + y * 3) % 19 == 0 and 4 <= y <= 18:
+                wb.pset(x, y, "T1")
+            else:
+                wb.pset(x, y, col)
+    # Dark ink silhouette & iron-strapped beveled borders
+    wb.rect_outline(0, 0, 32, 24, "K")
+    wb.rect_outline(1, 1, 30, 22, "T0")
+    wb.line(2, 2, 29, 2, "T3")
+    wb.line(2, 21, 29, 21, "T0")
+    # Wrought-iron bracket straps on left & right ends + brass rivets
+    for bx in (2, 27):
+        wb.rect(bx, 1, 3, 22, "S")
+        wb.line(bx, 2, bx, 20, "C2")
+        wb.pset(bx + 1, 4, "Y2")
+        wb.pset(bx + 1, 19, "Y2")
+    # Subtle notch chamfers on corners
+    for cx, cy in ((0, 0), (31, 0), (0, 23), (31, 23)):
+        wb.pset(cx, cy, ".")
+    wb.save_png(os.path.join(sprites_dir, "ui_wayboard_9slice.png"))
+
+    # 2. Directional Brass/Gold Carved Pointer Arrows (16x16: l/r/u/d)
+    for dname in ("l", "r", "u", "d"):
+        ar = PixelCanvas(16, 16)
+        if dname in ("l", "r"):
+            sign = -1 if dname == "l" else 1
+            cx_tip = 2 if dname == "l" else 13
+            # Arrow shaft
+            ar.rect(5 if dname == "r" else 7, 6, 4, 4, "Y1")
+            ar.line(5 if dname == "r" else 7, 6, 8 if dname == "r" else 10, 6, "Y3")
+            # Arrowhead triangle
+            for step in range(6):
+                px = cx_tip - sign * step
+                half_h = step
+                for dy in range(-half_h, half_h + 1):
+                    col = "L0" if dy == -half_h else ("Y3" if dy <= 0 else ("Y1" if dy < half_h else "Y0"))
+                    ar.pset(px, 8 + dy, col)
+        else:
+            sign = -1 if dname == "u" else 1
+            cy_tip = 2 if dname == "u" else 13
+            ar.rect(6, 5 if dname == "d" else 7, 4, 4, "Y1")
+            ar.line(6, 5 if dname == "d" else 7, 6, 8 if dname == "d" else 10, "Y3")
+            for step in range(6):
+                py = cy_tip - sign * step
+                half_w = step
+                for dx in range(-half_w, half_w + 1):
+                    col = "L0" if dx == -half_w else ("Y3" if dx <= 0 else ("Y1" if dx < half_w else "Y0"))
+                    ar.pset(8 + dx, py, col)
+        ar.add_outline("K", selective_hue=True)
+        ar.save_png(os.path.join(sprites_dir, f"ui_wayboard_arrow_{dname}.png"))
+
+    # 3. Authentic Aged Cream Parchment Sheet 9-slice (48x48, margin=12px) for readable documents
+    pm = PixelCanvas(48, 48)
+    for y in range(2, 46):
+        for x in range(2, 46):
+            # Subtle parchment warmth & edge aging gradient
+            edge_dist = min(x - 2, 45 - x, y - 2, 45 - y)
+            if edge_dist <= 2:
+                col = (196, 172, 128, 250)
+            elif edge_dist <= 5 or ((x * 5 + y * 11) % 29 == 0):
+                col = (218, 198, 154, 252)
+            else:
+                col = (234, 218, 178, 252)
+            pm.pset(x, y, col)
+    # Deckled vellum border & thin sepia double-rule frame
+    pm.rect_outline(0, 0, 48, 48, "T0")
+    pm.rect_outline(1, 1, 46, 46, "T2")
+    pm.rect_outline(5, 5, 38, 38, (148, 118, 78, 180))
+    pm.rect_outline(7, 7, 34, 34, (168, 140, 96, 115))
+    # Deckled paper notches around outer perimeter
+    for nx, ny in ((0, 0), (1, 0), (0, 1), (47, 0), (46, 0), (47, 1), (0, 47), (47, 47), (14, 0), (33, 47), (0, 21), (47, 29)):
+        pm.pset(nx, ny, ".")
+    pm.save_png(os.path.join(sprites_dir, "ui_parchment_note_9slice.png"))
+
+    # 4. Golden OoT Radiance Sunburst (48x48) behind newly acquired items held overhead
+    sb = PixelCanvas(48, 48)
+    cx, cy = 24, 24
+    for y in range(48):
+        for x in range(48):
+            dx = x - cx
+            dy = y - cy
+            dist = math.hypot(dx, dy)
+            if dist > 23.0 or dist < 0.5:
+                continue
+            ang = math.atan2(dy, dx)
+            ray = math.cos(ang * 8.0)
+            glow = max(0.0, 1.0 - dist / 23.0)
+            beam = max(0.0, ray) * glow
+            core = max(0.0, 1.0 - dist / 11.0)
+            val = min(1.0, core * 0.85 + beam * 0.72)
+            if val > 0.14:
+                alpha = int(val * 235)
+                col = blend_color((244, 186, 62, alpha), (255, 248, 206, alpha), core)
+                sb.pset(x, y, (col[0], col[1], col[2], alpha))
+    sb.save_png(os.path.join(sprites_dir, "ui_oot_sunburst.png"))
+
+
 def make_extra_ui_and_title_art(sprites_dir: str) -> None:
     _make_settings_icons(sprites_dir)
     _make_settings_widgets(sprites_dir)
     _make_title_diorama_art(sprites_dir)
     _make_dialogue_chrome(sprites_dir)
     _make_zelda_hud_art(sprites_dir)
+    _make_wayboards_parchment_and_oot(sprites_dir)

@@ -306,17 +306,18 @@ static func _draw_castle_walls(r, font: Font, cam_rect: Rect2, t_now: float = 0.
 		elif kind == "gatehouse" or kind == "watergate":
 			var is_hg: bool = wr.size.x >= wr.size.y
 			if is_hg:
-				var pw: float = minf(48.0, roundf(wr.size.x * 0.28)) if kind == "gatehouse" else 28.0
-				var left_p := Rect2(wr.position.x - 4.0, wr.position.y - 8.0, pw, wr.size.y + 8.0)
-				var right_p := Rect2(wr.end.x - pw + 4.0, wr.position.y - 8.0, pw, wr.size.y + 8.0)
+				var pw: float = minf(56.0, roundf(wr.size.x * 0.30)) if kind == "gatehouse" else 30.0
+				var ph_extra: float = 42.0 if kind == "gatehouse" else 8.0
+				var left_p := Rect2(wr.position.x - 8.0, wr.position.y - ph_extra, pw, wr.size.y + ph_extra)
+				var right_p := Rect2(wr.end.x - pw + 8.0, wr.position.y - ph_extra, pw, wr.size.y + ph_extra)
 				if pier_h_tex != null:
 					r.draw_texture_rect(pier_h_tex, left_p, false)
 					r.draw_texture_rect(pier_h_tex, right_p, false)
 				if banner_tex != null and kind == "gatehouse":
-					r.draw_texture_rect(banner_tex, Rect2(left_p.get_center().x - 8.0, left_p.position.y + left_p.size.y * 0.46, 16.0, 26.0), false)
-					r.draw_texture_rect(banner_tex, Rect2(right_p.get_center().x - 8.0, right_p.position.y + right_p.size.y * 0.46, 16.0, 26.0), false)
-				_draw_wall_brazier(r, assets, Vector2(left_p.get_center().x, left_p.end.y - 8.0), t_now)
-				_draw_wall_brazier(r, assets, Vector2(right_p.get_center().x, right_p.end.y - 8.0), t_now)
+					r.draw_texture_rect(banner_tex, Rect2(left_p.get_center().x - 8.0, wr.position.y + 6.0, 16.0, 26.0), false)
+					r.draw_texture_rect(banner_tex, Rect2(right_p.get_center().x - 8.0, wr.position.y + 6.0, 16.0, 26.0), false)
+				_draw_wall_brazier(r, assets, Vector2(left_p.position.x + 12.0, wr.end.y - 4.0), t_now)
+				_draw_wall_brazier(r, assets, Vector2(right_p.end.x - 12.0, wr.end.y - 4.0), t_now)
 			else:
 				var ph: float = minf(48.0, roundf(wr.size.y * 0.28)) if kind == "gatehouse" else 28.0
 				var top_p := Rect2(wr.position.x - 4.0, wr.position.y - 4.0, wr.size.x + 8.0, ph)
@@ -469,9 +470,9 @@ static func _draw_quest_actors(r, t_now: float, font: Font, cam_rect: Rect2) -> 
 		r.draw_arc(r.WAGON_CLUE_POS, 22.0 + sin(t_now * 4.5) * 3.0, 0.0, TAU, 18, Color(0.98, 0.78, 0.34, 0.82), 2.2)
 
 	if GameState.city_watergate_skirmish_won and not GameState.city_clue_counting_house and cam_rect.has_point(r.DROPPED_NOTE_POS):
-		var ntex: Texture2D = assets.get_tex("prop_knot_clue.png")
+		var ntex: Texture2D = assets.get_tex("prop_dropped_note.png", "prop_knot_clue.png")
 		if ntex != null:
-			r.draw_texture_rect(ntex, Rect2(r.DROPPED_NOTE_POS - Vector2(11.0, 11.0), Vector2(22.0, 22.0)), false)
+			r.draw_texture_rect(ntex, Rect2(r.DROPPED_NOTE_POS - Vector2(12.0, 12.0), Vector2(24.0, 24.0)), false)
 		r.draw_arc(r.DROPPED_NOTE_POS, 16.0 + sin(t_now * 4.8) * 3.0, 0.0, TAU, 16, Color(0.98, 0.86, 0.36, 0.90), 2.2)
 
 	if GameState.city_clue_counting_house and not bool(r.priest_tail_active) and not GameState.city_bounty_overheard and cam_rect.has_point(r.CHURCH_HIDING_POS):
@@ -539,9 +540,12 @@ static func _draw_enemies_and_bolts(r, t_now: float, font: Font, cam_rect: Rect2
 			var col := Color(1.0, 0.45, 0.45) if hurt_t > 0.0 else (Color(0.84, 0.82, 0.96) if stun_t > 0.0 else Color.WHITE)
 			r.draw_texture_rect(tex, Rect2(ep.x - 19.0, ep.y - 33.0, 38.0, 44.0), false, col)
 
-		if stun_t > 0.0:
-			r.draw_arc(ep + Vector2(0, -10), 14.0, 0.0, TAU, 14, Color(0.96, 0.80, 0.34, 0.88), 2.2)
-			r.draw_arc(ep + Vector2(0, -30), 7.5, 0.0, TAU * clampf(stun_t / 2.8, 0.0, 1.0), 12, Color(0.98, 0.84, 0.40), 2.2)
+		if bool(e.get("permanently_bound", false)):
+			r.draw_arc(ep + Vector2(0, -10), 14.0, 0.0, TAU, 16, Color(0.95, 0.72, 0.24, 0.95), 3.0)
+			r.draw_arc(ep + Vector2(0, -3), 11.5, 0.0, TAU, 14, Color(0.72, 0.50, 0.22, 0.90), 2.2)
+		elif stun_t > 0.0:
+			r.draw_arc(ep + Vector2(0, -10), 14.0, 0.0, TAU, 14, Color(0.45, 0.88, 0.66, 0.88), 2.2)
+			r.draw_arc(ep + Vector2(0, -30), 7.5, 0.0, TAU * clampf(stun_t / 3.2, 0.0, 1.0), 12, Color(0.98, 0.84, 0.40), 2.2)
 
 		var max_hp := int(e["max_hp"])
 		var cur_hp := int(e["hp"])

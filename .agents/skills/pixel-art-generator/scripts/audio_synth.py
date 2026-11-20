@@ -125,6 +125,51 @@ def bronze_bell(freq: float, dur: float, sr: int = SR) -> np.ndarray:
     return sig * 0.48
 
 
+def frame_drum(pitch_hz: float = 88.0, dur: float = 0.24, sr: int = SR) -> np.ndarray:
+    """Medieval bodhran / war-drum strike with rapid tension-skin pitch drop."""
+    n = int(sr * dur)
+    t = np.arange(n) / sr
+    rng = np.random.default_rng(int(pitch_hz * 19) + n)
+    freq_env = pitch_hz * (1.0 + 0.95 * np.exp(-t * 28.0))
+    ph = 2.0 * np.pi * np.cumsum(freq_env) / sr
+    body = np.sin(ph) * np.exp(-t * 11.5)
+    skin = _fft_bandpass(rng.normal(0.0, 1.0, n), 120.0, 640.0, sr) * np.exp(-t * 32.0) * 0.42
+    att = min(n, int(sr * 0.003))
+    if att > 0:
+        body[:att] *= np.linspace(0.0, 1.0, att)
+    return (body * 0.72 + skin)
+
+
+def snare_tap(dur: float = 0.14, rim: bool = False, sr: int = SR) -> np.ndarray:
+    """Crisp medieval side-drum snap or hushed wooden block tick."""
+    n = int(sr * dur)
+    t = np.arange(n) / sr
+    rng = np.random.default_rng(int(dur * 1000) + (9 if rim else 3))
+    if rim:
+        hit = np.sin(2.0 * np.pi * 680.0 * t) * np.exp(-t * 54.0) * 0.45
+        wood = _fft_bandpass(rng.normal(0.0, 1.0, n), 900.0, 2900.0, sr) * np.exp(-t * 68.0) * 0.45
+        return hit + wood
+    snap = _fft_bandpass(rng.normal(0.0, 1.0, n), 850.0, 5600.0, sr) * np.exp(-t * 26.0) * 0.56
+    crack = np.sin(2.0 * np.pi * 215.0 * t) * np.exp(-t * 36.0) * 0.28
+    return snap + crack
+
+
+def brass_horn(freq: float, dur: float, sr: int = SR) -> np.ndarray:
+    """Bold medieval iron-banded hunting/battle horn blast."""
+    n = int(sr * dur)
+    t = np.arange(n) / sr
+    vib = 1.0 + 0.004 * np.sin(2.0 * np.pi * 5.2 * t)
+    ph = 2.0 * np.pi * np.cumsum(freq * vib) / sr
+    tone = (
+        0.52 * np.sin(ph)
+        + 0.34 * np.sin(2.0 * ph + 0.2)
+        + 0.22 * np.sin(3.0 * ph + 0.5)
+        + 0.10 * np.sin(4.0 * ph)
+    )
+    env = np.minimum(1.0, t / 0.045) * np.minimum(1.0, (dur - t) / 0.14)
+    return tone * np.maximum(0.0, env) * 0.26
+
+
 def _place(buf: np.ndarray, start_sec: float, clip: np.ndarray, gain: float = 1.0, sr: int = SR):
     i0 = int(start_sec * sr)
     n = len(buf)
@@ -304,6 +349,118 @@ def _make_ambient_loops(audio_dir: str):
     for ct, freq in ((1.8, 1240.0), (2.05, 1380.0), (7.2, 1180.0), (11.5, 1320.0), (11.72, 1460.0), (14.4, 1210.0)):
         _place(mess, ct, bronze_bell(freq, 0.24), 0.16)
     save_wav(audio_dir, "amb_layer_mess.wav", mess)
+
+    # ------------------------------------------------------------------
+    # 9. amb_catacombs.wav — Louvain Vaulted Crypt (Ominous D-Phrygian Drones, Bells & Water Drips)
+    # ------------------------------------------------------------------
+    cat = np.zeros(n, dtype=np.float64)
+    cavern_air = _fft_bandpass(rng.normal(0.0, 1.0, n), 55.0, 290.0)
+    cat += cavern_air * (0.055 + 0.025 * np.sin(2.0 * np.pi * t / 8.0))
+    # Deep dread bowed viol drones alternating D2 (73.42) -> Eb2 (77.78) tension shift
+    _place(cat, 0.0, bowed_viol(73.42, 8.2), 0.28)
+    _place(cat, 0.0, bowed_viol(146.83, 8.2), 0.12)
+    _place(cat, 8.0, bowed_viol(77.78, 8.2), 0.29)
+    _place(cat, 8.0, bowed_viol(155.56, 8.2), 0.13)
+    # Slow anxious muffled heartbeat thump every 0.8s (75 BPM exact -> 20 beats = 16s loop)
+    for bi in range(20):
+        st = bi * 0.8
+        _place(cat, st, frame_drum(54.0, 0.28), 0.18)
+        if bi % 2 == 1:
+            _place(cat, st + 0.22, frame_drum(48.0, 0.20), 0.10)
+    # Echoing high crypt bell harmonics & echoing stone water drips
+    for bt, freq, g in ((0.8, 440.0, 0.09), (4.8, 311.13, 0.10), (8.8, 466.16, 0.09), (12.8, 293.66, 0.11)):
+        _place(cat, bt, bronze_bell(freq, 2.8), g)
+    for dt in (1.9, 5.4, 7.1, 10.6, 14.3):
+        dn = int(SR * 0.06)
+        td = np.arange(dn) / SR
+        drip = np.sin(2.0 * np.pi * (860.0 + 480.0 * td / 0.06) * td) * np.exp(-td * 52.0)
+        _place(cat, dt, drip, 0.12)
+    # Creeping Phrygian plucked harp motif (D-Eb-F-D-A-Bb-A-Eb)
+    cat_notes = [
+        (0.0, 293.66), (2.0, 311.13), (3.6, 349.23), (5.6, 293.66),
+        (8.0, 311.13), (10.0, 440.00), (11.6, 466.16), (13.6, 349.23), (14.8, 311.13),
+    ]
+    for st, f in cat_notes:
+        _place(cat, st, karplus_strong(f, 2.2, 0.42, 0.9975), 0.14)
+    save_wav(audio_dir, "amb_catacombs.wav", cat)
+
+    # ------------------------------------------------------------------
+    # 10. amb_stealth.wav — Nocturnal Infiltration Stalk (120 BPM Tiptoe Pizzicato & Taut Viol)
+    # ------------------------------------------------------------------
+    stealth = np.zeros(n, dtype=np.float64)
+    stealth += _fft_bandpass(rng.normal(0.0, 1.0, n), 140.0, 560.0) * 0.032
+    _place(stealth, 0.0, bowed_viol(146.83, 8.2), 0.15)
+    _place(stealth, 8.0, bowed_viol(138.59, 8.2), 0.15)
+    # 120 BPM -> 64 quarter ticks (0.25s = eighth note) over 16s exact loop
+    stealth_bass = [
+        146.83, 146.83, 174.61, 164.81, 155.56, 146.83, 130.81, 110.00,
+        146.83, 146.83, 174.61, 164.81, 196.00, 174.61, 155.56, 130.81,
+    ]
+    for i in range(64):
+        st = i * 0.25
+        # Soft tense wooden rim clockwork ticks on subdivisions
+        if i % 2 == 0:
+            _place(stealth, st, snare_tap(0.08, rim=True), 0.12 if (i % 4 == 0) else 0.06)
+        elif i % 4 == 3:
+            _place(stealth, st, snare_tap(0.07, rim=True), 0.05)
+        # Tight damped walking pizzicato bass every 1.0s / 0.5s syncopation
+        if i % 4 == 0:
+            bf = stealth_bass[(i // 4) % len(stealth_bass)]
+            _place(stealth, st, karplus_strong(bf, 0.42, 0.36, 0.985), 0.22)
+        elif i % 4 == 2 and ((i // 4) % 2 == 1):
+            bf = stealth_bass[(i // 4) % len(stealth_bass)] * 1.5
+            _place(stealth, st, karplus_strong(bf, 0.35, 0.42, 0.986), 0.13)
+    # Breathless flute caution lines on bars 4 & 8
+    for st, f, fd in ((6.0, 523.25, 0.7), (6.75, 493.88, 0.8), (13.5, 466.16, 0.7), (14.25, 440.00, 1.1)):
+        _place(stealth, st, wooden_flute(f, fd), 0.14)
+    save_wav(audio_dir, "amb_stealth.wav", stealth)
+
+    # ------------------------------------------------------------------
+    # 11. amb_combat.wav — 150 BPM Uptempo Medieval Skirmish (80 exact eighth-steps in 16.0s)
+    # ------------------------------------------------------------------
+    combat = np.zeros(n, dtype=np.float64)
+    # Sustained aggressive viol power-fifths per 4-bar phrase
+    for bt, f in ((0.0, 146.83), (3.2, 116.54), (6.4, 130.81), (9.6, 110.00), (12.8, 130.81)):
+        _place(combat, bt, bowed_viol(f, 3.3), 0.18)
+        _place(combat, bt, bowed_viol(f * 1.5, 3.3), 0.10)
+    # 150 BPM -> 0.4s quarter, 0.2s eighth note -> 80 steps = 16.000s exact!
+    riff_notes = [
+        293.66, 293.66, 440.00, 349.23, 392.00, 440.00, 523.25, 440.00,
+        233.08, 233.08, 349.23, 293.66, 329.63, 349.23, 440.00, 349.23,
+        261.63, 261.63, 392.00, 329.63, 349.23, 392.00, 466.16, 392.00,
+        220.00, 293.66, 329.63, 440.00, 523.25, 466.16, 440.00, 329.63,
+        293.66, 349.23, 440.00, 587.33, 523.25, 440.00, 392.00, 329.63,
+    ]
+    for s in range(80):
+        st = s * 0.2
+        bar_step = s % 8
+        # Urgent bodhran war-drum kicks & snappy off-beat medieval snare
+        if bar_step in (0, 3, 4):
+            _place(combat, st, frame_drum(92.0 if bar_step == 0 else 78.0, 0.22), 0.28 if bar_step == 0 else 0.22)
+        if bar_step in (2, 6, 7):
+            _place(combat, st, snare_tap(0.12, rim=False), 0.20 if bar_step in (2, 6) else 0.13)
+        if bar_step == 5 and (s // 8) % 2 == 1:
+            _place(combat, st, snare_tap(0.09, rim=True), 0.15)
+        # Driving fast plucked lute ostinato on every eighth beat
+        rf = riff_notes[(s // 2) % len(riff_notes)] if s % 2 == 0 else riff_notes[(s // 2) % len(riff_notes)] * 1.5
+        if s % 2 == 0:
+            _place(combat, st, karplus_strong(rf, 0.45, 0.78, 0.991), 0.20)
+            if bar_step in (0, 4):
+                _place(combat, st, karplus_strong(rf * 0.5, 0.65, 0.60, 0.992), 0.17)
+        else:
+            _place(combat, st, karplus_strong(rf, 0.28, 0.72, 0.989), 0.11)
+    # Battle horn stabs & frantic high recorder melody
+    for ht, freq in ((0.0, 293.66), (3.2, 233.08), (6.4, 261.63), (9.6, 220.00), (12.8, 293.66)):
+        _place(combat, ht, brass_horn(freq, 0.75), 0.28)
+    for st, f, fd in (
+        (1.6, 587.33, 0.35), (2.0, 659.25, 0.35), (2.4, 698.46, 0.55),
+        (4.8, 523.25, 0.35), (5.2, 587.33, 0.35), (5.6, 659.25, 0.55),
+        (8.0, 587.33, 0.35), (8.4, 698.46, 0.35), (8.8, 880.00, 0.65),
+        (11.2, 659.25, 0.35), (11.6, 587.33, 0.35), (12.0, 523.25, 0.65),
+        (14.4, 587.33, 0.35), (14.8, 659.25, 0.35), (15.2, 587.33, 0.65),
+    ):
+        _place(combat, st, wooden_flute(f, fd), 0.18)
+    save_wav(audio_dir, "amb_combat.wav", combat)
 
 
 def _make_footsteps(audio_dir: str):
@@ -603,9 +760,72 @@ def _make_gameplay_sfx(audio_dir: str):
         _place(crackles, pt, pop, 0.48)
     save_wav(audio_dir, "sfx_oven_crackle.wav", hearth_hum + crackles)
 
+    # 31. Hatching Eggshell Tremor Rumble & Amber Glow Strain (0.85s)
+    n = int(SR * 0.85)
+    t = np.arange(n) / SR
+    f_rumb = 62.0 - 18.0 * (t / 0.85)
+    ph_r = 2.0 * np.pi * np.cumsum(f_rumb) / SR
+    body_throb = (np.sin(ph_r) * 0.55 + np.sin(ph_r * 2.0) * 0.25) * np.sin(np.pi * t / 0.85)
+    grit = _fft_bandpass(rng.normal(0.0, 1.0, n), 110.0, 520.0) * np.sin(np.pi * t / 0.85) * 0.24
+    creaks = np.zeros(n)
+    for ct in (0.14, 0.42, 0.68):
+        cn = int(SR * 0.05)
+        tc = np.arange(cn) / SR
+        _place(creaks, ct, _fft_bandpass(rng.normal(0.0, 1.0, cn), 950.0, 3200.0) * np.exp(-tc * 45.0), 0.32)
+    save_wav(audio_dir, "sfx_hatch_rumble.wav", (body_throb + grit) * 0.55 + creaks)
+
+    # 32. Golden Hatchling Awakening Resonance & Wing Unfurl Swell (1.55s)
+    n = int(SR * 1.55)
+    t = np.arange(n) / SR
+    env_a = np.minimum(1.0, t / 0.14) * np.exp(-np.maximum(0.0, t - 0.14) * 1.75)
+    chord = (
+        karplus_strong(293.66, 1.55, 0.65, 0.997) * 0.30
+        + karplus_strong(440.00, 1.55, 0.65, 0.997) * 0.26
+        + karplus_strong(587.33, 1.55, 0.60, 0.996) * 0.22
+        + np.sin(2.0 * np.pi * 880.0 * t) * env_a * 0.14
+    )
+    gust = _fft_bandpass(rng.normal(0.0, 1.0, n), 160.0, 1400.0) * np.exp(-t * 3.8) * 0.28
+    save_wav(audio_dir, "sfx_hatch_awakening.wav", chord + gust)
+
+
+def _make_cutscene_motifs(audio_dir: str):
+    """Non-looping emotional cutscene swell cues (placed directly via SoundManager motif_player)."""
+    # mus_hatch_awakening.wav — Gentle 8.8s Harp/Lute & Flute Awaken-Bond Resolve (D minor -> warm D Major)
+    dur = 8.8
+    n = int(SR * dur)
+    t = np.arange(n) / SR
+    motif = np.zeros(n, dtype=np.float64)
+    # Warm gentle viol pad underneath resolving from Bb/D -> A -> bright D Major
+    _place(motif, 0.0, bowed_viol(146.83, 4.6), 0.20)
+    _place(motif, 0.0, bowed_viol(220.00, 4.6), 0.14)
+    _place(motif, 4.2, bowed_viol(146.83, 4.4), 0.22)
+    _place(motif, 4.2, bowed_viol(185.00, 4.4), 0.16)  # F#3 sunlit major third!
+    _place(motif, 4.2, bowed_viol(220.00, 4.4), 0.14)
+    # Sweeping gentle harp / lute arpeggio bloom
+    harp = [
+        (0.05, 293.66), (0.35, 440.00), (0.65, 587.33), (1.05, 523.25),
+        (1.65, 349.23), (1.95, 440.00), (2.25, 587.33), (2.75, 659.25),
+        (3.40, 293.66), (3.70, 369.99), (4.00, 440.00), (4.30, 587.33), (4.60, 739.99), (5.05, 880.00),
+        (5.75, 392.00), (6.05, 493.88), (6.35, 587.33), (6.80, 739.99), (7.30, 587.33),
+    ]
+    for st, f in harp:
+        _place(motif, st, karplus_strong(f, 2.2, 0.62, 0.9972), 0.19)
+        if st in (0.05, 1.65, 3.40, 5.75):
+            _place(motif, st, karplus_strong(f * 0.5, 2.6, 0.45, 0.9975), 0.14)
+    # Tender singing recorder/flute melody during the palm imprint
+    for st, f, fd in ((1.15, 587.33, 1.15), (2.35, 659.25, 1.10), (3.55, 739.99, 1.45), (5.15, 880.00, 1.30), (6.50, 739.99, 1.90)):
+        _place(motif, st, wooden_flute(f, fd), 0.18)
+    # Smooth fade-in and tail so it ends softly
+    att = min(n, int(SR * 0.18))
+    rel = min(n, int(SR * 0.65))
+    motif[:att] *= np.linspace(0.0, 1.0, att)
+    motif[-rel:] *= np.linspace(1.0, 0.0, rel)
+    save_wav(audio_dir, "mus_hatch_awakening.wav", motif)
+
 
 def generate_all_audio(audio_dir: str):
     _make_ambient_loops(audio_dir)
+    _make_cutscene_motifs(audio_dir)
     _make_footsteps(audio_dir)
     _make_dialogue_voices(audio_dir)
     _make_gameplay_sfx(audio_dir)

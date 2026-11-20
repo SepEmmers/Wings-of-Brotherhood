@@ -406,162 +406,192 @@ def _draw_brick_wall(c: PixelCanvas, x0, y0, w, h, c_dark, c_mid, c_hi):
                 c.pset(x, y, c_hi)
 
 
+def _draw_fine_shingles(c: PixelCanvas, x0, y0, w, h, dark, mid, hi):
+    c.rect(x0, y0, w, h, dark)
+    for y in range(y0, y0 + h):
+        row_i = (y - y0) // 2
+        in_row = (y - y0) % 2
+        for x in range(x0, x0 + w):
+            tile_x = (x + (row_i % 2) * 2) % 4
+            if in_row == 1 and tile_x == 0:
+                c.pset(x, y, dark)
+            elif in_row == 0 and tile_x in (1, 2):
+                c.pset(x, y, hi if ((x + row_i) % 3 == 0) else mid)
+            else:
+                c.pset(x, y, mid if in_row == 0 else dark)
+
+
+def _draw_fine_brick(c: PixelCanvas, x0, y0, w, h, c_dark, c_mid, c_hi):
+    c.rect(x0, y0, w, h, c_mid)
+    for y in range(y0, y0 + h):
+        dy = y - y0
+        row = dy // 2
+        for x in range(x0, x0 + w):
+            if dy % 2 == 1:
+                c.pset(x, y, c_dark if (x + row) % 3 == 0 else c_mid)
+            elif (x + (row % 2) * 2) % 4 == 0:
+                c.pset(x, y, c_dark)
+            elif (x * 7 + y * 11) % 13 == 0:
+                c.pset(x, y, c_hi)
+
+
 def make_buildings(sprites_dir: str):
-    # 1. Harbour Warehouse (144x88 -> 288x176)
-    w = PixelCanvas(144, 88)
-    # Stone plinth + stepped Flemish brick walls
-    _draw_brick_wall(w, 6, 30, 132, 54, "R0", "R1", "R2")
-    w.rect(6, 70, 132, 14, "C1")
-    for sx in range(8, 136, 8):
-        w.rect(sx, 71, 6, 5, "C2")
-        w.rect(sx + 3, 77, 6, 5, "C2")
-    # Dark slate tiled roof + stepped center gable
-    _draw_shingles(w, 8, 10, 128, 28, "N", "S", "C1")
-    w.line(8, 10, 135, 10, "C2")
-    w.line(6, 38, 137, 38, "T0")
-    # Central Flemish stepped gable (*trapgevel*)
-    for step, (gx, gw, gy, gh) in enumerate([
-        (52, 40, 22, 18), (56, 32, 14, 8), (60, 24, 8, 6), (65, 14, 3, 5)
-    ]):
-        _draw_brick_wall(w, gx, gy, gw, gh, "R0", "R2", "R3")
-        w.line(gx, gy, gx + gw - 1, gy, "C3")  # stone step coping
-    # Hoist beam & hanging pulley hook
-    w.rect(69, 6, 6, 12, "T2")
-    w.rect(70, 6, 4, 3, "T3")
-    w.line(72, 18, 72, 26, "H1")
-    w.rect(70, 26, 4, 3, "C3")
+    # 1. Harbour Warehouse (180x112 — drawn at 288x180 = 1.60x texel match!)
+    w = PixelCanvas(180, 112)
+    w.ellipse(90, 108, 82, 4.0, (14, 15, 22, 110))
+    _draw_fine_brick(w, 8, 38, 164, 68, "R0", "R1", "R2")
+    w.rect(8, 92, 164, 14, "C1")
+    for sx in range(10, 166, 7):
+        w.rect(sx, 93, 5, 5, "C2")
+        w.rect(sx + 3, 99, 5, 5, "C2")
+    # Fine slate tiled roof + stepped Flemish gable
+    _draw_fine_shingles(w, 10, 12, 160, 34, "N", "S", "C1")
+    w.line(10, 12, 169, 12, "C2")
+    w.line(8, 45, 171, 45, "T0")
+    for gx, gw, gy, gh in (
+        (68, 44, 28, 20), (72, 36, 18, 10), (76, 28, 11, 7), (81, 18, 5, 6)
+    ):
+        _draw_fine_brick(w, gx, gy, gw, gh, "R0", "R2", "R3")
+        w.line(gx, gy, gx + gw - 1, gy, "C3")
+    # Hoist beam & pulley hook
+    w.rect(87, 7, 6, 15, "T2")
+    w.rect(88, 7, 4, 3, "T3")
+    w.line(90, 22, 90, 31, "H1")
+    w.rect(88, 31, 4, 3, "C3")
     # Loft shutter windows
-    for wx in (22, 108):
-        w.rect(wx, 44, 14, 14, "T0")
-        w.rect(wx + 2, 46, 10, 10, "T2")
-        w.line(wx + 7, 46, wx + 7, 55, "T0")
-    # Heavy arched double cargo doors
-    w.rect(52, 48, 40, 36, "C0")
-    w.rect(54, 50, 36, 34, "T1")
-    w.rect(56, 52, 15, 32, "T2")
-    w.rect(73, 52, 15, 32, "T2")
-    w.rect(71, 50, 2, 34, "T0")
-    for hy in (58, 72):
-        w.rect(55, hy, 10, 2, "C3")
-        w.rect(79, hy, 10, 2, "C3")
-    # Stacked barrels beside doorway
-    w.rect(36, 70, 10, 14, "T2")
-    w.rect_outline(36, 70, 10, 14, "T0")
-    w.line(36, 74, 45, 74, "C2")
-    w.line(36, 80, 45, 80, "C2")
+    for wx in (26, 138):
+        w.rect(wx, 54, 16, 18, "T0")
+        w.rect(wx + 2, 56, 12, 14, "T2")
+        w.line(wx + 8, 56, wx + 8, 69, "T0")
+        w.rect(wx + 4, 59, 3, 8, "Y1")
+        w.rect(wx + 9, 59, 3, 8, "Y1")
+    # Heavy arched double cargo doors (scaled so player fits naturally through!)
+    w.rect(70, 64, 40, 42, "C0")
+    w.rect(72, 66, 36, 40, "T1")
+    w.rect(74, 68, 15, 38, "T2")
+    w.rect(91, 68, 15, 38, "T2")
+    w.rect(89, 66, 2, 40, "T0")
+    for hy in (76, 92):
+        w.rect(73, hy, 11, 2, "C3")
+        w.rect(96, hy, 11, 2, "C3")
+    w.rect(52, 88, 12, 16, "T2")
+    w.rect_outline(52, 88, 12, 16, "T0")
+    w.line(52, 93, 63, 93, "C2")
+    w.line(52, 99, 63, 99, "C2")
     w.add_outline("K", selective_hue=True)
     w.save_png(os.path.join(sprites_dir, "building_warehouse.png"))
 
-    # 2. Bruges Ropewalk (260x72 -> 520x144) — Open-sided medieval rope-spinning gallery
-    r = PixelCanvas(260, 72)
-    # Recessed shadowy interior bay
-    r.rect(6, 26, 248, 42, "T0")
-    r.rect(8, 28, 244, 38, (40, 26, 18, 255))
-    # Stretched taut hemp strands spanning the entire ropewalk interior!
-    for hy in (40, 44, 48):
-        r.line(18, hy, 242, hy, "H1")
-        r.line(18, hy - 1, 242, hy - 1, "H2")
-    # Spinning windlass wheels at both ends + mid-supports
-    for wx in (24, 130, 236):
-        r.circle(wx, 45, 7, "T2")
-        r.circle(wx, 45, 5, "T3")
-        r.circle(wx, 45, 2, "H2")
-    # Open arcade oak posts & coiled rope stacks
-    for px in range(12, 250, 32):
-        r.rect(px, 28, 6, 40, "T1")
-        r.line(px + 1, 28, px + 1, 67, "T2")
-        r.line(px + 5, 28, px + 5, 67, "T0")
-        if px < 228:
-            # Hanging hemp skein & ground rope coils
-            r.rect(px + 12, 54, 14, 12, "H0")
-            r.rect(px + 13, 55, 12, 9, "H1")
-            r.rect(px + 15, 56, 8, 5, "H2")
-    # Shingled long clay/slate pitched roof + ridge caps + 2 small ventilation dormers
-    _draw_shingles(r, 4, 6, 252, 22, "S", "C1", "C2")
-    r.line(6, 6, 253, 6, "R2")
-    r.line(6, 7, 253, 7, "R1")
-    r.rect(4, 27, 252, 3, "T2")
-    for dx in (76, 176):
-        r.rect(dx, 2, 16, 12, "T1")
-        _draw_shingles(r, dx - 2, 2, 20, 6, "R0", "R1", "R2")
-        r.rect(dx + 4, 8, 8, 5, "T0")
+    # 2. Bruges Ropewalk (284x96 — drawn at 456x154 = 1.60x texel match!)
+    r = PixelCanvas(284, 96)
+    r.ellipse(142, 91, 134, 4.0, (14, 15, 22, 105))
+    r.rect(6, 34, 272, 56, "T0")
+    r.rect(8, 36, 268, 52, (38, 25, 17, 255))
+    for hy in (52, 56, 61):
+        r.line(18, hy, 266, hy, "H1")
+        r.line(18, hy - 1, 266, hy - 1, "H2")
+    for wx in (26, 142, 258):
+        r.circle(wx, 57, 8, "T2")
+        r.circle(wx, 57, 6, "T3")
+        r.circle(wx, 57, 2, "H2")
+    for px in range(12, 274, 34):
+        r.rect(px, 36, 6, 52, "T1")
+        r.line(px + 1, 36, px + 1, 87, "T2")
+        r.line(px + 5, 36, px + 5, 87, "T0")
+        if px < 248:
+            r.rect(px + 12, 70, 16, 15, "H0")
+            r.rect(px + 13, 71, 14, 12, "H1")
+            r.rect(px + 15, 73, 10, 7, "H2")
+    _draw_fine_shingles(r, 4, 8, 276, 28, "S", "C1", "C2")
+    r.line(6, 8, 277, 8, "R2")
+    r.line(6, 9, 277, 9, "R1")
+    r.rect(4, 34, 276, 4, "T2")
+    for dx in (82, 186):
+        r.rect(dx, 3, 18, 14, "T1")
+        _draw_fine_shingles(r, dx - 2, 3, 22, 7, "R0", "R1", "R2")
+        r.rect(dx + 5, 10, 8, 6, "T0")
     r.add_outline("K", selective_hue=True)
     r.save_png(os.path.join(sprites_dir, "building_ropewalk.png"))
 
-    # 3. Market Baker Stall (80x48 -> 160x96)
-    b = PixelCanvas(80, 48)
-    # Brick oven chimney on right
-    _draw_brick_wall(b, 60, 2, 12, 22, "R0", "R1", "R2")
-    b.rect(59, 2, 14, 2, "C2")
-    # Timber-framed plaster stall body & wooden counter
-    b.rect(6, 18, 66, 26, "L1")
-    b.rect(6, 29, 66, 15, "T1")
-    b.rect(5, 27, 68, 3, "T3")
-    for tx in (6, 38, 68):
-        b.rect(tx, 18, 4, 26, "T0")
-    # Striped red-and-cream scalloped awning + cast shadow
-    b.rect(4, 19, 70, 2, (24, 18, 20, 120))
-    for ax in range(4, 74, 7):
-        stripe_hi = "I2" if ((ax - 4) // 7) % 2 == 0 else "L0"
-        stripe_lo = "I0" if ((ax - 4) // 7) % 2 == 0 else "L2"
-        b.rect(ax, 6, 7, 11, stripe_hi)
-        b.rect(ax, 15, 7, 3, stripe_lo)
-        b.rect(ax + 1, 18, 5, 1, stripe_lo)  # scalloped hem
-    b.line(4, 6, 73, 6, "T0")
-    # Display trays of golden crusty rye loaves & braided bread
-    for lx in (13, 28, 44, 57):
-        b.ellipse(lx + 4, 25, 4.5, 2.5, "Y0")
-        b.ellipse(lx + 4, 24, 3.8, 2.0, "Y1")
-        b.pset(lx + 3, 23, "Y2")
-        b.pset(lx + 5, 24, "T2")  # bread score mark
+    # 3. Market Baker Stall (96x64 — drawn at 154x102 = 1.60x texel match!)
+    b = PixelCanvas(96, 64)
+    b.ellipse(48, 60, 42, 3.5, (14, 15, 22, 105))
+    _draw_fine_brick(b, 72, 3, 14, 28, "R0", "R1", "R2")
+    b.rect(71, 3, 16, 3, "C2")
+    b.rect(8, 24, 78, 34, "L1")
+    b.rect(8, 38, 78, 20, "T1")
+    b.rect(6, 36, 82, 4, "T3")
+    for tx in (8, 46, 82):
+        b.rect(tx, 24, 5, 34, "T0")
+    b.rect(5, 25, 86, 3, (24, 18, 20, 120))
+    for ax in range(5, 89, 8):
+        stripe_hi = "I2" if ((ax - 5) // 8) % 2 == 0 else "L0"
+        stripe_lo = "I0" if ((ax - 5) // 8) % 2 == 0 else "L2"
+        b.rect(ax, 8, 8, 14, stripe_hi)
+        b.rect(ax, 20, 8, 4, stripe_lo)
+        b.rect(ax + 1, 24, 6, 1, stripe_lo)
+    b.line(5, 8, 90, 8, "T0")
+    for lx in (16, 34, 52, 70):
+        b.ellipse(lx + 4, 33, 5.0, 2.8, "Y0")
+        b.ellipse(lx + 4, 32, 4.2, 2.2, "Y1")
+        b.pset(lx + 3, 31, "Y2")
+        b.pset(lx + 5, 32, "T2")
     b.add_outline("K", selective_hue=True)
     b.save_png(os.path.join(sprites_dir, "building_baker.png"))
 
-    # 4. Uncle Willem's House (130x96 -> 260x192)
-    h = PixelCanvas(130, 96)
-    # Half-timbered cream plaster facade + stone foundation
-    h.rect(8, 36, 114, 56, "L1")
-    h.rect(10, 38, 110, 50, "L0")
-    h.rect(8, 84, 114, 8, "C1")
-    for sx in range(10, 118, 8):
-        h.rect(sx, 85, 6, 6, "C2")
-    # Half-timber beams
-    h.rect(8, 36, 5, 50, "T0")
-    h.rect(117, 36, 5, 50, "T0")
-    h.rect(8, 44, 114, 3, "T1")
-    h.rect(45, 44, 3, 42, "T1")
-    h.rect(82, 44, 3, 42, "T1")
-    # Pitched terracotta clay-shingle roof + chimney
-    _draw_brick_wall(h, 94, 3, 14, 18, "R0", "R1", "R2")
-    h.rect(93, 2, 16, 3, "C2")
-    _draw_shingles(h, 4, 14, 122, 28, "R0", "R1", "R2")
-    h.line(10, 14, 119, 14, "R3")
-    h.line(4, 41, 125, 41, "T0")
+    # 4. Uncle Willem's Cottage (124x92 — drawn at 196x144 = 1.58x texel match, matching houses!)
+    # Finer shingle & brick detail + proportional single oak door (26px tall -> ~41px world height!)
+    h = PixelCanvas(124, 92)
+    h.ellipse(62, 87, 56, 4.0, (14, 15, 22, 110))
+    h.rect(8, 36, 108, 50, "L1")
+    h.rect(10, 38, 104, 46, "L0")
+    # Brick lower foundation + stone coping band (matching image3.png craft)
+    _draw_fine_brick(h, 8, 74, 108, 12, "R0", "R1", "R2")
+    h.rect(8, 72, 108, 3, "C2")
+    for sx in range(10, 114, 8):
+        h.rect(sx, 73, 6, 1, "C3")
+    # Half-timber framing beams
+    h.rect(8, 36, 4, 48, "T0")
+    h.rect(112, 36, 4, 48, "T0")
+    h.rect(8, 44, 108, 3, "T1")
+    h.rect(42, 44, 3, 30, "T1")
+    h.rect(79, 44, 3, 30, "T1")
+    # Brick chimney & crisp fine-course terracotta roof + twin dormers
+    _draw_fine_brick(h, 88, 3, 13, 18, "R0", "R1", "R2")
+    h.rect(87, 2, 15, 3, "C2")
+    _draw_fine_shingles(h, 4, 14, 116, 26, "R0", "R1", "R2")
+    h.line(10, 14, 113, 14, "R3")
+    h.line(4, 39, 119, 39, "T0")
+    for dx in (26, 66):
+        h.rect(dx, 20, 12, 11, "L1")
+        _draw_fine_shingles(h, dx - 1, 15, 14, 6, "R0", "R2", "R3")
+        h.rect(dx + 4, 22, 4, 7, "T0")
+        h.rect(dx + 5, 23, 2, 5, "Y2")
     # Stepped Flemish left gable accent
-    for gx, gw, gy, gh in ((12, 24, 10, 8), (16, 16, 6, 5)):
-        _draw_brick_wall(h, gx, gy, gw, gh, "R0", "R2", "R3")
+    for gx, gw, gy, gh in ((12, 22, 10, 8), (16, 14, 6, 5)):
+        _draw_fine_brick(h, gx, gy, gw, gh, "R0", "R2", "R3")
         h.line(gx, gy, gx + gw - 1, gy, "C3")
-    # Arched studded oak door + stone doorstep
-    h.rect(52, 88, 26, 6, "C2")
-    h.line(52, 88, 77, 88, "C3")
-    h.rect(54, 54, 22, 34, "T0")
-    h.rect(56, 56, 18, 31, "T2")
-    h.line(65, 56, 65, 86, "T1")
-    h.pset(70, 72, "Y2")  # Brass doorknob
-    # Warm leaded-glass mullioned windows + green shutters + flowerbox
-    for wx in (17, 93):
-        h.rect(wx - 4, 54, 4, 18, "E1")
-        h.rect(wx + 20, 54, 4, 18, "E1")
-        h.rect(wx, 54, 20, 18, "T0")
-        h.rect(wx + 2, 56, 16, 14, "Y1")
-        h.rect(wx + 4, 58, 12, 10, "Y2")
-        h.rect(wx + 9, 56, 2, 14, "T0")
-        h.rect(wx + 2, 62, 16, 2, "T0")
-        # Flowerbox
-        h.rect(wx, 72, 20, 4, "T1")
-        for fx in range(wx + 2, wx + 18, 4):
-            h.pset(fx, 70, "G2")
-            h.pset(fx + 1, 70, "R3")
+    # Proportional arched oak cottage door (16px wide x 25px tall -> ~25x39 world px, human scale!)
+    h.rect(53, 84, 18, 4, "C2")
+    h.line(53, 84, 70, 84, "C3")
+    h.rect(54, 60, 16, 24, "T0")
+    h.rect(55, 61, 14, 22, "T2")
+    h.line(62, 61, 62, 82, "T1")
+    h.pset(66, 73, "Y2")  # brass handle
+    h.rect(48, 63, 4, 6, "S")
+    h.rect(49, 64, 2, 4, "Y2")  # warm porch lantern
+    # Shuttered mullioned windows + flowerboxes
+    for wx in (16, 90):
+        h.rect(wx - 3, 52, 3, 15, "E1")
+        h.rect(wx + 18, 52, 3, 15, "E1")
+        h.rect(wx, 52, 18, 15, "T0")
+        h.rect(wx + 2, 54, 14, 11, "Y1")
+        h.rect(wx + 3, 55, 12, 9, "Y2")
+        h.rect(wx + 8, 54, 2, 11, "T0")
+        h.rect(wx + 2, 59, 14, 1, "T0")
+        h.rect(wx, 67, 18, 4, "T1")
+        for fx in range(wx + 2, wx + 16, 3):
+            h.pset(fx, 66, "G2")
+            h.pset(fx + 1, 66, "R3")
     h.add_outline("K", selective_hue=True)
     h.save_png(os.path.join(sprites_dir, "building_house.png"))
 
@@ -650,6 +680,6 @@ def make_buildings(sprites_dir: str):
         o.pset(vx + 1, vy + 1, "G2")
         o.pset(vx + vw - 2, vy + 2, "G1")
     o.add_outline("K", selective_hue=True)
-    o.save_png(os.path.join(sprites_dir, "building_outpost.png"))
+    o.refine_epx_architecture().save_png(os.path.join(sprites_dir, "building_outpost.png"))
 
 

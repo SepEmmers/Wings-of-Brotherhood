@@ -636,11 +636,39 @@ func draw_sprite_building(canvas: Node2D, rect: Rect2, tex_name: String, label_t
 		draw_label_shadowed(canvas, Vector2(rect.position.x + rect.size.x * 0.5, rect.position.y - 8), label_txt, font, 13, Color(0.96, 0.86, 0.58), true)
 
 
+var active_dialogue_speaker_pos: Vector2 = Vector2.INF
+var active_dialogue_player_pos: Vector2 = Vector2.INF
+
+
+func resolve_npc_idle_tex(tex_name: String, pos: Vector2) -> String:
+	if not tex_name.ends_with(".png"):
+		return tex_name
+	var stem := ""
+	if tex_name.ends_with("_0.png"):
+		stem = tex_name.substr(0, tex_name.length() - 6)
+	elif tex_name.ends_with("_1.png"):
+		return tex_name
+	else:
+		stem = tex_name.substr(0, tex_name.length() - 4)
+	var t0 := stem + "_0.png"
+	var t1 := stem + "_1.png"
+	if tex.has(t0) and tex.has(t1):
+		var t_sec := float(Time.get_ticks_msec()) * 0.001
+		var frame := int(floor(t_sec * 2.1 + pos.x * 0.03 + pos.y * 0.02)) % 2
+		return t1 if frame == 1 else t0
+	return tex_name
+
+
 func draw_npc_sprite(canvas: Node2D, pos: Vector2, tex_name: String, npc_name: String, font: Font, label_col: Color = Color(0.95, 0.92, 0.84), flip_h: bool = false) -> void:
 	if _npc_shadow_tex != null:
 		canvas.draw_texture_rect(_npc_shadow_tex, Rect2(pos + Vector2(-10.0, 4.0), Vector2(20.0, 7.0)), false)
 
-	var ntex: Texture2D = get_tex_flipped(tex_name) if flip_h else get_tex(tex_name)
+	var use_flip := flip_h
+	if active_dialogue_speaker_pos.is_finite() and active_dialogue_player_pos.is_finite() and pos.distance_to(active_dialogue_speaker_pos) <= 22.0:
+		if absf(active_dialogue_player_pos.x - pos.x) > 4.0:
+			use_flip = active_dialogue_player_pos.x < pos.x
+	var resolved_tex := resolve_npc_idle_tex(tex_name, pos)
+	var ntex: Texture2D = get_tex_flipped(resolved_tex) if use_flip else get_tex(resolved_tex)
 	if ntex != null:
 		canvas.draw_texture_rect(ntex, Rect2(pos + Vector2(-19.0, -33.0), Vector2(38.0, 44.0)), false)
 	if npc_name != "":

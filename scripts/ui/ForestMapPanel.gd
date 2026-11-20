@@ -115,7 +115,7 @@ func set_player_location(region_id: String, player_pos: Vector2) -> void:
 	if _last_region_mode_check != region_id:
 		_last_region_mode_check = region_id
 		if int(GameState.current_step) >= int(GameState.QuestStep.BOOK2_BRABANT_FENS) or region_id in [
-			"brabant_fens", "louvain", "old_heverlee", "hesbaye_uplands", "namur_citadel", "ardennes_ridge", "blood_citadel"
+			"brabant_fens", "louvain", "louvain_catacombs", "old_heverlee", "old_heverlee_shrine", "anna_ch1_sanctuary", "anna_ch1_raid", "hesbaye_uplands", "namur_citadel", "ardennes_ridge", "blood_citadel"
 		]:
 			view_mode = 2
 		elif region_id in ["wilds", "hearth"] and GameState.has_forest_map:
@@ -166,7 +166,10 @@ func _region_display_name(rid: String) -> String:
 		"brabant_fens": return "Brabant Reed-Fens"
 		"louvain": return "Louvain — Dijle Cloth-Quarter"
 		"louvain_catacombs": return "Louvain — Cathedral & Catacombs"
-		"old_heverlee": return "Old Heverlee Woods & Shrine"
+		"old_heverlee": return "Old Heverlee Woods"
+		"old_heverlee_shrine": return "Old Heverlee — First Golden Shrine"
+		"anna_ch1_sanctuary": return "Sanctuary — Anna's Council"
+		"anna_ch1_raid": return "Brabant River — Blood-Barge Raid"
 		"hesbaye_uplands": return "Hesbaye Uplands"
 		"namur_citadel": return "Namur Cliff-Citadel"
 		"ardennes_ridge": return "Ardennes Mist-Gorges"
@@ -403,6 +406,10 @@ class ForestMapCanvas extends Control:
 				return Vector2(722, 96)
 			"flight":
 				return Vector2(544, 72)
+			"anna_ch1_sanctuary":
+				return Vector2(532, 160)
+			"anna_ch1_raid", "brabant_fens", "louvain", "louvain_catacombs", "old_heverlee", "old_heverlee_shrine":
+				return Vector2(746, 212)
 			_:
 				return Vector2(258, 252)
 

@@ -21,12 +21,26 @@ const ROAD_RECTS: Array[Rect2] = [
 const COVER_SPECS: Array[Dictionary] = [
 	{"rect": Rect2(490, 624, 56, 44), "tex": "prop_crate.png"},
 	{"rect": Rect2(548, 628, 48, 40), "tex": "prop_cloth_bales.png"},
+	{"rect": Rect2(268, 424, 62, 42), "tex": "prop_wine_cask_cart.png"},
+	{"rect": Rect2(258, 728, 56, 42), "tex": "prop_hay_bale.png"},
+	{"rect": Rect2(246, 904, 48, 40), "tex": "prop_cloth_bales.png"},
+	{"rect": Rect2(468, 864, 52, 42), "tex": "prop_crate.png"},
+	{"rect": Rect2(742, 626, 62, 42), "tex": "prop_hay_bale.png"},
+	{"rect": Rect2(812, 632, 38, 36), "tex": "prop_barrel.png"},
 	{"rect": Rect2(880, 412, 64, 44), "tex": "prop_hay_bale.png"},
 	{"rect": Rect2(948, 418, 36, 36), "tex": "prop_barrel.png"},
+	{"rect": Rect2(1018, 624, 52, 42), "tex": "prop_cloth_bales.png"},
+	{"rect": Rect2(1292, 426, 56, 42), "tex": "prop_hay_bale.png"},
 	{"rect": Rect2(1380, 616, 56, 44), "tex": "prop_crate.png"},
 	{"rect": Rect2(1438, 620, 48, 40), "tex": "prop_cloth_bales.png"},
+	{"rect": Rect2(1596, 608, 62, 42), "tex": "prop_wine_cask_cart.png"},
+	{"rect": Rect2(1664, 616, 38, 36), "tex": "prop_barrel.png"},
 	{"rect": Rect2(1790, 398, 64, 44), "tex": "prop_hay_bale.png"},
 	{"rect": Rect2(1858, 404, 48, 40), "tex": "prop_crate.png"},
+	{"rect": Rect2(1972, 594, 56, 42), "tex": "prop_hay_bale.png"},
+	{"rect": Rect2(2042, 378, 52, 42), "tex": "prop_cloth_bales.png"},
+	{"rect": Rect2(2116, 588, 52, 42), "tex": "prop_crate.png"},
+	{"rect": Rect2(2172, 592, 38, 36), "tex": "prop_barrel.png"},
 ]
 
 const PINE_POSITIONS: Array[Vector2] = [
@@ -36,6 +50,10 @@ const PINE_POSITIONS: Array[Vector2] = [
 	Vector2(165, 815), Vector2(250, 945), Vector2(560, 860), Vector2(740, 935),
 	Vector2(935, 800), Vector2(1065, 920), Vector2(1340, 845), Vector2(1530, 910),
 	Vector2(1740, 815), Vector2(1960, 865), Vector2(2140, 745), Vector2(2255, 665),
+	Vector2(215, 340), Vector2(490, 760), Vector2(685, 740), Vector2(855, 755),
+	Vector2(1045, 710), Vector2(1290, 310), Vector2(1425, 325), Vector2(1675, 715),
+	Vector2(1890, 715), Vector2(2030, 695), Vector2(615, 160), Vector2(1245, 720),
+	Vector2(165, 650), Vector2(525, 420), Vector2(1705, 405), Vector2(2190, 200),
 ]
 
 var solid_rects: Array[Rect2] = []
@@ -154,7 +172,7 @@ func _setup_collisions() -> void:
 func _setup_interactables() -> void:
 	interactables = [
 		{"id": "milestone_west", "name": "Read Causeway Milestone", "pos": Vector2(152, 492), "radius": 62.0, "callback": func(): _read_sign("Bruges East Causeway", "WEST: Bruges City East Gate (100 paces)  |  SOUTH FORK: Port Wharf")},
-		{"id": "milestone_cross", "name": "Read Crossroads Signpost", "pos": Vector2(458, 636), "radius": 62.0, "callback": func(): _read_sign("Crossroads Signpost", "<- Bruges East Gate  |  v Port of Bruges Wharf  |  Sanctuary Dunes ->")},
+		{"id": "milestone_cross", "name": "Read Crossroads Signpost", "pos": Vector2(458, 636), "radius": 62.0, "callback": func(): _read_sign("Crossroads Signpost", "WEST: Bruges East Gate  |  SOUTH: Port of Bruges Wharf  |  EAST: Sanctuary Dunes")},
 		{"id": "milestone_east", "name": "Read Dune Marker", "pos": Vector2(2180, 456), "radius": 64.0, "callback": func(): _read_sign("Weathered Dune Post", "East Cliff Trail — Watchmen sweep these dunes after the curfew bell.")},
 		{"id": "outskirts_toll", "name": "Talk to Tollhouse Keeper", "pos": Vector2(634, 404), "radius": 64.0, "callback": _talk_tollkeeper},
 	]
@@ -170,6 +188,15 @@ func _setup_walk_portals() -> void:
 func _setup_wardens() -> void:
 	wardens = [
 		{
+			"name": "South Fork Watcher",
+			"pos": Vector2(382, 780),
+			"waypoints": [Vector2(382, 700), Vector2(382, 955), Vector2(490, 955), Vector2(382, 820)],
+			"wp_idx": 1,
+			"dir": Vector2.DOWN,
+			"pause": 0.2,
+			"alert": 0.0,
+		},
+		{
 			"name": "Causeway Warden",
 			"pos": Vector2(740, 558),
 			"waypoints": [Vector2(690, 558), Vector2(1070, 558), Vector2(1070, 470), Vector2(690, 470)],
@@ -179,11 +206,29 @@ func _setup_wardens() -> void:
 			"alert": 0.0,
 		},
 		{
-			"name": "Ridge Searcher",
-			"pos": Vector2(1620, 540),
-			"waypoints": [Vector2(1340, 540), Vector2(1980, 520), Vector2(1740, 625), Vector2(1340, 605)],
+			"name": "Tollhouse Outrider",
+			"pos": Vector2(900, 628),
+			"waypoints": [Vector2(730, 625), Vector2(1040, 625), Vector2(1040, 540), Vector2(730, 540)],
 			"wp_idx": 1,
 			"dir": Vector2.RIGHT,
+			"pause": 0.5,
+			"alert": 0.0,
+		},
+		{
+			"name": "Canal Bridge Sentinel",
+			"pos": Vector2(1380, 548),
+			"waypoints": [Vector2(1290, 548), Vector2(1590, 548), Vector2(1590, 456), Vector2(1290, 456)],
+			"wp_idx": 1,
+			"dir": Vector2.RIGHT,
+			"pause": 0.1,
+			"alert": 0.0,
+		},
+		{
+			"name": "Ridge Searcher",
+			"pos": Vector2(1820, 520),
+			"waypoints": [Vector2(1620, 540), Vector2(2090, 510), Vector2(1860, 625), Vector2(1620, 605)],
+			"wp_idx": 1,
+			"dir": Vector2.LEFT,
 			"pause": 0.4,
 			"alert": 0.0,
 		},
@@ -202,14 +247,14 @@ func _setup_lights() -> void:
 
 
 func _read_sign(title_str: String, body_str: String) -> void:
-	ui.show_dialogue([{"speaker": title_str, "text": body_str, "portrait": ""}])
+	ui.show_parchment_note(title_str, body_str, "Bruges Outskirts Post")
 
 
 func _talk_tollkeeper() -> void:
 	var msg := "Canal barges are held inside the watergates until dusk. Stay on the cobbles if you're heading toward town."
 	if _is_hostile_patrol():
 		msg = "Church riders have sealed the Zwin bridge looking for stolen dragon contraband. Keep your head down behind those wool bales!"
-	ui.show_dialogue([{"speaker": "Tollkeeper", "text": msg, "portrait": "portrait_narrator.png"}])
+	ui.show_dialogue([{"speaker": "Tollkeeper", "text": msg, "portrait": "portrait_quartermaster.png"}])
 
 
 func _go_to_bruges_city() -> void:
@@ -412,7 +457,7 @@ func get_surface_at(pos: Vector2) -> String:
 
 
 func get_ambience_track() -> String:
-	return "wind"
+	return "stealth"
 
 
 func update_region_lights(_time_val: float) -> void:

@@ -283,13 +283,11 @@ static func draw_world(r) -> void:
 			var w_step := 0 if is_p else (1 if int(floorf(float(hp.get("t", 0.0)) * 12.0)) % 2 == 0 else 2)
 			r.assets.draw_npc_sprite(r, hpos, "npc_watchman_%s_%d.png" % [w_card, w_step], "! HUNTER !" if is_al else ("?" if susp > 0.05 else ""), font, Color(0.98, 0.56, 0.48) if is_al else Color(0.95, 0.84, 0.72), hdir.x < 0.0)
 
-	# Brotherhood Watchtower Keep & Captain Anna
+	# Brotherhood Watchtower Keep (hero enters straight inside to the warm hearth)
 	if cam_rect.grow(100.0).has_point(r.OUTPOST_POS):
 		var out_tex: Texture2D = r.assets.get_tex("building_outpost.png", "building_warehouse.png")
 		if out_tex != null:
 			r.draw_texture_rect(out_tex, Rect2(r.OUTPOST_POS - Vector2(96, 128), Vector2(192, 136)), false)
-		if GameState.black_dragon_found:
-			r.assets.draw_npc_sprite(r, r.OUTPOST_POS + Vector2(-42, 34), "npc_anna.png", "Anna", font)
 
 	r.draw_interact_bubble_if_active(font)
 

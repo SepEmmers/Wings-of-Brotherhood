@@ -22,6 +22,9 @@ if SCRIPTS_DIR not in sys.path:
 from sprite_characters import generate_all_characters
 from sprite_boy_tiers import generate_boy_tiers
 from sprite_portraits import generate_all_portraits
+from sprite_hatching_cutscene import generate_hatching_cutscene_art
+from sprite_heist_cutscene import generate_heist_cutscene_art
+from sprite_old_heverlee_shrine import make_old_heverlee_assets
 from sprite_placeholders import generate_placeholder_sprites
 from kit_buildings import generate_modular_buildings
 from kit_interiors import generate_modular_interiors
@@ -59,6 +62,9 @@ def main():
     make_dragons(SPRITES_DIR)
     make_props_and_icons(SPRITES_DIR)
     make_ui_sprites(SPRITES_DIR)
+    generate_hatching_cutscene_art(SPRITES_DIR)
+    generate_heist_cutscene_art(SPRITES_DIR)
+    make_old_heverlee_assets(SPRITES_DIR)
     n_placeholders = generate_placeholder_sprites(SPRITES_DIR)
     generate_all_audio(AUDIO_DIR)
 

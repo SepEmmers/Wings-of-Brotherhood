@@ -1,8 +1,8 @@
 extends RefCounted
 
 ## Static chamber ground baker, gothic lighting effects, sliding High Altar,
-## pushable crest-carved Sarcophagi & floor traps, and dated Hidden Library visuals
-## for Louvain Abbey Cathedral, Catacombs & Scriptorium (2880x900).
+## 4x4 crest-carved Sarcophagi with under-grave spike traps / ladder / reliquary chest,
+## and dated Hidden Library visuals for Louvain Abbey Cathedral & Catacombs (2880x900).
 
 const MapData := preload("res://scripts/regions/LouvainCatacombsMapData.gd")
 
@@ -20,7 +20,6 @@ static func setup_layers(r) -> void:
 
 static func _draw_static_ground(r, canvas: Node2D) -> void:
 	var assets = r.assets
-	# Void slate obsidian surround across all three isolated underground/interior wings
 	canvas.draw_rect(Rect2(Vector2.ZERO, MapData.WORLD_SIZE), Color(0.05, 0.05, 0.08))
 
 	var bounds := MapData.get_chamber_bounds()
@@ -37,14 +36,14 @@ static func _draw_static_ground(r, canvas: Node2D) -> void:
 	canvas.draw_rect(Rect2(256, 152, 448, 128), Color(0.84, 0.80, 0.72, 0.22))
 	_draw_chamber_walls(canvas, f0, wall_h, wall_v, assets, true)
 
-	# Floor 1: Vaulted Catacombs damp flagstones + recessed grave beds & stone wall dart-slits
+	# Floor 1: Vaulted Catacombs damp flagstones + recessed stone grave beds
 	var f1 := bounds[1]
 	var cry_a: Texture2D = assets.get_tex("tile_catacomb_stone.png")
 	var cry_b: Texture2D = assets.get_tex("tile_catacomb_stone_2.png")
 	assets.draw_varied_tiled_rect(canvas, f1, cry_a, cry_b, 32.0, 11)
 	for g: Dictionary in MapData.get_graves_data():
 		var gp := Vector2(g["pos"])
-		canvas.draw_rect(Rect2(gp - Vector2(22, 23), Vector2(44, 46)), Color(0.11, 0.11, 0.14, 0.86))
+		canvas.draw_rect(Rect2(gp - Vector2(22, 23), Vector2(44, 46)), Color(0.09, 0.09, 0.12, 0.90))
 		canvas.draw_rect(Rect2(gp - Vector2(20, 21), Vector2(40, 42)), Color(0.24, 0.23, 0.26), false, 1.5)
 	_draw_chamber_walls(canvas, f1, wall_h, wall_v, assets, false)
 
@@ -59,7 +58,6 @@ static func _draw_static_ground(r, canvas: Node2D) -> void:
 
 
 static func _draw_chamber_walls(canvas: Node2D, b: Rect2, wall_h: Texture2D, wall_v: Texture2D, assets, has_windows: bool) -> void:
-	# North & South horizontal stone walls + corner bends wrapping cleanly outside chamber bounds
 	_draw_wall_span_h(canvas, b.position.x, b.end.x, b.position.y - 36.0, wall_h)
 	_draw_wall_span_h(canvas, b.position.x, b.end.x, b.end.y, wall_h)
 	_draw_wall_span_v(canvas, b.position.x - 36.0, b.position.y, b.end.y, wall_v)
@@ -75,11 +73,9 @@ static func _draw_chamber_walls(canvas: Node2D, b: Rect2, wall_h: Texture2D, wal
 			canvas.draw_texture_rect(ct, Rect2(Vector2(cspec["pos"]), Vector2(36, 36)), false)
 
 	if has_windows:
-		# Glowing stained-glass lancets inset along Cathedral north & south apse walls
 		for wx: float in [240.0, 360.0, 600.0, 720.0]:
 			canvas.draw_rect(Rect2(wx - 14.0, b.position.y - 26.0, 28.0, 20.0), Color(0.28, 0.56, 0.88, 0.85))
 			canvas.draw_rect(Rect2(wx - 8.0, b.position.y - 24.0, 16.0, 16.0), Color(0.92, 0.72, 0.28, 0.82))
-		# Carved double oak Cathedral entrance doors leading south to Cloister Courtyard
 		var dr: Rect2 = MapData.NAVE_EXIT_RECT
 		canvas.draw_rect(dr.grow(4.0), Color(0.24, 0.22, 0.25))
 		canvas.draw_rect(dr, Color(0.32, 0.19, 0.12))
@@ -134,7 +130,6 @@ static func draw_region_entities(r, t_now: float) -> void:
 
 
 static func _draw_floor0_nave(r, assets, _font: Font, t_now: float, _cam: Rect2) -> void:
-	# Soft colored stained-glass cathedral floor beams
 	var lit_ratio: float = clampf(float(r.nave_candles_lit_count()) / 4.0, 0.25, 1.0)
 	for wx: float in [240.0, 360.0, 600.0, 720.0]:
 		var beam := PackedVector2Array([
@@ -143,16 +138,12 @@ static func _draw_floor0_nave(r, assets, _font: Font, t_now: float, _cam: Rect2)
 		])
 		r.draw_colored_polygon(beam, Color(0.56, 0.72, 0.96, 0.12 * lit_ratio))
 
-	# Crypt stairs under altar (always drawn beneath moving High Altar)
 	var st_tex: Texture2D = assets.get_tex("prop_crypt_stairs.png")
 	if st_tex != null and float(r.altar_slide_k) > 0.05:
 		r.draw_texture_rect(st_tex, Rect2(MapData.ALTAR_STAIRS_POS - Vector2(24, 26), Vector2(48, 52)), false)
 
-	# Y-sorted pews, altar candles, and sliding marble High Altar
 	var altar_pos := MapData.ALTAR_POS - Vector2(float(r.altar_slide_k) * 64.0, 0.0)
-	var drawables: Array[Dictionary] = [
-		{"kind": "altar", "pos": altar_pos, "y": altar_pos.y + 20.0},
-	]
+	var drawables: Array[Dictionary] = [{"kind": "altar", "pos": altar_pos, "y": altar_pos.y + 20.0}]
 	for pw: Rect2 in MapData.get_nave_pews():
 		drawables.append({"kind": "pew", "rect": pw, "y": pw.end.y})
 	var candles := MapData.get_nave_candles()
@@ -173,37 +164,47 @@ static func _draw_floor0_nave(r, assets, _font: Font, t_now: float, _cam: Rect2)
 
 
 static func _draw_floor1_catacombs(r, assets, _font: Font, t_now: float, _cam: Rect2) -> void:
-	# Entry Crypt Staircase back up & Wall Tapestries + Dart Trap Slits
 	var st_tex: Texture2D = assets.get_tex("prop_crypt_stairs.png")
 	if st_tex != null:
 		r.draw_texture_rect(st_tex, Rect2(MapData.CRYPT_STAIRS_UP_POS - Vector2(24, 24), Vector2(48, 48)), false)
 
-	var tap_tex: Texture2D = assets.get_tex("prop_crypt_tapestry.png")
-	if tap_tex != null:
-		r.draw_texture_rect(tap_tex, Rect2(MapData.TAPESTRY_W_POS - Vector2(28, 22), Vector2(56, 46)), false)
-		r.draw_texture_rect(tap_tex, Rect2(MapData.TAPESTRY_N_POS - Vector2(28, 22), Vector2(56, 46)), false)
+	var tap_w: Texture2D = assets.get_tex("prop_crypt_tapestry.png")
+	if tap_w != null:
+		r.draw_texture_rect(tap_w, Rect2(MapData.TAPESTRY_W_POS - Vector2(28, 22), Vector2(56, 46)), false)
+	var tap_n: Texture2D = assets.get_tex("prop_crypt_tapestry_treasure.png", "prop_crypt_tapestry.png")
+	if tap_n != null:
+		r.draw_texture_rect(tap_n, Rect2(MapData.TAPESTRY_N_POS - Vector2(28, 22), Vector2(56, 46)), false)
 
 	var slit_tex: Texture2D = assets.get_tex("prop_dart_trap.png")
 	if slit_tex != null:
 		for ds: Dictionary in MapData.get_dart_slits():
 			r.draw_texture_rect(slit_tex, Rect2(Vector2(ds["pos"]) - Vector2(12, 12), Vector2(24, 24)), false)
 
-	# Revealed under-tomb Ladder Pit
-	if GameState.louvain_crypt_ladder_open:
-		var lad_tex: Texture2D = assets.get_tex("prop_hidden_ladder.png")
-		if lad_tex != null:
-			r.draw_texture_rect(lad_tex, Rect2(MapData.CRYPT_LADDER_DOWN_POS - Vector2(18, 22), Vector2(36, 44)), false)
-
-	# Floor spike trap grates beside wrong tombs
+	# Draw what lies UNDER EVERY pushed grave directly inside its exposed grave pit!
 	var sp_down: Texture2D = assets.get_tex("prop_floor_spikes_down.png")
 	var sp_up: Texture2D = assets.get_tex("prop_floor_spikes_up.png")
-	for tr: Dictionary in r.active_spike_traps:
-		var up: bool = float(tr.get("timer", 0.0)) > 0.0
-		var stex: Texture2D = sp_up if up else sp_down
-		if stex != null:
-			r.draw_texture_rect(stex, Rect2(Vector2(tr["pos"]) - Vector2(16, 14), Vector2(32, 28)), false)
+	var lad_tex: Texture2D = assets.get_tex("prop_hidden_ladder.png")
+	var ch_tex: Texture2D = assets.get_tex("prop_treasure_chest_open.png" if GameState.louvain_crypt_treasure_taken else "prop_treasure_chest_closed.png")
+	for g: Dictionary in MapData.get_graves_data():
+		var gid := String(g["id"])
+		if not bool(r.grave_states.get(gid, false)):
+			continue
+		var gp := Vector2(g["pos"])
+		var sec := String(g.get("secret", ""))
+		if sec == "library" and lad_tex != null:
+			r.draw_texture_rect(lad_tex, Rect2(gp - Vector2(18, 20), Vector2(36, 42)), false)
+		elif sec == "treasure" and ch_tex != null:
+			if not GameState.louvain_crypt_treasure_taken:
+				var gp_glint := 0.5 + 0.5 * sin(t_now * 4.5)
+				r.draw_circle(gp, 18.0 + gp_glint * 3.0, Color(1.0, 0.84, 0.32, 0.22 + 0.14 * gp_glint))
+			r.draw_texture_rect(ch_tex, Rect2(gp - Vector2(16, 14), Vector2(32, 28)), false)
+		else:
+			var sprung: bool = float(r.under_grave_traps.get(gid, 0.0)) > 0.0
+			var stx: Texture2D = sp_up if sprung else sp_down
+			if stx != null:
+				r.draw_texture_rect(stx, Rect2(gp - Vector2(17, 15), Vector2(34, 30)), false)
 
-	# Y-sorted Pillars, Torches, and Pushable Crest Sarcophagi
+	# Y-sorted Pillars, Torches, and Uniform Sarcophagi
 	var drawables: Array[Dictionary] = []
 	for pp: Vector2 in MapData.get_crypt_pillars():
 		drawables.append({"kind": "pillar", "pos": pp, "y": pp.y + 18.0})
@@ -229,20 +230,19 @@ static func _draw_floor1_catacombs(r, assets, _font: Font, t_now: float, _cam: R
 			if gtex != null:
 				r.draw_texture_rect(gtex, Rect2(Vector2(d["pos"]) - Vector2(21, 27), Vector2(42, 54)), false)
 
-	# Fired trap dart bolts
 	for db: Dictionary in r.trap_bolts:
 		var bp := Vector2(db["pos"])
 		r.draw_line(bp - Vector2(db["dir"]) * 9.0, bp + Vector2(db["dir"]) * 9.0, Color(0.95, 0.36, 0.28), 2.8)
 
 
 static func _draw_floor2_library(r, assets, font: Font, _t_now: float, _cam: Rect2) -> void:
-	# Ladder Pit Back Up to Catacombs
 	var lad_tex: Texture2D = assets.get_tex("prop_hidden_ladder.png")
 	if lad_tex != null:
 		r.draw_texture_rect(lad_tex, Rect2(MapData.LIBRARY_LADDER_UP_POS - Vector2(18, 22), Vector2(36, 44)), false)
 
 	var sh_tex: Texture2D = assets.get_tex("prop_library_shelf.png")
 	var lc_tex: Texture2D = assets.get_tex("prop_date_lectern.png")
+	var desk_tex: Texture2D = assets.get_tex("prop_archive_desk.png", "prop_date_lectern.png")
 	var drawables: Array[Dictionary] = [{"kind": "index", "pos": MapData.INDEX_DESK_POS, "y": MapData.INDEX_DESK_POS.y + 16.0}]
 	for sh: Dictionary in MapData.get_library_shelves():
 		drawables.append({"kind": "shelf", "rect": sh["rect"], "year": String(sh["year"]), "y": Rect2(sh["rect"]).end.y})
@@ -256,9 +256,9 @@ static func _draw_floor2_library(r, assets, font: Font, _t_now: float, _cam: Rec
 			var sr: Rect2 = d["rect"]
 			r.draw_texture_rect(sh_tex, sr, false)
 			assets.draw_label_shadowed(r, Vector2(sr.get_center().x, sr.position.y - 6.0), "ANNO %s" % String(d["year"]), font, 10, Color(0.96, 0.84, 0.44), true)
-		elif k == "index" and lc_tex != null:
+		elif k == "index" and desk_tex != null:
 			var ip := Vector2(d["pos"])
-			r.draw_texture_rect(lc_tex, Rect2(ip - Vector2(20, 20), Vector2(40, 42)), false)
+			r.draw_texture_rect(desk_tex, Rect2(ip - Vector2(21, 16), Vector2(42, 32)), false)
 			assets.draw_label_shadowed(r, ip + Vector2(0, -24), "1431 INDEX", font, 10, Color(0.96, 0.86, 0.52), true)
 		elif k == "lectern" and lc_tex != null:
 			var lp := Vector2(d["pos"])
@@ -285,6 +285,7 @@ static func _draw_foreground(r, fg: Node2D) -> void:
 		return
 	var font: Font = r.assets.get_ui_font()
 	var cmd_k := GameState.get_action_key_label("dragon_command")
+	var push_k := GameState.get_action_key_label("rope_action")
 	var ppos: Vector2 = r.player.position
 	if int(r.current_floor) == 0:
 		var candles := MapData.get_nave_candles()
@@ -298,3 +299,6 @@ static func _draw_foreground(r, fg: Node2D) -> void:
 			if not bool(r.crypt_torches[i]) and ppos.distance_to(torches[i]) <= 86.0:
 				r.assets.draw_interact_bubble(fg, torches[i] + Vector2(0, -34), "[%s] Kindle Crypt Torch" % cmd_k, font)
 				return
+		var g_near: Dictionary = r.find_pushable_grave_near(ppos)
+		if not g_near.is_empty():
+			r.assets.draw_interact_bubble(fg, Vector2(g_near["pos"]) + Vector2(0, -28), "[%s] Push Tomb Slab" % push_k, font)

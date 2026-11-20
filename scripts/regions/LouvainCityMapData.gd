@@ -19,9 +19,11 @@ const CATHEDRAL_EXIT_RETURN_POS := Vector2(1410, 516)
 const SOUTH_GATE_BARRICADE_RECT := Rect2(996, 1938, 108, 36)
 
 const FOUNTAIN_POS := Vector2(1050, 945)
-const CLAY_BANK_POS := Vector2(560, 560)
+const CLAY_BANK_POS := Vector2(556, 562)
 const BELL_MOULD_POS := Vector2(736, 480)
 const FOUNDRY_WINCH_POS := Vector2(800, 488)
+const MASON_STONE_POS := Vector2(592, 906)
+const MASON_CRANE_POS := Vector2(1148, 764)
 const HERBALIST_SLUICE_POS := Vector2(440, 1510)
 const CONFISCATED_CHEST_POS := Vector2(1748, 976)
 const SOUTH_SIGN_POS := Vector2(954, 1892)
@@ -29,10 +31,17 @@ const SOUTH_SIGN_POS := Vector2(954, 1892)
 
 static func get_water_rects() -> Array[Rect2]:
 	return [
-		Rect2(456, 128, 84, 572),      # Dijle North reach (behind Foundry)
+		Rect2(456, 0, 84, 700),        # Dijle North reach flowing cleanly under NW Waterpoort from map top
 		Rect2(436, 784, 124, 202),     # Vismarkt widened inner harbor basin
 		Rect2(456, 1094, 84, 166),     # Dijle Mid reach (south of Brusselsestraat bridge)
-		Rect2(456, 1348, 84, 624),     # Dijle South reach -> watergate exit
+		Rect2(456, 1348, 84, 752),     # Dijle South reach flowing under SW Waterpoort out south edge
+	]
+
+
+static func get_watergates() -> Array[Vector2]:
+	return [
+		Vector2(498, 244),             # North Dijle Waterpoort spanning NW diagonal rampart gap
+		Vector2(498, 1856),            # South Dijle Waterpoort spanning SW diagonal rampart gap
 	]
 
 
@@ -101,42 +110,42 @@ static func get_garden_lawns() -> Array[Rect2]:
 static func get_buildings() -> Array[Dictionary]:
 	return [
 		# Central Civic & Scholarly Heart (Grote Markt & Lakenhalle)
-		{"tex": "bldg_louvain_st_peters.png", "rect": Rect2(900, 504, 276, 240)},
-		{"tex": "bldg_louvain_stadhuis.png",  "rect": Rect2(946, 1084, 214, 186)},
-		{"tex": "bldg_louvain_lakenhalle.png","rect": Rect2(652, 1138, 256, 190)},
+		{"tex": "bldg_louvain_st_peters.png", "rect": Rect2(854, 424, 368, 330)},
+		{"tex": "bldg_louvain_stadhuis.png",  "rect": Rect2(920, 1066, 260, 212)},
+		{"tex": "bldg_louvain_lakenhalle.png","rect": Rect2(600, 1096, 316, 232)},
 
-		# NW Vismarkt Harbor, Bell-Foundry & North Mechelsestraat
-		{"tex": "city_louvain_mason_4a.png",  "rect": Rect2(582, 290, 152, 128)},
-		{"tex": "city_bakery_5a.png",         "rect": Rect2(580, 540, 156, 134)},
-		{"tex": "city_house_4a.png",          "rect": Rect2(1524, 1556, 152, 128)},
-		{"tex": "city_house_4b.png",          "rect": Rect2(836, 224, 148, 126)},
-		{"tex": "city_manor_7a.png",          "rect": Rect2(582, 1732, 198, 150)},
-		{"tex": "city_cottage_4c.png",        "rect": Rect2(812, 1732, 148, 124)},
+		# NW Vismarkt Harbor, Bell-Foundry & North Mechelsestraat (Leuven Gobertange & Speklagen)
+		{"tex": "bldg_louvain_foundry.png",   "rect": Rect2(576, 276, 168, 138)},
+		{"tex": "city_leuven_bakery_5a.png",  "rect": Rect2(580, 540, 156, 134)},
+		{"tex": "city_leuven_house_4a.png",   "rect": Rect2(1524, 1556, 152, 128)},
+		{"tex": "city_louvain_mason_4a.png",  "rect": Rect2(836, 224, 148, 126)},
+		{"tex": "city_leuven_manor_7a.png",   "rect": Rect2(582, 1732, 198, 150)},
+		{"tex": "city_leuven_cottage_4c.png", "rect": Rect2(812, 1732, 148, 124)},
 
 		# West Entry Row (inside Brusselsepoort west of Dijle)
-		{"tex": "city_house_4b.png",          "rect": Rect2(262, 540, 150, 126)},
-		{"tex": "city_bakery_5a.png",         "rect": Rect2(252, 822, 162, 138)},
+		{"tex": "city_leuven_house_4b.png",   "rect": Rect2(262, 540, 150, 126)},
+		{"tex": "city_leuven_bakery_5a.png",  "rect": Rect2(252, 822, 162, 138)},
 
 		# SW Dyers' Island & Childhood Hunters' Tavern
-		{"tex": "city_tavern_6a.png",         "rect": Rect2(218, 1104, 184, 148)},
+		{"tex": "city_leuven_tavern_6a.png",  "rect": Rect2(248, 1104, 184, 148)},
 		{"tex": "city_louvain_dyer_5b.png",   "rect": Rect2(228, 1384, 168, 138)},
 
 		# NE Abbey Cathedral Enclosed Inside Four-Walled Cloister Precinct
-		{"tex": "bldg_bruges_cathedral.png",  "rect": Rect2(1303, 294, 214, 178)},
-		{"tex": "bldg_beguinage_court.png",   "rect": Rect2(1618, 490, 188, 154)},
+		{"tex": "bldg_louvain_abbey.png",     "rect": Rect2(1284, 264, 252, 224)},
+		{"tex": "city_leuven_begijnhof_5a.png","rect": Rect2(1618, 490, 188, 154)},
 
 		# East Tiensestraat University & Catchpole Garrison Quarter
 		{"tex": "city_louvain_scholar_5a.png","rect": Rect2(1390, 822, 166, 136)},
-		{"tex": "city_garrison_7c.png",       "rect": Rect2(1690, 804, 198, 148)},
-		{"tex": "city_weavers_6b.png",        "rect": Rect2(1320, 1114, 178, 146)},
+		{"tex": "city_leuven_garrison_7c.png","rect": Rect2(1648, 804, 198, 148)},
+		{"tex": "city_leuven_weavers_6b.png", "rect": Rect2(1320, 1114, 178, 146)},
 		{"tex": "city_louvain_scholar_5a.png","rect": Rect2(1524, 1126, 166, 136)},
-		{"tex": "city_house_4a.png",          "rect": Rect2(1320, 1360, 152, 128)},
-		{"tex": "city_manor_7a.png",          "rect": Rect2(1498, 1352, 198, 150)},
+		{"tex": "city_leuven_house_4a.png",   "rect": Rect2(1320, 1360, 152, 128)},
+		{"tex": "city_leuven_manor_7a.png",   "rect": Rect2(1498, 1352, 198, 150)},
 
 		# South Naamsestraat Gatehouse Residential Row
-		{"tex": "city_cottage_4c.png",        "rect": Rect2(640, 1584, 148, 124)},
-		{"tex": "city_house_4b.png",          "rect": Rect2(812, 1584, 150, 126)},
-		{"tex": "city_house_4a.png",          "rect": Rect2(1140, 1584, 152, 128)},
+		{"tex": "city_leuven_cottage_4c.png", "rect": Rect2(640, 1584, 148, 124)},
+		{"tex": "city_leuven_house_4b.png",   "rect": Rect2(812, 1584, 150, 126)},
+		{"tex": "city_leuven_house_4a.png",   "rect": Rect2(1140, 1584, 152, 128)},
 		{"tex": "city_louvain_mason_4a.png",  "rect": Rect2(1316, 1584, 150, 126)},
 	]
 
@@ -205,8 +214,8 @@ static func get_lantern_positions() -> Array[Vector2]:
 
 static func get_octagonal_vertices() -> Array[Vector2]:
 	return [
-		Vector2(560, 146), Vector2(1540, 146), Vector2(1954, 560), Vector2(1954, 1540),
-		Vector2(1540, 1954), Vector2(560, 1954), Vector2(146, 1540), Vector2(146, 560),
+		Vector2(596, 146), Vector2(1504, 146), Vector2(1954, 596), Vector2(1954, 1504),
+		Vector2(1504, 1954), Vector2(596, 1954), Vector2(146, 1504), Vector2(146, 596),
 	]
 
 
@@ -222,36 +231,38 @@ static func get_wall_towers() -> Array[Vector2]:
 
 static func get_poorts() -> Array[Dictionary]:
 	return [
-		{"tex": "prop_louvain_poort_v.png", "rect": Rect2(96, 944, 116, 192)},   # Brusselsepoort (West open road span)
-		{"tex": "prop_louvain_poort_h.png", "rect": Rect2(966, 1910, 168, 92)},  # Naamsepoort (South)
-		{"tex": "prop_louvain_poort_h.png", "rect": Rect2(966, 98, 168, 92)},    # Mechelsepoort (North)
-		{"tex": "prop_louvain_poort_v.png", "rect": Rect2(1888, 944, 116, 192)}, # Tiensepoort (East open road span)
+		{"tex": "prop_louvain_poort_v.png", "rect": Rect2(72, 868, 176, 300)},   # Brusselsepoort (West open road span)
+		{"tex": "prop_louvain_poort_h.png", "rect": Rect2(920, 1830, 260, 186)}, # Naamsepoort (South)
+		{"tex": "prop_louvain_poort_h.png", "rect": Rect2(920, 10, 260, 186)},   # Mechelsepoort (North)
+		{"tex": "prop_louvain_poort_v.png", "rect": Rect2(1852, 868, 176, 300)}, # Tiensepoort (East open road span)
 	]
 
 
 static func get_cardinal_walls() -> Array[Rect2]:
 	return [
-		Rect2(560, 128, 420, 36), Rect2(1120, 128, 420, 36),
-		Rect2(560, 1936, 420, 36), Rect2(1120, 1936, 420, 36),
-		Rect2(128, 560, 36, 420), Rect2(128, 1100, 36, 440),
-		Rect2(1936, 560, 36, 420), Rect2(1936, 1100, 36, 440),
+		Rect2(596, 128, 384, 36), Rect2(1120, 128, 384, 36),
+		Rect2(596, 1936, 384, 36), Rect2(1120, 1936, 384, 36),
+		Rect2(128, 596, 36, 356), Rect2(128, 1120, 36, 384),
+		Rect2(1936, 596, 36, 356), Rect2(1936, 1120, 36, 384),
 	]
 
 
 static func get_diagonal_wall_steps() -> Array[Rect2]:
 	var steps: Array[Rect2] = []
 	var corners: Array = [
-		[Vector2(560, 146), Vector2(146, 560)],
-		[Vector2(1540, 146), Vector2(1954, 560)],
-		[Vector2(146, 1540), Vector2(560, 1954)],
-		[Vector2(1954, 1540), Vector2(1540, 1954)],
+		[Vector2(596, 146), Vector2(146, 596)],
+		[Vector2(1504, 146), Vector2(1954, 596)],
+		[Vector2(146, 1504), Vector2(596, 1954)],
+		[Vector2(1954, 1504), Vector2(1504, 1954)],
 	]
 	for pair in corners:
 		var a: Vector2 = pair[0]
 		var b: Vector2 = pair[1]
-		for si in range(9):
-			var p: Vector2 = a.lerp(b, float(si) / 8.0)
-			steps.append(Rect2(p - Vector2(30, 30), Vector2(60, 60)))
+		for si in range(11):
+			var p: Vector2 = a.lerp(b, float(si) / 10.0)
+			if p.x >= 452.0 and p.x <= 544.0:
+				continue
+			steps.append(Rect2(p - Vector2(26, 26), Vector2(52, 52)))
 	return steps
 
 
@@ -272,8 +283,8 @@ static func get_static_colliders() -> Array[Rect2]:
 		Rect2(0, -24, WORLD_SIZE.x, 24),
 		Rect2(0, WORLD_SIZE.y, WORLD_SIZE.x, 24),
 		# Brusselsepoort & Naamsepoort flanking bastion piers (keeping roadway open)
-		Rect2(112, 954, 76, 42),
-		Rect2(112, 1084, 76, 44),
+		Rect2(104, 932, 84, 58),
+		Rect2(104, 1088, 84, 58),
 		Rect2(966, 1924, 36, 60),
 		Rect2(1098, 1924, 36, 60),
 		# Sealed North Mechelsepoort & East Tiensepoort thresholds

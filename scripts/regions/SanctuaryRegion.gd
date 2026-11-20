@@ -10,6 +10,7 @@ const SanctuaryVillageDataScript := preload("res://scripts/regions/SanctuaryVill
 const SanctuaryMontageCutsceneScript := preload("res://scripts/regions/SanctuaryMontageCutscene.gd")
 const SanctuaryArrivalCutsceneScript := preload("res://scripts/regions/SanctuaryArrivalCutscene.gd")
 const SanctuaryAct4Script := preload("res://scripts/regions/SanctuaryAct4.gd")
+const SanctuaryHeistCutsceneScript := preload("res://scripts/regions/SanctuaryHeistCutscene.gd")
 
 const ACT2_ANNA_POS := Vector2(310, 495)
 const ACT2_VIRELAI_RING_POS := Vector2(365, 455)
@@ -104,6 +105,7 @@ var act4_escape_active: bool = false
 var act4_escape_stage: int = 0
 var act4_escape_t: float = 0.0
 var act4_escape_wait_dlg: bool = false
+var heist_cutscene: CanvasLayer = null
 
 
 func _ready() -> void:
@@ -142,6 +144,8 @@ func _ready() -> void:
 		sanctuary_lights.append(sl)
 
 	SanctuaryDrawScript.setup_layers(self)
+	heist_cutscene = SanctuaryHeistCutsceneScript.new()
+	add_child(heist_cutscene)
 	SanctuaryAct4Script.init_state(self)
 
 	interactables = [
@@ -257,7 +261,13 @@ func enter_region(opts: Dictionary = {}) -> void:
 	ui.refresh_hud()
 
 
-func get_ambience_track() -> String: return "sanctuary"
+func get_ambience_track() -> String:
+	if heist_cutscene != null and bool(heist_cutscene.get("active")) and String(heist_cutscene.get("mode")) == "escape":
+		var st := int(heist_cutscene.get("stage"))
+		return "flight" if st >= 3 else ("combat" if st >= 1 else "stealth")
+	if act4_escape_active:
+		return "flight"
+	return "stealth" if GameState.sanctuary_phase == 5 else "sanctuary"
 
 func get_lighting_tint() -> Color:
 	if montage_tint_active: return montage_tint
@@ -431,9 +441,10 @@ func _exit_tree() -> void:
 		player.cutscene_hidden = false
 	if director != null and director.camera != null:
 		director.camera.zoom = Vector2(1.5, 1.5)
-	if (montage_active or arrival_active or act4_intro_active or act4_escape_active) and ui != null:
+	if (montage_active or arrival_active or act4_intro_active or act4_escape_active or (heist_cutscene != null and bool(heist_cutscene.get("active")))) and ui != null:
 		ui.hide_time_stamp()
 		ui.set_fade(0.0, true)
+		ui.set_hud_visible(true)
 		ui.set_cinematic_mode(false)
 
 
@@ -467,7 +478,7 @@ func handle_region_input(event: InputEvent) -> bool:
 
 
 func is_interactable_active(id: String) -> bool:
-	if montage_active or arrival_active or act4_intro_active or act4_escape_active:
+	if montage_active or arrival_active or act4_intro_active or act4_escape_active or (heist_cutscene != null and bool(heist_cutscene.get("active"))):
 		return false
 	var ph := GameState.sanctuary_phase
 	if ph == 5:

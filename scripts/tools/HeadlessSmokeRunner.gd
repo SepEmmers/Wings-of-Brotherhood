@@ -25,6 +25,11 @@ const EXPECTED_BOOK2_M2_REGIONS := [
 	"brabant_fens",
 	"louvain",
 	"louvain_catacombs",
+	"old_heverlee",
+	"old_heverlee_shrine",
+	"anna_ch1_sanctuary",
+	"anna_ch1_raid",
+	"custom_dungeon",
 ]
 
 var main = null
@@ -45,6 +50,7 @@ static func should_run() -> bool:
 func start(main_node) -> void:
 	main = main_node
 	active = true
+	GameState.suppress_item_banner = true
 	_preset_queue.clear()
 	_visited_regions.clear()
 	_tested_presets = 0
@@ -173,12 +179,20 @@ func _verify_book2_systems() -> bool:
 		_fail("PlayerCombatHelper post-dodge counter thrust failed.")
 		return false
 	var mock_foes := [
-		{"pos": Vector2(100, 100), "has_shield": true, "alive": true},
-		{"pos": Vector2(130, 110), "has_shield": false, "alive": true},
+		{"pos": Vector2(100, 100), "has_shield": true, "hp": 3, "alive": true},
+		{"pos": Vector2(130, 110), "has_shield": false, "hp": 2, "alive": true},
 	]
+	var bind1_res: Dictionary = PlayerCombatHelperScript.resolve_knot_targets("clove_hitch", Vector2(20, 100), Vector2(102, 100), mock_foes)
+	if not bool(bind1_res.get("hit", false)) or not bool(mock_foes[0].get("permanently_bound", false)) or bool(mock_foes[1].get("permanently_bound", false)):
+		_fail("PlayerCombatHelper clove_hitch single-target permanent bind failed.")
+		return false
+	var bind2_res: Dictionary = PlayerCombatHelperScript.resolve_knot_targets("clove_hitch", Vector2(20, 100), Vector2(130, 110), mock_foes)
+	if not bool(bind2_res.get("hit", false)) or bool(mock_foes[0].get("permanently_bound", false)) or not bool(mock_foes[1].get("permanently_bound", false)):
+		_fail("PlayerCombatHelper clove_hitch rebinding second foe did not release the first.")
+		return false
 	var yank_res: Dictionary = PlayerCombatHelperScript.resolve_knot_targets("bruges_whipping", Vector2(20, 100), Vector2(105, 100), mock_foes)
-	if not bool(yank_res.get("hit", false)) or bool(mock_foes[0].get("has_shield", true)):
-		_fail("PlayerCombatHelper bruges_whipping shield-yank failed.")
+	if not bool(yank_res.get("hit", false)) or bool(mock_foes[0].get("has_shield", true)) or int(mock_foes[0].get("hp", 3)) != 2:
+		_fail("PlayerCombatHelper bruges_whipping whip damage or shield-yank failed.")
 		return false
 	var snare_res: Dictionary = PlayerCombatHelperScript.resolve_knot_targets("bowline", Vector2(20, 100), Vector2(115, 105), mock_foes)
 	if (snare_res.get("snared", []) as Array).size() < 2:
@@ -294,6 +308,23 @@ func _verify_book2_systems() -> bool:
 		_fail("BrabantFens camera remained stuck instead of following player.")
 		return false
 
+	# Verify hand-drawn animated dramatic hatching cutscene progresses through stages & opens naming modal
+	main._playtest_jump_to("book2_egg_hatching")
+	if not bool(main.active_region.get("hatch_anim_active")) or main.active_region.hatching_cutscene == null or not main.active_region.hatching_cutscene.active:
+		_fail("book2_egg_hatching preset did not launch BrabantHatchingCutscene cleanly.")
+		return false
+	for _ht in range(60):
+		if not bool(main.active_region.get("hatch_anim_active")):
+			break
+		main.active_region.step_region(0.25)
+		main.ui.process_ui(0.25)
+	if not GameState.brabant_hatched or bool(main.active_region.get("hatch_anim_active")) or not main.ui.dragon_name_panel.visible:
+		_fail("BrabantHatchingCutscene did not finish into dragon_name_panel cleanly.")
+		return false
+	main.ui.dragon_name_panel._name_input.text = "Aurelius"
+	main.ui.dragon_name_panel._confirm()
+	main.ui.hide_all_overlays()
+
 	# Verify Milestone 2 Brabant Fens & Louvain Dragon Assist puzzle triggers & camera follow end-to-end
 	main._playtest_jump_to("book2_brabant_hatchling")
 	if not main.active_region.on_dragon_command(Vector2(1378, 565), Vector2(1378, 554), Vector2.UP, 1) or not GameState.brabant_vent_unlocked or main.active_region.get_last_dragon_command_kind() != "vent_crawl":
@@ -310,6 +341,31 @@ func _verify_book2_systems() -> bool:
 	main.ui.hide_all_overlays()
 	GameState.hatchling_fed_count = 1
 	GameState.dragon_bond = 22
+	# Verify live companion eating animation runs & finishes cleanly
+	main.player.position = Vector2(930, 700)
+	main.player.facing = Vector2.RIGHT
+	main.companion.global_position = Vector2(910, 712)
+	main.companion.play_eat_animation(main.active_region.CAMPFIRE_POS)
+	for _et in range(18):
+		main.companion.step(0.12)
+	if bool(main.companion.get("_eat_active")):
+		_fail("HatchlingCompanion eating animation did not finish within expected timeline.")
+		return false
+	# Verify live companion moves to unlit Way-Brazier -> spews embers -> ignites it asynchronously!
+	var bz0 := Vector2(main.active_region.brazier_states[0]["pos"])
+	main.player.position = bz0 + Vector2(0, 48)
+	main.player.facing = Vector2.UP
+	main.companion.global_position = bz0 + Vector2(-42, 54)
+	main.companion._command_cooldown = 0.0
+	main.companion.trigger_command()
+	if bool(main.active_region.brazier_states[0].get("lit", false)) or String(main.companion.get("_cmd_phase")) != "approach":
+		_fail("HatchlingCompanion [R] did not enter approach-and-spew phase before igniting brazier.")
+		return false
+	for _kt in range(20):
+		main.companion.step(0.06)
+	if not bool(main.active_region.brazier_states[0].get("lit", false)) or String(main.companion.get("_cmd_phase")) != "":
+		_fail("HatchlingCompanion [R] approach-and-spew did not move to brazier and ignite it cleanly.")
+		return false
 	if not main.active_region.on_dragon_command(Vector2(1078, 840), Vector2(1078, 860), Vector2.DOWN, 1) or not GameState.brabant_briar_burned or main.active_region.get_last_dragon_command_kind() != "ember_puff":
 		_fail("BrabantFens Hatchling Ember Puff did not burn fen briars after feeding.")
 		return false
@@ -318,6 +374,22 @@ func _verify_book2_systems() -> bool:
 	main.active_region.step_region(0.1)
 	if main.camera.position.distance_to(main.player.position) > 2.0:
 		_fail("LouvainCity camera remained stuck instead of following player.")
+		return false
+	# Verify Master Mason Matthijs Tower-Race sidequest & block-stacking crane minigame
+	var lv_map = main.active_region.MapData
+	var qh = main.active_region.QuestsHelper
+	qh.on_interact_mason(main.active_region)
+	main.ui.hide_all_overlays()
+	qh.on_interact_mason_stone(main.active_region, lv_map)
+	main.ui.hide_all_overlays()
+	qh.open_crane_builder(main.active_region)
+	if not main.ui.mason_minigame.visible:
+		_fail("Louvain Sint-Pieterskerk Crane Minigame did not open after hauling stone.")
+		return false
+	main.ui.mason_minigame.debug_complete_all_tiers()
+	main.ui.hide_all_overlays()
+	if not GameState.louvain_mason_done or not GameState.inventory.has("Master Mason's Plumb-Signet"):
+		_fail("Louvain Masonry Tower-Race sidequest failed to complete and crown St. Peter's.")
 		return false
 	for top_x: float in [1256.0, 1340.0, 1410.0, 1480.0, 1560.0]:
 		if main.active_region.has_clear_line(Vector2(top_x, 220), Vector2(top_x, 320), main.active_region.static_colliders, 6.0):
@@ -336,19 +408,44 @@ func _verify_book2_systems() -> bool:
 		return false
 	main.active_region._switch_floor(1, cat_map.CRYPT_ENTRY_SPAWN, Vector2.UP, true)
 	var hp_before: int = GameState.boy_hp
+	var max_hp_before: int = GameState.boy_max_hp
+	var pellets_before: int = GameState.smoke_pellets
 	var graves: Array = cat_map.get_graves_data()
-	main.player.position = Vector2(graves[0]["pos"]) + Vector2(0, 26)
-	main.active_region._attempt_push_grave(graves[0])
-	if GameState.boy_hp >= hp_before or main.active_region.active_spike_traps.is_empty():
-		_fail("Catacombs wrong-grave push failed to trigger spike/dart trap.")
+	var wrong_grave: Dictionary = graves[0] # r1c1 (cross)
+	main.active_region._on_read_tapestry_west()
+	main.active_region._on_read_tapestry_north()
+	main.active_region._on_inspect_grave(wrong_grave)
+	main.ui.dialogue_panel.hide_box()
+	main.player.position = Vector2(wrong_grave["pos"]) + Vector2(0, 32)
+	main.active_region._attempt_push_grave(wrong_grave)
+	var gid_wrong := String(wrong_grave["id"])
+	if GameState.boy_hp >= hp_before or not bool(main.active_region.grave_states.get(gid_wrong, false)) or float(main.active_region.under_grave_traps.get(gid_wrong, 0.0)) <= 0.0:
+		_fail("Catacombs wrong-grave push failed to slide lid and expose under-grave spike trap.")
 		return false
-	var sol_grave: Dictionary = {}
+	var lib_grave: Dictionary = {}
+	var tres_grave: Dictionary = {}
 	for gd: Dictionary in graves:
-		if bool(gd.get("solution", false)):
-			sol_grave = gd
-	main.active_region._attempt_push_grave(sol_grave)
-	if not GameState.louvain_crypt_ladder_open:
-		_fail("Catacombs eastern Stag sarcophagus did not reveal the Hidden Library ladder.")
+		if String(gd.get("secret", "")) == "library":
+			lib_grave = gd
+		elif String(gd.get("secret", "")) == "treasure":
+			tres_grave = gd
+	# Test actual [F] (rope_action) shove input near the Hidden Library Stag grave (r3c2)
+	main.player.position = Vector2(lib_grave["pos"]) + Vector2(0, 32)
+	var push_ev := InputEventAction.new()
+	push_ev.action = "rope_action"
+	push_ev.pressed = true
+	if not main.active_region.handle_region_input(push_ev) or not GameState.louvain_crypt_ladder_open:
+		_fail("Catacombs [F] shove on Library Stag tomb (r3c2) did not reveal Hidden Library ladder.")
+		return false
+	# Test second secret grave: Treasure Chalice (r3c4) -> crimson chest -> +1 Max Heart & Reliquary
+	main.player.position = Vector2(tres_grave["pos"]) + Vector2(0, 32)
+	if not main.active_region.handle_region_input(push_ev) or not GameState.louvain_crypt_treasure_open:
+		_fail("Catacombs [F] shove on Treasure Chalice tomb (r3c4) did not reveal secret chest.")
+		return false
+	main.active_region._on_interact_treasure_chest()
+	main.ui.dialogue_panel.hide_box()
+	if not GameState.louvain_crypt_treasure_taken or GameState.boy_max_hp != max_hp_before + 1 or GameState.smoke_pellets < pellets_before + 2 or not GameState.inventory.has("Prior's Crimson Reliquary"):
+		_fail("Catacombs secret Chalice chest did not award +1 Max Heart, Smoke-Pellets, and Prior's Crimson Reliquary.")
 		return false
 	main.active_region._switch_floor(2, cat_map.LIBRARY_ENTRY_SPAWN, Vector2.UP, true)
 	for lc: Dictionary in cat_map.get_library_lecterns():
@@ -375,6 +472,100 @@ func _verify_book2_systems() -> bool:
 		_fail("DialogueBox failed to auto-expand height for long wrapped lines.")
 		return false
 	main.ui.hide_all_overlays()
+
+	# Verify Milestone 3: Old Heverlee Woods, Golden Dragon Shrine, Kestrel Dispatch & Anna Ch. 1 Raid
+	main._playtest_jump_to("book2_old_heverlee")
+	var hev_map = load("res://scripts/regions/OldHeverleeMapData.gd")
+	main.active_region._on_inspect_ambush()
+	main.ui.hide_all_overlays()
+	main.active_region._on_read_cipher()
+	main.ui.hide_all_overlays()
+	main.player.position = hev_map.ROPE_POST_N + Vector2(0, -18)
+	main.active_region.on_rope_cast_hit(hev_map.ROPE_POST_S, "bowline")
+	if main.player.position.y < hev_map.ROPE_POST_S.y or not GameState.heverlee_ambush_inspected or not GameState.inventory.has("Inquisitor Field Cipher"):
+		_fail("OldHeverlee Woods ambush forensics, cipher, or creek rope grapple failed.")
+		return false
+	if not main.active_region.on_dragon_command(hev_map.BRIAR_POS + Vector2(0, 26), hev_map.BRIAR_POS, Vector2.UP, 1) or not GameState.heverlee_briar_burned:
+		_fail("OldHeverlee Ember Puff did not burn dry shrine brambles.")
+		return false
+
+	main._playtest_jump_to("book2_old_heverlee_shrine")
+	var shr_map = load("res://scripts/regions/OldHeverleeShrineMapData.gd")
+	main.active_region._on_inspect_relief()
+	main.ui.hide_all_overlays()
+	for _s in range(4):
+		main.active_region._attempt_slide_boulder(Vector2.RIGHT)
+	if not main.active_region.plate_pressed:
+		_fail("Golden Shrine keystone boulder failed to lock Bronze Weight Plate.")
+		return false
+	if not main.active_region.on_dragon_command(shr_map.SERPENT_VENT_POS + Vector2(0, 20), shr_map.SERPENT_VENT_POS, Vector2.UP, 1) or not GameState.shrine_gate1_open:
+		_fail("Golden Shrine Hatchling Serpent Vent crawl did not unseal Gate 1.")
+		return false
+	main.active_region.on_dragon_command(shr_map.SCONCE_W_POS + Vector2(0, 20), shr_map.SCONCE_W_POS, Vector2.UP, 1)
+	main.player.position = shr_map.CHASM_POST_W + Vector2(-18, 0)
+	main.active_region.on_rope_cast_hit(shr_map.CHASM_POST_E, "bowline")
+	main.active_region.on_dragon_command(shr_map.SCONCE_E_POS + Vector2(0, 20), shr_map.SCONCE_E_POS, Vector2.UP, 1)
+	if not GameState.shrine_gate2_open:
+		_fail("Golden Shrine Twin Braziers + Chasm Rope anchor did not open Gate 2.")
+		return false
+	main.active_region._on_claim_relic_key()
+	main.ui.hide_all_overlays()
+	if not GameState.boy_heverlee_relic_found or not GameState.inventory.has("Old Heverlee Shrine Key"):
+		_fail("Golden Shrine Relic Key claim did not update state and inventory.")
+		return false
+
+	main._playtest_jump_to("book2_anna_sanctuary")
+	main.ui.hide_all_overlays()
+	main.active_region._choose_deception("ostend")
+	main.ui.hide_all_overlays()
+	main.active_region._on_pack_satchel()
+	main.ui.hide_all_overlays()
+	if GameState.active_perspective != "anna" or not GameState.anna_ch1_council_done or not GameState.inventory.has("Anna's Hesbaye Supply Satchel"):
+		_fail("Anna Ch. 1 Sanctuary Council bluff or Hesbaye satchel packing failed.")
+		return false
+
+	main._playtest_jump_to("book2_anna_barge_raid")
+	main.ui.hide_all_overlays()
+	for bg: Dictionary in main.active_region.barges:
+		bg["hp"] = 0
+		bg["alive"] = false
+	main.active_region._check_raid_victory()
+	main.ui.hide_all_overlays()
+	if not GameState.anna_ch1_raid_done or not GameState.anna_sortie1_done or not GameState.kestrel_courier_ch1_delivered:
+		_fail("Anna Ch. 1 Virelai River Blood-Barge Raid did not complete victory state.")
+		return false
+
+	# Verify DialogueOverrides & CustomDungeonRegion puzzle chain (Meuse Reliquary Vault)
+	var ov_script = load("res://scripts/data/DialogueOverrides.gd")
+	var ov_res: Dictionary = ov_script.apply_line_override({"speaker": "%DRAGON%", "text": "Hello %PLAYER%"})
+	if String(ov_res.get("text", "")) != ("Hello " + GameState.player_name):
+		_fail("DialogueOverrides failed to substitute %PLAYER% / %DRAGON% tokens.")
+		return false
+	main._playtest_jump_to("book2_custom_dungeon")
+	main.ui.hide_all_overlays()
+	var boulder_node: Dictionary = main.active_region._find_node("boulder_1")
+	for _bs in range(4):
+		main.active_region._slide_boulder(boulder_node, Vector2.RIGHT)
+	if not bool(main.active_region.node_states.get("plate_1", false)):
+		_fail("CustomDungeonRegion boulder did not trigger weight plate.")
+		return false
+	var vent_pos: Vector2 = main.active_region.get_node_pos(main.active_region._find_node("vent_1"))
+	if not main.active_region.on_dragon_command(vent_pos + Vector2(0, 20), vent_pos, Vector2.UP, 1) or not bool(main.active_region.node_states.get("gate_1", false)):
+		_fail("CustomDungeonRegion serpent vent did not open Gate 1.")
+		return false
+	var bw_pos: Vector2 = main.active_region.get_node_pos(main.active_region._find_node("brazier_w"))
+	var be_pos: Vector2 = main.active_region.get_node_pos(main.active_region._find_node("brazier_e"))
+	main.active_region.on_dragon_command(bw_pos + Vector2(0, 20), bw_pos, Vector2.UP, 1)
+	main.active_region.on_dragon_command(be_pos + Vector2(0, 20), be_pos, Vector2.UP, 1)
+	if not bool(main.active_region.node_states.get("gate_2", false)):
+		_fail("CustomDungeonRegion twin ember braziers did not open Gate 2.")
+		return false
+	main.active_region._push_sarcophagus(main.active_region._find_node("tomb_secret"))
+	main.active_region._on_claim_treasure(main.active_region._find_node("chest_1"))
+	main.ui.hide_all_overlays()
+	if not GameState.inventory.has("Meuse Reliquary Seal"):
+		_fail("CustomDungeonRegion secret tomb + reliquary chest did not award reward item.")
+		return false
 
 	# Verify TitleScreenPanel, PauseMenuPanel, SettingsPanel, AudioServer buses & hints/controls wiring
 	if AudioServer.get_bus_index("Ambience") < 0 or AudioServer.get_bus_index("SFX") < 0 or AudioServer.get_bus_index("Voices") < 0:

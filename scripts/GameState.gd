@@ -38,6 +38,9 @@ const KNOT_DATA: Dictionary = KnotCatalogScript.KNOT_DATA
 signal state_updated
 signal knot_changed(knot_id: String)
 signal settings_changed
+signal item_acquired(item_name: String)
+
+var suppress_item_banner: bool = false
 
 var player_name: String = "Bram"
 var sister_name: String = "Clara"
@@ -159,13 +162,29 @@ var louvain_clay_collected: bool = false
 var louvain_herbalist_done: bool = false
 var louvain_survivor_done: bool = false
 var louvain_ring_found: bool = false
+var louvain_mason_started: bool = false
+var louvain_mason_stone_hauled: bool = false
+var louvain_mason_done: bool = false
 var louvain_vent_opened: bool = false
 var louvain_brazier_lit: bool = false
 var louvain_crypt_ladder_open: bool = false
+var louvain_crypt_treasure_open: bool = false
+var louvain_crypt_treasure_taken: bool = false
 var louvain_found_1422: bool = false
 var louvain_found_1426: bool = false
 var louvain_archive_read: bool = false
 var louvain_breakout_won: bool = false
+# Book II Act I Milestone 3 flags (Old Heverlee, First Golden Shrine & Anna Chapter 1)
+var heverlee_ambush_inspected: bool = false
+var heverlee_scouts_cleared: bool = false
+var heverlee_briar_burned: bool = false
+var shrine_ritual_seen: bool = false
+var shrine_gate1_open: bool = false
+var shrine_gate2_open: bool = false
+var heverlee_kestrel_sent: bool = false
+var anna_ch1_council_done: bool = false
+var anna_ch1_deception_choice: String = ""
+var anna_ch1_raid_done: bool = false
 
 # Knot progression
 var rope_unlocked: bool = true
@@ -185,6 +204,9 @@ var dialogue_speed_mode: String = "normal"
 var screen_shake_enabled: bool = true
 var display_mode: String = "windowed"
 var show_playtest_hud_btn: bool = false
+var hd2d_mode_enabled: bool = true
+var invert_cam_x_arrows: bool = false
+var invert_cam_y_arrows: bool = false
 
 
 func _ready() -> void:
@@ -311,13 +333,28 @@ func reset_book2_state(from_book1_finale: bool = false) -> void:
 	louvain_herbalist_done = false
 	louvain_survivor_done = false
 	louvain_ring_found = false
+	louvain_mason_started = false
+	louvain_mason_stone_hauled = false
+	louvain_mason_done = false
 	louvain_vent_opened = false
 	louvain_brazier_lit = false
 	louvain_crypt_ladder_open = false
+	louvain_crypt_treasure_open = false
+	louvain_crypt_treasure_taken = false
 	louvain_found_1422 = false
 	louvain_found_1426 = false
 	louvain_archive_read = false
 	louvain_breakout_won = false
+	heverlee_ambush_inspected = false
+	heverlee_scouts_cleared = false
+	heverlee_briar_burned = false
+	shrine_ritual_seen = false
+	shrine_gate1_open = false
+	shrine_gate2_open = false
+	heverlee_kestrel_sent = false
+	anna_ch1_council_done = false
+	anna_ch1_deception_choice = ""
+	anna_ch1_raid_done = false
 	if from_book1_finale:
 		boy_age = 17
 		boy_hp = boy_max_hp
@@ -448,6 +485,8 @@ func add_item(item_name: String) -> void:
 	if not inventory.has(item_name):
 		inventory.append(item_name)
 		emit_signal("state_updated")
+		if not suppress_item_banner:
+			emit_signal("item_acquired", item_name)
 
 func remove_item(item_name: String) -> void:
 	if inventory.has(item_name):
@@ -502,6 +541,9 @@ func _apply_gameplay_defaults() -> void:
 	screen_shake_enabled = bool(defs["screen_shake_enabled"])
 	display_mode = str(defs["display_mode"])
 	show_playtest_hud_btn = bool(defs["show_playtest_hud_btn"])
+	hd2d_mode_enabled = bool(defs["hd2d_mode_enabled"])
+	invert_cam_x_arrows = bool(defs["invert_cam_x_arrows"])
+	invert_cam_y_arrows = bool(defs["invert_cam_y_arrows"])
 
 
 func reset_audio_settings() -> void:

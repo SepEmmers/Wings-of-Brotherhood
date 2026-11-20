@@ -8,6 +8,7 @@ extends Node2D
 
 signal posture_changed(new_posture: String)
 signal command_triggered(action_kind: String, origin: Vector2, target_pos: Vector2, stage: int)
+signal eat_finished
 
 var assets = null
 var player: CharacterBody2D = null
@@ -30,6 +31,26 @@ var _vent_return_pos: Vector2 = Vector2.ZERO
 var _command_cooldown: float = 0.0
 var _gold_sense_cd: float = 0.0
 var _gold_sense_glow: float = 0.0
+
+# Approach -> Ember-Spew command state machine
+var _cmd_phase: String = "" # "" | "approach" | "spew"
+var _cmd_timer: float = 0.0
+var _cmd_stand_pos: Vector2 = Vector2.ZERO
+var _cmd_target_pos: Vector2 = Vector2.ZERO
+var _cmd_aim: Vector2 = Vector2.DOWN
+var _cmd_kind: String = ""
+var _cmd_has_region_target: bool = false
+var _cmd_fired: bool = false
+var _spew_emit_acc: float = 0.0
+
+# Campfire / Ration Eating animation state
+var _eat_active: bool = false
+var _eat_t: float = 0.0
+var _eat_stage: int = 0
+var _eat_morsel_start: Vector2 = Vector2.ZERO
+var _eat_morsel_pos: Vector2 = Vector2.ZERO
+var _eat_stand_pos: Vector2 = Vector2.ZERO
+var _eat_done_cb: Callable = Callable()
 
 # Automatic stuck-time telepathic hint monitor
 var _hint_context_id: String = ""
@@ -86,6 +107,10 @@ func clear_hint_context() -> void:
 	_hint_tier_shown = 0
 	_vent_crawl_t = 0.0
 	_vent_return_pos = Vector2.ZERO
+	_cmd_phase = ""
+	_cmd_timer = 0.0
+	_eat_active = false
+	_eat_done_cb = Callable()
 	_ember_motes.clear()
 
 
@@ -102,7 +127,7 @@ func handle_input(event: InputEvent) -> bool:
 	if region != null and not region.uses_standard_player_movement():
 		return false
 
-	if event.is_action_pressed("dragon_posture"):
+	if event.is_action_pressed("dragon_posture") and _cmd_phase == "" and not _eat_active:
 		var np := GameState.cycle_companion_posture()
 		if np == "stay":
 			stay_pos = global_position
@@ -122,56 +147,156 @@ func handle_input(event: InputEvent) -> bool:
 
 
 func trigger_command() -> void:
-	if player == null or _vent_crawl_t > 0.0:
+	if player == null or _vent_crawl_t > 0.0 or _cmd_phase != "" or _eat_active:
 		return
-	if GameState.companion_posture == "sling":
-		GameState.set_companion_posture("assist")
-		global_position = player.global_position + player.facing * 18.0
 	var stage := GameState.active_companion_stage
 	var pf: Vector2 = player.facing
 	var aim: Vector2 = pf.normalized() if pf.length_squared() > 0.01 else Vector2.DOWN
-	facing = aim
-	var origin: Vector2 = global_position
+	if GameState.companion_posture == "sling":
+		GameState.set_companion_posture("assist")
+		global_position = player.global_position + aim * 12.0
+
+	var default_kind := _command_kind_for_stage(stage)
 	var reach: float = 72.0 + float(stage) * 16.0
-	var target_pos: Vector2 = origin + aim * reach
-	var kind := _command_kind_for_stage(stage)
+	var origin: Vector2 = global_position
+	var raw_target: Vector2 = player.global_position + aim * reach
+	var tinfo: Dictionary = {}
+	if region != null and region.has_method("find_dragon_command_target"):
+		tinfo = region.find_dragon_command_target(origin, raw_target, aim, stage)
 
-	if region != null and region.has_method("on_dragon_command"):
-		var handled: bool = bool(region.on_dragon_command(origin, target_pos, aim, stage))
-		if region.has_method("get_last_dragon_command_kind"):
-			var rkind := str(region.get_last_dragon_command_kind())
-			if not rkind.is_empty():
-				kind = rkind
-		if handled:
+	_cmd_fired = false
+	_spew_emit_acc = 0.0
+	if not tinfo.is_empty():
+		_cmd_has_region_target = true
+		_cmd_target_pos = Vector2(tinfo["target_pos"])
+		_cmd_kind = String(tinfo.get("kind", default_kind))
+		var default_stand: Vector2 = _cmd_target_pos - (_cmd_target_pos - origin).normalized() * 24.0
+		_cmd_stand_pos = Vector2(tinfo.get("stand_pos", default_stand))
+		var ta := _cmd_target_pos - _cmd_stand_pos
+		_cmd_aim = ta.normalized() if ta.length_squared() > 0.01 else aim
+	else:
+		_cmd_has_region_target = false
+		_cmd_kind = default_kind
+		_cmd_stand_pos = player.global_position + aim * 26.0
+		_cmd_target_pos = _cmd_stand_pos + aim * reach
+		_cmd_aim = aim
+
+	_command_cooldown = 0.85
+	# If target is already right in front of snout (`<= 9px`), skip travel and begin spew immediately
+	if global_position.distance_to(_cmd_stand_pos) <= 9.0:
+		global_position = _cmd_stand_pos
+		_begin_command_action()
+	else:
+		_cmd_phase = "approach"
+		_cmd_timer = 0.45
+		facing = (_cmd_stand_pos - global_position).normalized()
+	queue_redraw()
+
+
+func _begin_command_action() -> void:
+	var stage := GameState.active_companion_stage
+	facing = _cmd_aim
+	_pulse_origin = global_position
+	_pulse_target = _cmd_target_pos
+	_pulse_aim = _cmd_aim
+	_active_pulse_kind = _cmd_kind
+
+	if _cmd_kind == "vent_crawl":
+		_cmd_phase = ""
+		if region != null and region.has_method("on_dragon_command"):
+			region.on_dragon_command(_cmd_stand_pos, _cmd_target_pos, _cmd_aim, stage)
 			notify_progress()
-
-	_pulse_origin = origin
-	_pulse_target = target_pos
-	_pulse_aim = aim
-	_active_pulse_kind = kind
-
-	if kind == "vent_crawl":
 		_vent_crawl_t = float(region.get_vent_crawl_duration()) if (region != null and region.has_method("get_vent_crawl_duration")) else 1.25
 		_vent_return_pos = Vector2(region.get_vent_return_pos()) if (region != null and region.has_method("get_vent_return_pos")) else Vector2.ZERO
 		_active_pulse_t = 0.0
 		_ember_motes.clear()
 		_command_cooldown = _vent_crawl_t + 0.12
 		SoundManager.play_hatch_chirp()
-		emit_signal("command_triggered", kind, origin, target_pos, stage)
+		emit_signal("command_triggered", _cmd_kind, _pulse_origin, _pulse_target, stage)
 		queue_redraw()
 		return
 
-	_command_cooldown = 0.72 if stage == 1 else 0.60
+	_cmd_phase = "spew"
+	_cmd_timer = 0.36
+	_spew_emit_acc = 0.0
 	_active_pulse_t = 0.44
-	_spawn_breath_motes(kind, aim)
-	if kind == "dry_cough":
+	is_moving = false
+	if _cmd_kind == "dry_cough":
+		_spawn_breath_motes("dry_cough", _cmd_aim)
 		SoundManager.play_blip(1.38)
-	elif kind == "ember_puff":
+	elif _cmd_kind == "ember_puff":
+		_spawn_aimed_ember_stream(_cmd_aim, _cmd_target_pos, 5)
 		SoundManager.play_oven_crackle()
 		SoundManager.play_hatch_chirp()
 	else:
+		_spawn_breath_motes(_cmd_kind, _cmd_aim)
 		SoundManager.play_chime()
-	emit_signal("command_triggered", kind, origin, target_pos, stage)
+	if not _cmd_has_region_target:
+		emit_signal("command_triggered", _cmd_kind, _pulse_origin, _pulse_target, stage)
+	queue_redraw()
+
+
+func _spawn_aimed_ember_stream(aim: Vector2, target_pos: Vector2, count: int) -> void:
+	var snout := aim * 12.0 + Vector2(0.0, -9.0)
+	var to_t := to_local(target_pos) - snout
+	var travel_dir := to_t.normalized() if to_t.length_squared() > 0.01 else aim
+	var base_ang := travel_dir.angle()
+	var dist := clampf(to_t.length(), 28.0, 96.0)
+	for i in range(count):
+		var a := base_ang + randf_range(-0.22, 0.22)
+		var spd := randf_range(maxf(80.0, dist * 2.2), maxf(135.0, dist * 3.6))
+		var ml := randf_range(0.22, 0.36)
+		var col := Color(0.98, 0.86, 0.34, 0.95) if (i % 2 == 0) else Color(0.94, 0.46, 0.16, 0.95)
+		_ember_motes.append({
+			"pos": snout + Vector2(randf_range(-2.0, 2.0), randf_range(-2.0, 2.0)),
+			"vel": Vector2(cos(a), sin(a)) * spd,
+			"life": ml,
+			"max_life": ml,
+			"sz": randf_range(1.8, 3.0),
+			"col": col,
+			"smoke": false,
+		})
+	_ember_motes.append({
+		"pos": snout,
+		"vel": travel_dir * randf_range(38.0, 62.0),
+		"life": 0.38,
+		"max_life": 0.38,
+		"sz": randf_range(2.6, 3.8),
+		"col": Color(0.46, 0.42, 0.40, 0.42),
+		"smoke": true,
+	})
+
+
+func play_eat_animation(fire_pos: Vector2 = Vector2.ZERO, on_done: Callable = Callable()) -> void:
+	if player == null:
+		if on_done.is_valid():
+			on_done.call()
+		return
+	var p_face: Vector2 = player.facing
+	if GameState.companion_posture == "sling":
+		GameState.set_companion_posture("assist")
+		global_position = player.global_position + p_face * 12.0
+	_cmd_phase = ""
+	_vent_crawl_t = 0.0
+	_eat_done_cb = on_done
+	_eat_active = true
+	_eat_t = 0.0
+	_eat_stage = 0
+	var to_fire: Vector2 = p_face
+	if fire_pos != Vector2.ZERO:
+		to_fire = fire_pos - player.global_position
+	var side_sign := 1.0 if (to_fire.x >= -4.0) else -1.0
+	if absf(to_fire.x) < 6.0 and global_position.x > player.global_position.x:
+		side_sign = 1.0
+	_eat_morsel_start = player.global_position + Vector2(side_sign * 4.0, -14.0)
+	_eat_morsel_pos = player.global_position + Vector2(side_sign * 26.0, 6.0)
+	_eat_stand_pos = _eat_morsel_pos + Vector2(-side_sign * 13.0 if global_position.x < _eat_morsel_pos.x else side_sign * 13.0, -1.0)
+	# Ensure dragonet always approaches from opposite side of meat vs Boy if clear
+	if absf(_eat_stand_pos.x - player.global_position.x) < 16.0:
+		_eat_stand_pos = _eat_morsel_pos + Vector2(side_sign * 14.0, 0.0)
+	facing = (_eat_morsel_pos - _eat_stand_pos).normalized()
+	_ember_motes.clear()
+	SoundManager.play_ui_click()
 	queue_redraw()
 
 
@@ -240,10 +365,112 @@ func step(delta: float) -> void:
 		queue_redraw()
 		return
 
+	if _eat_active:
+		_step_eating(delta)
+		queue_redraw()
+		return
+
+	if _cmd_phase != "":
+		_step_command_sequence(delta)
+		queue_redraw()
+		return
+
 	_update_follow_movement(delta)
 	_step_gold_sense()
 	_step_automatic_hint(delta)
 	queue_redraw()
+
+
+func _step_command_sequence(delta: float) -> void:
+	_cmd_timer -= delta
+	if _cmd_phase == "approach":
+		var diff := _cmd_stand_pos - global_position
+		var dist := diff.length()
+		if dist <= 6.0 or _cmd_timer <= 0.0:
+			global_position = _cmd_stand_pos
+			_begin_command_action()
+		else:
+			var step_d := minf(dist, 240.0 * delta)
+			global_position += diff.normalized() * step_d
+			facing = diff.normalized()
+			is_moving = true
+			walk_phase += delta * 15.0
+	elif _cmd_phase == "spew":
+		is_moving = false
+		facing = _cmd_aim
+		if _cmd_kind == "ember_puff" and _cmd_timer > 0.12:
+			_spew_emit_acc += delta
+			if _spew_emit_acc >= 0.045:
+				_spew_emit_acc = 0.0
+				_spawn_aimed_ember_stream(_cmd_aim, _cmd_target_pos, 3)
+		if not _cmd_fired and _cmd_timer <= 0.22:
+			_cmd_fired = true
+			if _cmd_has_region_target and region != null and region.has_method("on_dragon_command"):
+				var handled := bool(region.on_dragon_command(_cmd_stand_pos, _cmd_target_pos, _cmd_aim, GameState.active_companion_stage))
+				if handled:
+					notify_progress()
+				emit_signal("command_triggered", _cmd_kind, _pulse_origin, _cmd_target_pos, GameState.active_companion_stage)
+		if _cmd_timer <= 0.0:
+			_cmd_phase = ""
+			if GameState.companion_posture == "stay":
+				stay_pos = global_position
+
+
+func _step_eating(delta: float) -> void:
+	var prev_t := _eat_t
+	_eat_t += delta
+	if _eat_t < 0.34:
+		var diff := _eat_stand_pos - global_position
+		var dist := diff.length()
+		if dist > 2.5:
+			global_position += diff.normalized() * minf(dist, 220.0 * delta)
+			facing = diff.normalized()
+			is_moving = true
+			walk_phase += delta * 15.0
+		else:
+			facing = (_eat_morsel_pos - _eat_stand_pos).normalized()
+			is_moving = false
+	else:
+		is_moving = false
+		facing = (_eat_morsel_pos - _eat_stand_pos).normalized()
+
+	for t_hit in [0.42, 0.78, 1.14]:
+		if prev_t < t_hit and _eat_t >= t_hit:
+			if t_hit < 1.0:
+				SoundManager.play_dragon_chomp()
+			else:
+				SoundManager.play_dragon_purr()
+			var m_loc := to_local(_eat_morsel_pos)
+			for _c in range(6):
+				var ang := randf() * TAU
+				var spd := randf_range(16.0, 48.0)
+				_ember_motes.append({
+					"pos": m_loc + Vector2(randf_range(-3.0, 3.0), randf_range(-3.0, 2.0)),
+					"vel": Vector2(cos(ang), sin(ang) - 0.5) * spd,
+					"life": 0.35, "max_life": 0.35, "sz": randf_range(1.6, 2.6),
+					"col": Color(0.86, 0.32, 0.24, 0.95), "smoke": false,
+				})
+	if prev_t < 1.40 and _eat_t >= 1.40:
+		SoundManager.play_hatch_chirp()
+		var n_loc := facing * 10.0 + Vector2(0.0, -10.0)
+		for i in range(6):
+			var sa := randf_range(-PI * 0.85, -PI * 0.15)
+			_ember_motes.append({
+				"pos": n_loc,
+				"vel": Vector2(cos(sa), sin(sa)) * randf_range(18.0, 44.0),
+				"life": 0.45, "max_life": 0.45, "sz": randf_range(1.8, 2.8),
+				"col": Color(0.98, 0.82, 0.32, 0.95) if (i % 2 == 0) else Color(0.94, 0.50, 0.18, 0.95),
+				"smoke": false,
+			})
+	if _eat_t >= 1.72:
+		_eat_active = false
+		if GameState.companion_posture == "stay":
+			stay_pos = global_position
+		emit_signal("eat_finished")
+		var cb := _eat_done_cb
+		_eat_done_cb = Callable()
+		if cb.is_valid():
+			cb.call()
 
 
 func _update_follow_movement(delta: float) -> void:
@@ -348,14 +575,10 @@ func _draw() -> void:
 		return
 
 	if GameState.companion_posture == "sling":
-		# Hooded leather & emerald sling satchel icon over Boy's shoulder with subtle golden scale glint
-		var sling_tex: Texture2D = assets.get_tex("prop_hatchling_sling.png") if assets != null else null
-		var bob := sin(float(assets.time_elapsed) * 3.5) * 1.2 if assets != null else 0.0
-		if sling_tex != null:
-			draw_texture_rect(sling_tex, Rect2(Vector2(2, -22 + bob), Vector2(18, 18)), false)
-		else:
-			var gl := 0.35 + 0.25 * sin(float(assets.time_elapsed) * 4.0 if assets != null else 0.0)
-			draw_circle(Vector2(6, -12), 4.0, Color(0.96, 0.78, 0.26, gl))
+		# Worn sling visual is rendered natively on PlayerBoy.sling_sprite; only render Gold-Sense pulse rings here.
+		if _gold_sense_glow > 0.0:
+			var pulse_r := 14.0 + (1.0 - fmod(_gold_sense_glow, 1.0)) * 12.0
+			draw_arc(Vector2(0, -8), pulse_r, 0.0, TAU, 20, Color(0.98, 0.82, 0.32, clampf(_gold_sense_glow, 0.0, 0.75)), 1.6)
 		return
 
 	var step_idx := 0
@@ -384,6 +607,7 @@ func _draw() -> void:
 
 	var dir_key := "down"
 	var flip_x := false
+	var lunge_off := Vector2.ZERO
 	if absf(facing.x) > 0.30 and absf(facing.y) > 0.30:
 		dir_key = "diag_down" if facing.y >= 0.0 else "diag_up"
 		flip_x = facing.x < 0.0
@@ -392,17 +616,47 @@ func _draw() -> void:
 		flip_x = facing.x < 0.0
 	elif facing.y < 0.0:
 		dir_key = "up"
+
 	var tex_key := "dragon_gold_s1_%s_%d.png" % [dir_key, step_idx]
+	if _eat_active and _eat_t >= 0.32:
+		flip_x = facing.x < 0.0
+		var phase_bite := fmod(_eat_t - 0.32, 0.36)
+		var is_open := (_eat_t < 1.38) and (phase_bite < 0.17)
+		tex_key = "dragon_gold_s1_eat_%d.png" % (0 if is_open else 1)
+		if is_open:
+			lunge_off = facing * 3.0
+	elif _cmd_phase == "spew":
+		lunge_off = _cmd_aim * 4.0
+		if absf(_cmd_aim.x) >= 0.25 or _cmd_aim.y >= 0.0:
+			flip_x = _cmd_aim.x < 0.0
+			tex_key = "dragon_gold_s1_eat_0.png"
+
 	var tex: Texture2D = null
 	if assets != null:
 		tex = assets.get_tex_flipped(tex_key) if flip_x else assets.get_tex(tex_key)
 	if tex != null:
 		var sz := Vector2(26.0 + float(GameState.active_companion_stage) * 5.0, 24.0 + float(GameState.active_companion_stage) * 4.5)
-		var pos := Vector2(-sz.x * 0.5, -sz.y + 4.0 + bob)
+		var pos := Vector2(-sz.x * 0.5, -sz.y + 4.0 + bob) + lunge_off
 		draw_texture_rect(tex, Rect2(pos, sz), false)
 	else:
 		draw_circle(Vector2(0, -8), 8.0, Color(0.24, 0.22, 0.24))
 		draw_circle(Vector2(0, -10), 4.0, Color(0.94, 0.76, 0.26))
+
+	# Draw carved meat ration tossed on the ground / flying arc while eating
+	if _eat_active and _eat_t < 1.24 and assets != null:
+		var meat_tex: Texture2D = assets.get_tex("prop_meat_cut.png")
+		if meat_tex != null:
+			var mp_world: Vector2 = _eat_morsel_pos
+			var arc_y: float = 0.0
+			if _eat_t < 0.34:
+				var pu := clampf(_eat_t / 0.34, 0.0, 1.0)
+				mp_world = _eat_morsel_start.lerp(_eat_morsel_pos, pu)
+				arc_y = -sin(pu * PI) * 18.0
+			var m_sc := 1.0 if _eat_t < 0.44 else (0.78 if _eat_t < 0.80 else 0.48)
+			var mp_loc := to_local(mp_world)
+			draw_circle(mp_loc + Vector2(0, 2), 4.5 * m_sc, Color(0.05, 0.06, 0.08, 0.36))
+			var m_sz := Vector2(12.0, 12.0) * m_sc
+			draw_texture_rect(meat_tex, Rect2(mp_loc - Vector2(m_sz.x * 0.5, m_sz.y - 2.0) + Vector2(0.0, arc_y), m_sz), false)
 
 	for m: Dictionary in _ember_motes:
 		var a := clampf(float(m["life"]) / float(m["max_life"]), 0.0, 1.0)
